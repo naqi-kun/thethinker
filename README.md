@@ -1,61 +1,73 @@
-# TheThinker Frontend
+# TheThinker
 
 > Stop wasting time thinking about what to wear. **Scan · Schedule · Style**
 
-Vite React TypeScript frontend for the TheThinker outfit recommendation app.
+AI-powered outfit recommendation app. Users scan their wardrobe, sync their calendar, and receive a daily outfit suggestion based on occasion, weather, and personal style.
 
-## What This Branch Sets Up
+Xsolla School Project · 2025
 
-- Vite React app with TypeScript under `frontend/`
-- Vertical slice folder structure by product feature, aligned with the `KAN-7` design-system research branch
-- `nvm` Node version pinning
-- ESLint and Prettier
-- GitLab CI jobs for frontend linting and build
-- `CLAUDE.md` frontend contributor guide
-- No Tailwind setup and no implemented frontend pages yet
+---
 
-## Prerequisites
+## Repository Structure
 
-- Node 22.16.0
-- `nvm`
+```
+backend/       ← Go API server (DDD)
+frontend/      ← React SPA (Vite + Tailwind v4)
+api/           ← OpenAPI spec (shared contract)
+k8s/           ← Kubernetes manifests
+docker-compose.yml  ← local Postgres for development
+```
 
-## Run Locally
+---
+
+## Getting Started
+
+### Backend
 
 ```bash
+# Requires Go 1.26 — see backend/.go-version
+cd backend
+cp .env.example ../.env   # edit with your values
+docker compose up -d      # start Postgres
+go run ./cmd/api
+```
+
+Server starts on `http://localhost:8080`. Hit `GET /healthz` to confirm.
+
+### Frontend
+
+```bash
+# Requires Node 22.16.0 via nvm
 nvm use
 cd frontend
 npm install
 npm run dev
 ```
 
-The app starts on `http://localhost:5173`.
+App starts on `http://localhost:5173` and proxies `/api/*` to the backend.
 
-## Project Structure
+---
 
-```text
-frontend/src/
-  app/                 # minimal app shell, global CSS starter
-  features/
-    auth/              # login/register slice
-    onboarding/        # personalized Q/style profile slice
-    wardrobe/          # clothes status and scan wardrobe slice
-    calendar/          # calendar connection slice
-    outfit/            # daily outfit recommendation slice
-  shared/
-    api/               # backend API client and types
-```
+## API Reference
 
-Feature folders intentionally contain only entry-point files for now. Teammates can add components, hooks, services, and tests inside the slice they own.
+Full spec at [`api/openapi.yaml`](api/openapi.yaml).
 
-## Checks
+| Feature | Method | Endpoint |
+|---|---|---|
+| Auth | `POST` | `/auth/register` · `/auth/login` |
+| Preferences | `GET` `PUT` | `/users/me/preferences` |
+| Wardrobe | `GET` `POST` | `/wardrobe/items` · `/wardrobe/scan` |
+| Calendar | `POST` `DELETE` | `/calendar/connect` · `/calendar/disconnect` |
+| Outfit | `GET` | `/recommendations/outfit` |
 
-```bash
-cd frontend
-npm run lint
-npm run format:check
-npm run build
-```
+---
 
-## Jira
+## Team
 
-Ticket: `KAN-5` — Frontend Repository setup.
+| Name | Role |
+|---|---|
+| Naqi | Backend |
+| Nabihah | Backend |
+| Ilman | — |
+| Aizat | Design |
+| Cyril | — |

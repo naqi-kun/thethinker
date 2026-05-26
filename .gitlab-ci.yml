@@ -1,9 +1,15 @@
 stages:
   - lint
+  - test
   - build
+  - docker
 
 variables:
   NODE_VERSION: "22.16.0"
+  GO_VERSION: "1.26"
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+
+# ── Frontend ────────────────────────────────────────────────
 
 frontend-lint:
   stage: lint
@@ -21,3 +27,42 @@ frontend-build:
     - cd frontend
     - npm ci
     - npm run build
+
+# ── Backend ─────────────────────────────────────────────────
+
+backend-lint:
+  stage: lint
+  image: golang:${GO_VERSION}-alpine
+  script:
+    - cd backend && go vet ./...
+    # TODO: add golangci-lint when linter config is settled
+
+backend-test:
+  stage: test
+  image: golang:${GO_VERSION}-alpine
+  script:
+    - cd backend && go test ./...
+
+backend-build:
+  stage: build
+  image: golang:${GO_VERSION}-alpine
+  script:
+    - cd backend && CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/api
+  artifacts:
+    paths:
+      - backend/server
+    expire_in: 1 hour
+
+docker-build:
+  stage: docker
+  image: docker:26
+  services:
+    - docker:26-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $IMAGE_NAME:$CI_COMMIT_SHA -t $IMAGE_NAME:latest backend/
+    - docker push $IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $IMAGE_NAME:latest
+  only:
+    - main

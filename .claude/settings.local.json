@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls /c/Users/naqiz/.claude/projects/c--Users-naqiz-xsolla-school-thethinker/memory/ 2>/dev/null || echo \"Directory does not exist or is empty\")",
+      "Read(//c/Users/naqiz/.claude/projects/c--Users-naqiz-xsolla-school-thethinker/memory//**)",
+      "Bash(ls /c/Users/naqiz/.claude/projects/c--Users-naqiz-xsolla-school-thethinker/ 2>/dev/null && echo \"EXISTS\" || echo \"NOT FOUND\")",
+      "Read(//c/Users/naqiz/.claude/projects/c--Users-naqiz-xsolla-school-thethinker//**)",
+      "Bash(go version *)"
+    ]
+  }
+}
