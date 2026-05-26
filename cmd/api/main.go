@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 )
 
 func main() {
@@ -15,28 +17,57 @@ func main() {
 	// tracer.Start(tracer.WithServiceName("thethinker-api"))
 	// defer tracer.Stop()
 
-	// TODO: connect to database
-	// db, err := pgxpool.Connect(ctx, os.Getenv("DATABASE_URL"))
-	// if err != nil { log.Fatal(err) }
-	// defer db.Close()
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL is required")
+	}
+
+	if err := postgres.RunMigrations(databaseURL); err != nil {
+		log.Fatalf("migrations: %v", err)
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stop()
+
+	db, err := postgres.NewPool(ctx, databaseURL)
+	if err != nil {
+		log.Fatalf("database: %v", err)
+	}
+	defer db.Close()
+
+	userRepo     := postgres.NewUserRepository(db)
+	wardrobeRepo := postgres.NewWardrobeRepository(db)
+	calendarRepo := postgres.NewCalendarRepository(db)
 
 	// TODO: wire repositories → services → handlers
-	// userRepo    := postgres.NewUserRepository(db)
-	// wardrobeRepo := postgres.NewWardrobeRepository(db)
-	// calendarRepo := postgres.NewCalendarRepository(db)
-	// weatherSvc  := weather.NewService()
-	// userSvc     := user.NewService(userRepo)
-	// wardrobeSvc := wardrobe.NewService(wardrobeRepo)
-	// calendarSvc := calendar.NewService(calendarRepo)
-	// recommendSvc := recommendation.NewService(wardrobeRepo, calendarRepo, weatherSvc)
+	// userSvc        := user.NewService(userRepo)
+	// wardrobeSvc    := wardrobe.NewService(wardrobeRepo)
+	// calendarSvc    := calendar.NewService(calendarRepo)
+	// weatherSvc     := weather.NewService()
+	// recommendSvc   := recommendation.NewService(wardrobeRepo, calendarRepo, weatherSvc)
+	//
+	// userHandler      := handlers.NewUserHandler(userSvc)
+	// wardrobeHandler  := handlers.NewWardrobeHandler(wardrobeSvc)
+	// calendarHandler  := handlers.NewCalendarHandler(calendarSvc)
+	// recommendHandler := handlers.NewRecommendationHandler(recommendSvc)
+
+	_ = userRepo
+	_ = wardrobeRepo
+	_ = calendarRepo
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", healthz)
 
 	// TODO: register domain routes
-	// mux.HandleFunc("POST /auth/register", userHandler.Register)
-	// mux.HandleFunc("POST /auth/login",    userHandler.Login)
-	// ...
+	// mux.HandleFunc("POST /auth/register",        userHandler.Register)
+	// mux.HandleFunc("POST /auth/login",           userHandler.Login)
+	// mux.HandleFunc("GET  /users/me/preferences", userHandler.GetPreferences)
+	// mux.HandleFunc("PUT  /users/me/preferences", userHandler.UpdatePreferences)
+	// mux.HandleFunc("GET  /wardrobe/items",       wardrobeHandler.List)
+	// mux.HandleFunc("POST /wardrobe/scan",        wardrobeHandler.Scan)
+	// mux.HandleFunc("POST /calendar/connect",     calendarHandler.Connect)
+	// mux.HandleFunc("DELETE /calendar/disconnect",calendarHandler.Disconnect)
+	// mux.HandleFunc("GET  /recommendations/outfit",recommendHandler.GetOutfit)
 
 	srv := &http.Server{
 		Addr:         ":" + port(),
@@ -44,10 +75,6 @@ func main() {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-
-	// graceful shutdown — k8s sends SIGTERM before killing the pod
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
-	defer stop()
 
 	go func() {
 		log.Printf("listening on %s", srv.Addr)
