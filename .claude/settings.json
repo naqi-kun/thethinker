@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Copy-Item \"c:\\\\dev\\\\TheThinker\\\\src\\\\components\\\\DesignSystemPage.tsx\" \"c:\\\\dev\\\\TheThinker\\\\src\\\\shared\\\\components\\\\DesignSystemPage.tsx\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\dev\\\\TheThinker\\\\src\\\\shared\\\\components\")",
+      "PowerShell(Get-ChildItem \"c:\\\\dev\\\\TheThinker\\\\src\" -Recurse | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"c:\\\\dev\\\\TheThinker\\\\src\\\\\", \"\"\\) })"
+    ]
+  }
+}

@@ -1,15 +1,9 @@
-import { Shirt } from 'lucide-react'
-
-export default function Home() {
+export default function DesignSystemPage() {
   return (
     <main className="min-h-screen-safe bg-background">
       <div className="container-app py-12">
 
         <header className="mb-12 text-center">
-          <span className="badge-primary mb-4 inline-flex items-center gap-1.5">
-            <Shirt className="h-3.5 w-3.5" />
-            Design System Preview
-          </span>
           <h1 className="mb-3">TheThinker</h1>
           <p className="text-muted-foreground">
             Your warm &amp; earthy outfit recommendation companion.
