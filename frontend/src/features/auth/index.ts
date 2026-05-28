@@ -1,1 +1,1 @@
-// Auth feature: login, registration, and session state.
+export { default as LoginPage } from './components/LoginPage';

@@ -1,1 +1,1 @@
-// Onboarding feature: personalized style questions.
+export { default as OnboardingPage } from './components/OnboardingPage';
