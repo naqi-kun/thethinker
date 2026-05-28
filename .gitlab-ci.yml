@@ -1,0 +1,23 @@
+stages:
+  - lint
+  - build
+
+variables:
+  NODE_VERSION: "22.16.0"
+
+frontend-lint:
+  stage: lint
+  image: node:${NODE_VERSION}-alpine
+  script:
+    - cd frontend
+    - npm ci
+    - npm run lint
+    - npm run format:check
+
+frontend-build:
+  stage: build
+  image: node:${NODE_VERSION}-alpine
+  script:
+    - cd frontend
+    - npm ci
+    - npm run build

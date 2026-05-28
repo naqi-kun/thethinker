@@ -1,0 +1,13 @@
+# Environment
+.env
+.env.local
+
+# Node
+node_modules
+npm-debug.log*
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.vite
+frontend/coverage
