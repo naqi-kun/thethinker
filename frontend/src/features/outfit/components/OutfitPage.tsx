@@ -5,7 +5,7 @@ import TopNav from '../../../shared/components/TopNav';
 type OutfitPiece = {
   name: string;
   size: 'large' | 'small';
-  gradient: string;
+  image: string;
 };
 
 type Outfit = {
@@ -13,45 +13,54 @@ type Outfit = {
   tags: string[];
 };
 
+// To swap an image: find a photo on unsplash.com, right-click → Copy image address.
 const outfits: Outfit[] = [
   {
     pieces: [
       {
         name: 'Structured Linen Shirt',
         size: 'large',
-        gradient: 'from-cream via-linen to-sand',
+        image: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=800',
       },
       {
         name: 'Tailored Trousers',
         size: 'large',
-        gradient: 'from-rust via-espresso to-espresso',
+        image: 'https://images.unsplash.com/photo-1594938374182-a57061dac3df?w=800',
       },
       {
         name: 'Cognac Loafers',
         size: 'small',
-        gradient: 'from-terracotta to-rust',
+        image: 'https://images.unsplash.com/photo-1616406432452-07bc5938759d?w=500',
       },
       {
         name: 'Minimalist Timepiece',
         size: 'small',
-        gradient: 'from-espresso via-rust to-espresso',
+        image: 'https://images.unsplash.com/photo-1655388643063-ce23f14ad35c?w=500',
       },
     ],
     tags: ['Minimalist', 'Workwear', 'Polished', 'Breathable'],
   },
   {
     pieces: [
-      { name: 'White Oxford Shirt', size: 'large', gradient: 'from-cream to-linen' },
+      {
+        name: 'White Oxford Shirt',
+        size: 'large',
+        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800',
+      },
       {
         name: 'Charcoal Chinos',
         size: 'large',
-        gradient: 'from-espresso to-espresso',
+        image: 'https://images.unsplash.com/photo-1594938374182-a57061dac3df?w=800',
       },
-      { name: 'White Sneakers', size: 'small', gradient: 'from-cream to-sand' },
+      {
+        name: 'White Sneakers',
+        size: 'small',
+        image: 'https://images.unsplash.com/photo-1616406432452-07bc5938759d?w=500',
+      },
       {
         name: 'Leather Belt',
         size: 'small',
-        gradient: 'from-rust to-espresso',
+        image: 'https://images.unsplash.com/photo-1655388643063-ce23f14ad35c?w=500',
       },
     ],
     tags: ['Casual', 'Comfortable', 'Versatile', 'Light'],
@@ -152,9 +161,13 @@ export default function OutfitPage() {
 function OutfitImage({ piece }: { piece: OutfitPiece }) {
   const heightClass = piece.size === 'large' ? 'h-56' : 'h-36';
   return (
-    <div
-      className={`relative w-full overflow-hidden rounded-lg bg-gradient-to-br ${piece.gradient} ${heightClass}`}
-    >
+    <div className={`relative w-full overflow-hidden rounded-lg ${heightClass}`}>
+      <img
+        src={piece.image}
+        alt={piece.name}
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
       <span className="absolute bottom-3 left-3 rounded-full bg-cream/90 px-3 py-1 text-xs font-medium text-espresso shadow-sm backdrop-blur-sm">
         {piece.name}
       </span>
