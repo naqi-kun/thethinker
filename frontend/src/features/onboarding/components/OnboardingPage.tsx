@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { token } from '../../../shared/api/token';
 import {
   ArrowLeft,
   ArrowRight,
@@ -100,8 +101,12 @@ export default function OnboardingPage() {
   }
 
   function handleBack() {
-    if (step === 0) navigate('/');
-    else setStep((s) => s - 1);
+    if (step === 0) {
+      token.clear();
+      navigate('/login');
+    } else {
+      setStep((s) => s - 1);
+    }
   }
 
   function toggleOccasion(label: string) {

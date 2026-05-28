@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Shirt } from 'lucide-react';
-import { login } from '../api';
+import { register } from '../api';
 import { token } from '../../../shared/api/token';
 import { ApiError } from '../../../shared/api/httpClient';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,14 +19,24 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const result = await login({ email, password });
+      const result = await register({ email, password });
       token.set(result.token);
       navigate('/onboarding');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        setError('Incorrect email or password.');
+      if (err instanceof ApiError && err.status === 409) {
+        setError('An account with this email already exists.');
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -42,9 +53,7 @@ export default function LoginPage() {
           <Shirt className="h-8 w-8 text-cream" />
         </div>
         <h1 className="mb-2 text-espresso">TheThinker</h1>
-        <p className="text-muted-foreground">
-          Stop wasting time Thinking on what to wear.
-        </p>
+        <p className="text-muted-foreground">Create your account to get started.</p>
       </div>
 
       {/* Card */}
@@ -72,11 +81,9 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="label" htmlFor="password">
-                Password
-              </label>
-            </div>
+            <label className="label" htmlFor="password">
+              Password
+            </label>
             <div className="relative">
               <input
                 id="password"
@@ -102,12 +109,27 @@ export default function LoginPage() {
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <label className="label" htmlFor="confirmPassword">
+              Confirm password
+            </label>
+            <input
+              id="confirmPassword"
+              type={showPassword ? 'text' : 'password'}
+              className="input"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+
           <button
             type="submit"
             className="btn-primary btn-lg w-full"
             disabled={isLoading}
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
@@ -118,9 +140,9 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link to="/register" className="btn-link font-semibold text-terracotta">
-            Sign up
+          Already have an account?{' '}
+          <Link to="/" className="btn-link font-semibold text-terracotta">
+            Sign in
           </Link>
         </p>
       </div>

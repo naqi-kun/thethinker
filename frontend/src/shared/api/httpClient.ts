@@ -1,5 +1,16 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
@@ -32,7 +43,12 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with ${response.status}`);
+    const body = await response.json().catch(() => ({}));
+    throw new ApiError(
+      response.status,
+      body.code ?? 'UNKNOWN',
+      body.message ?? 'Something went wrong',
+    );
   }
 
   if (response.status === 204) {
