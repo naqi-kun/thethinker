@@ -1,27 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, RotateCcw, Check, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Camera, CloudUpload, Image, RotateCcw, Check } from 'lucide-react';
 import { apiRequest } from '../../../shared/api/httpClient';
 import type { ClothingItem } from '../../../shared/api/types';
 
-type ScanState = 'preview' | 'captured' | 'uploading' | 'error';
+type ScanState = 'idle' | 'camera' | 'captured' | 'uploading' | 'error';
 
 export default function ScanPage() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const [scanState, setScanState] = useState<ScanState>('preview');
+  const [scanState, setScanState] = useState<ScanState>('idle');
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
   const [capturedUrl, setCapturedUrl] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [cameraError, setCameraError] = useState<string>('');
 
   useEffect(() => {
-    startCamera();
     return () => stopCamera();
   }, []);
+
+  useEffect(() => {
+    if (scanState === 'camera' && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [scanState]);
 
   async function startCamera() {
     try {
@@ -30,11 +35,10 @@ export default function ScanPage() {
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      setScanState('camera');
     } catch {
-      setCameraError('Camera access denied or not available on this device.');
+      setErrorMessage('Camera access denied or not available on this device.');
+      setScanState('error');
     }
   }
 
@@ -61,12 +65,21 @@ export default function ScanPage() {
     }, 'image/jpeg');
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (capturedUrl) URL.revokeObjectURL(capturedUrl);
+    setCapturedBlob(file);
+    setCapturedUrl(URL.createObjectURL(file));
+    setScanState('captured');
+  }
+
   function retake() {
     if (capturedUrl) URL.revokeObjectURL(capturedUrl);
     setCapturedBlob(null);
     setCapturedUrl(null);
-    setScanState('preview');
-    startCamera();
+    setErrorMessage('');
+    setScanState('idle');
   }
 
   async function confirmScan() {
@@ -85,44 +98,38 @@ export default function ScanPage() {
     }
   }
 
-  if (cameraError) {
-    return (
-      <div className="min-h-screen-safe bg-background">
-        <div className="container-app py-8">
-          <button
-            onClick={() => navigate('/wardrobe')}
-            className="btn-ghost mb-6 gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <div className="flex flex-col items-center py-20 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
-              <Camera className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h5 className="mb-2">Camera Unavailable</h5>
-            <p className="helper-text">{cameraError}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen-safe bg-background">
-      <div className="container-app py-8">
-        <button onClick={() => navigate('/wardrobe')} className="btn-ghost mb-6 gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
+      <div className="container-app py-6">
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <button
+            onClick={() => navigate('/wardrobe')}
+            className="btn-ghost btn-icon"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h4 className="font-serif">Scan Clothing</h4>
+          <div className="h-11 w-11" />
+        </div>
 
-        <h2 className="mb-2">Scan Garment</h2>
-        <p className="helper-text mb-6">
-          Point your camera at a clothing item and capture it.
-        </p>
+        {/* Preview area */}
+        <div className="mb-6 flex aspect-square items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-sand bg-linen/40">
+          {scanState === 'idle' && (
+            <div className="flex flex-col items-center gap-3 px-8 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-linen">
+                <CloudUpload className="h-8 w-8 text-terracotta" />
+              </div>
+              <h5>Add to your Wardrobe</h5>
+              <p className="helper-text">
+                Upload a high-quality photo of your item. For best results, use a plain
+                background and natural light.
+              </p>
+            </div>
+          )}
 
-        <div className="relative overflow-hidden rounded-2xl bg-black aspect-[3/4]">
-          {scanState === 'preview' && (
+          {scanState === 'camera' && (
             <video
               ref={videoRef}
               autoPlay
@@ -136,28 +143,53 @@ export default function ScanPage() {
             scanState === 'uploading' ||
             scanState === 'error') &&
             capturedUrl && (
-              <img
-                src={capturedUrl}
-                alt="Captured garment"
-                className="h-full w-full object-cover"
-              />
+              <div className="relative h-full w-full">
+                <img
+                  src={capturedUrl}
+                  alt="Captured garment"
+                  className="h-full w-full object-cover"
+                />
+                {scanState === 'uploading' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <p className="font-sans font-medium text-white">Uploading…</p>
+                  </div>
+                )}
+              </div>
             )}
-
-          {scanState === 'uploading' && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <p className="font-sans text-white">Uploading…</p>
-            </div>
-          )}
         </div>
 
         <canvas ref={canvasRef} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
 
-        {scanState === 'error' && (
-          <p className="mt-3 text-center text-sm text-destructive">{errorMessage}</p>
+        {scanState === 'error' && errorMessage && (
+          <p className="mb-4 text-center text-sm text-destructive">{errorMessage}</p>
         )}
 
-        <div className="mt-6 flex gap-3">
-          {scanState === 'preview' && (
+        {/* Actions */}
+        <div className="flex flex-col gap-3">
+          {scanState === 'idle' && (
+            <>
+              <button onClick={startCamera} className="btn-primary btn-lg w-full gap-2">
+                <Camera className="h-5 w-5" />
+                Take Photo
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="btn-outline btn-lg w-full gap-2"
+              >
+                <Image className="h-5 w-5" />
+                Upload from Gallery
+              </button>
+            </>
+          )}
+
+          {scanState === 'camera' && (
             <button onClick={capturePhoto} className="btn-primary btn-lg w-full gap-2">
               <Camera className="h-5 w-5" />
               Capture
@@ -165,7 +197,7 @@ export default function ScanPage() {
           )}
 
           {(scanState === 'captured' || scanState === 'error') && (
-            <>
+            <div className="flex gap-3">
               <button onClick={retake} className="btn-outline btn-lg flex-1 gap-2">
                 <RotateCcw className="h-4 w-4" />
                 Retake
@@ -174,7 +206,7 @@ export default function ScanPage() {
                 <Check className="h-4 w-4" />
                 Confirm
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
