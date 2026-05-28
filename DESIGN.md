@@ -47,17 +47,17 @@ Tailwind utilities auto-generated: `bg-cream`, `text-terracotta`, `border-sand`,
 
 ## Typography
 
-Fonts are loaded via `next/font/google` in `app/layout.tsx`.
+Fonts are loaded via Google Fonts `<link>` tags in `index.html`.
 
 | Role | Font | Tailwind Class | Variable |
 |------|------|----------------|----------|
 | Headings | DM Serif Display | `font-serif` | `--font-serif` |
 | Body / UI | DM Sans | `font-sans` | `--font-sans` |
-| Code | Geist Mono | `font-mono` | `--font-mono` |
+| Code | System monospace | `font-mono` | — |
 
 ### Heading Scale
 
-Heading defaults are set globally in `app/globals.css` `@layer base` — no extra classes needed.
+Heading defaults are set globally in `frontend/src/app/styles.css` `@layer base` — no extra classes needed.
 
 | Element | Default Classes | Size |
 |---------|----------------|------|
@@ -104,7 +104,7 @@ Tailwind v4 aliases: `rounded-sm` (input) · `rounded-md` (button) · `rounded-l
 
 ## Button Variants
 
-Defined in `@layer components` inside `app/globals.css`. Combine a **variant** class with a **size** class.
+Defined in `@layer components` inside `frontend/src/app/styles.css`. Combine a **variant** class with a **size** class.
 
 ### Variants
 
@@ -218,14 +218,18 @@ Add `class="dark"` to `<html>` to activate. Uses a warm dark palette.
 ## File Structure
 
 ```
-app/
-  globals.css      ← Design tokens, component classes, utilities (Tailwind v4)
-  layout.tsx       ← Root layout — loads fonts, imports globals.css
-  page.tsx         ← Entry page
-components.json    ← shadcn/ui config (style: new-york, css: app/globals.css)
-lib/
-  utils.ts         ← cn() helper (clsx + tailwind-merge)
-postcss.config.mjs ← @tailwindcss/postcss plugin
+frontend/
+  index.html               ← Vite entry — Google Fonts <link> tags live here
+  vite.config.ts           ← @tailwindcss/vite plugin configured here
+  components.json          ← shadcn/ui config (style: new-york, css: src/app/styles.css)
+  src/
+    main.tsx               ← App entry — imports styles.css, wraps with BrowserRouter
+    app/
+      styles.css           ← Design tokens, component classes, utilities (Tailwind v4)
+      App.tsx              ← Route definitions
+    features/              ← Vertical slices (auth, onboarding, wardrobe, …)
+    shared/
+      utils/cn.ts          ← cn() helper (clsx + tailwind-merge)
 ```
 
 ## Adding shadcn Components

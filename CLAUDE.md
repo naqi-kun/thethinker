@@ -11,7 +11,7 @@ AI-powered outfit recommendation frontend. Users scan their wardrobe, sync their
 | Runtime | Node 22.16.0 via `nvm` |
 | Framework | Vite · React · TypeScript |
 | Architecture | Vertical slice |
-| Styling | Global CSS starter; Tailwind intentionally not configured |
+| Styling | Tailwind v4 via `@tailwindcss/vite` plugin |
 | Linting | ESLint |
 | Formatting | Prettier |
 | API contract | Consumes TheThinker backend OpenAPI endpoints |
@@ -40,7 +40,7 @@ frontend/
 4. Use `frontend/src/shared/api/types.ts` for backend contract-aligned types.
 5. Use `nvm use` before running Node commands.
 6. Run lint, format check, and build before opening a merge request.
-7. Do not add Tailwind or implemented pages in this setup branch; feature teams should add them in follow-up tickets.
+7. Run lint, format check, and type check before opening a merge request.
 
 ## Key Commands
 
