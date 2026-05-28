@@ -89,7 +89,10 @@ export default function ScanPage() {
     return (
       <div className="min-h-screen-safe bg-background">
         <div className="container-app py-8">
-          <button onClick={() => navigate('/wardrobe')} className="btn-ghost mb-6 gap-2">
+          <button
+            onClick={() => navigate('/wardrobe')}
+            className="btn-ghost mb-6 gap-2"
+          >
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
@@ -114,7 +117,9 @@ export default function ScanPage() {
         </button>
 
         <h2 className="mb-2">Scan Garment</h2>
-        <p className="helper-text mb-6">Point your camera at a clothing item and capture it.</p>
+        <p className="helper-text mb-6">
+          Point your camera at a clothing item and capture it.
+        </p>
 
         <div className="relative overflow-hidden rounded-2xl bg-black aspect-[3/4]">
           {scanState === 'preview' && (
@@ -127,7 +132,9 @@ export default function ScanPage() {
             />
           )}
 
-          {(scanState === 'captured' || scanState === 'uploading' || scanState === 'error') &&
+          {(scanState === 'captured' ||
+            scanState === 'uploading' ||
+            scanState === 'error') &&
             capturedUrl && (
               <img
                 src={capturedUrl}
