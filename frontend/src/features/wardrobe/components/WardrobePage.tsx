@@ -12,12 +12,12 @@ type Garment = {
 type FilterTab = 'all' | 'clean' | 'dirty';
 
 const initialGarments: Garment[] = [
-  { id: 1, name: 'White Linen Shirt', category: 'Tops',      clean: true  },
-  { id: 2, name: 'Blue Denim Jeans',  category: 'Bottoms',   clean: true  },
-  { id: 3, name: 'Grey Blazer',       category: 'Outerwear', clean: false },
-  { id: 4, name: 'Black Sneakers',    category: 'Shoes',     clean: true  },
-  { id: 5, name: 'Navy T-Shirt',      category: 'Tops',      clean: false },
-  { id: 6, name: 'Khaki Chinos',      category: 'Bottoms',   clean: true  },
+  { id: 1, name: 'White Linen Shirt', category: 'Tops', clean: true },
+  { id: 2, name: 'Blue Denim Jeans', category: 'Bottoms', clean: true },
+  { id: 3, name: 'Grey Blazer', category: 'Outerwear', clean: false },
+  { id: 4, name: 'Black Sneakers', category: 'Shoes', clean: true },
+  { id: 5, name: 'Navy T-Shirt', category: 'Tops', clean: false },
+  { id: 6, name: 'Khaki Chinos', category: 'Bottoms', clean: true },
 ];
 
 export default function WardrobePage() {
@@ -36,7 +36,7 @@ export default function WardrobePage() {
 
   function toggleStatus(id: number) {
     setGarments((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, clean: !g.clean } : g))
+      prev.map((g) => (g.id === id ? { ...g, clean: !g.clean } : g)),
     );
   }
 
@@ -45,15 +45,14 @@ export default function WardrobePage() {
   }
 
   const filters: { key: FilterTab; label: string; count: number }[] = [
-    { key: 'all',   label: 'All',   count: garments.length },
-    { key: 'clean', label: 'Clean', count: cleanCount      },
-    { key: 'dirty', label: 'Dirty', count: dirtyCount      },
+    { key: 'all', label: 'All', count: garments.length },
+    { key: 'clean', label: 'Clean', count: cleanCount },
+    { key: 'dirty', label: 'Dirty', count: dirtyCount },
   ];
 
   return (
     <div className="min-h-screen-safe bg-background">
       <div className="container-app py-8">
-
         {/* Header */}
         <div className="mb-6 flex items-start justify-between">
           <div>
@@ -151,7 +150,6 @@ export default function WardrobePage() {
             )}
           </div>
         )}
-
       </div>
 
       {garments.length > 0 && (

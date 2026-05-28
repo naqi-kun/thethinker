@@ -18,22 +18,24 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen-safe flex flex-col items-center justify-center bg-gradient-to-b from-cream to-linen px-4 py-12">
-
       {/* Brand */}
       <div className="mb-10 text-center">
         <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-full bg-terracotta shadow-lg">
           <Shirt className="h-8 w-8 text-cream" />
         </div>
         <h1 className="mb-2 text-espresso">TheThinker</h1>
-        <p className="text-muted-foreground">Stop wasting time Thinking on what to wear.</p>
+        <p className="text-muted-foreground">
+          Stop wasting time Thinking on what to wear.
+        </p>
       </div>
 
       {/* Card */}
       <div className="w-full max-w-sm">
         <form onSubmit={handleSubmit} className="card space-y-5 p-8 shadow-md">
-
           <div className="space-y-1.5">
-            <label className="label" htmlFor="email">Email</label>
+            <label className="label" htmlFor="email">
+              Email
+            </label>
             <input
               id="email"
               type="email"
@@ -47,7 +49,9 @@ export default function LoginPage() {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="label" htmlFor="password">Password</label>
+              <label className="label" htmlFor="password">
+                Password
+              </label>
               <button type="button" className="btn-link text-xs text-muted-foreground">
                 Forgot password?
               </button>
@@ -68,7 +72,11 @@ export default function LoginPage() {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>
@@ -80,7 +88,6 @@ export default function LoginPage() {
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
-
         </form>
 
         {/* Divider */}
@@ -96,7 +103,6 @@ export default function LoginPage() {
           <button className="btn-link font-semibold text-terracotta">Sign up</button>
         </p>
       </div>
-
     </div>
   );
 }

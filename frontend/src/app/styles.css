@@ -8,37 +8,37 @@
    ============================================ */
 
 :root {
-  --cream: #FFFAF5;
-  --linen: #F0E4D6;
-  --sand: #D4BDA8;
-  --terracotta: #C1714A;
-  --rust: #8B4E2F;
-  --espresso: #3D2B1F;
+  --cream: #fffaf5;
+  --linen: #f0e4d6;
+  --sand: #d4bda8;
+  --terracotta: #c1714a;
+  --rust: #8b4e2f;
+  --espresso: #3d2b1f;
 
-  --background: #FFFAF5;
-  --foreground: #3D2B1F;
-  --card: #F0E4D6;
-  --card-foreground: #3D2B1F;
-  --popover: #FFFAF5;
-  --popover-foreground: #3D2B1F;
-  --primary: #C1714A;
-  --primary-foreground: #FFFAF5;
-  --secondary: #F0E4D6;
-  --secondary-foreground: #3D2B1F;
-  --muted: #F0E4D6;
-  --muted-foreground: #8B4E2F;
-  --accent: #8B4E2F;
-  --accent-foreground: #FFFAF5;
-  --destructive: #D93025;
-  --destructive-foreground: #FFFAF5;
-  --border: #D4BDA8;
-  --input: #D4BDA8;
-  --ring: #C1714A;
+  --background: #fffaf5;
+  --foreground: #3d2b1f;
+  --card: #f0e4d6;
+  --card-foreground: #3d2b1f;
+  --popover: #fffaf5;
+  --popover-foreground: #3d2b1f;
+  --primary: #c1714a;
+  --primary-foreground: #fffaf5;
+  --secondary: #f0e4d6;
+  --secondary-foreground: #3d2b1f;
+  --muted: #f0e4d6;
+  --muted-foreground: #8b4e2f;
+  --accent: #8b4e2f;
+  --accent-foreground: #fffaf5;
+  --destructive: #d93025;
+  --destructive-foreground: #fffaf5;
+  --border: #d4bda8;
+  --input: #d4bda8;
+  --ring: #c1714a;
 
-  --success: #4A8B5C;
-  --success-foreground: #FFFAF5;
-  --warning: #D4A03C;
-  --warning-foreground: #3D2B1F;
+  --success: #4a8b5c;
+  --success-foreground: #fffaf5;
+  --warning: #d4a03c;
+  --warning-foreground: #3d2b1f;
 
   --radius-input: 6px;
   --radius-button: 12px;
@@ -48,19 +48,19 @@
 }
 
 .dark {
-  --background: #2A1F17;
-  --foreground: #F0E4D6;
-  --card: #3D2B1F;
-  --card-foreground: #F0E4D6;
-  --primary: #C1714A;
-  --primary-foreground: #FFFAF5;
-  --secondary: #3D2B1F;
-  --secondary-foreground: #F0E4D6;
-  --muted: #3D2B1F;
-  --muted-foreground: #D4BDA8;
-  --border: #5A4235;
-  --input: #5A4235;
-  --ring: #C1714A;
+  --background: #2a1f17;
+  --foreground: #f0e4d6;
+  --card: #3d2b1f;
+  --card-foreground: #f0e4d6;
+  --primary: #c1714a;
+  --primary-foreground: #fffaf5;
+  --secondary: #3d2b1f;
+  --secondary-foreground: #f0e4d6;
+  --muted: #3d2b1f;
+  --muted-foreground: #d4bda8;
+  --border: #5a4235;
+  --input: #5a4235;
+  --ring: #c1714a;
 }
 
 @theme {
@@ -105,79 +105,182 @@
 }
 
 @layer base {
-  * { @apply border-border outline-ring/50; }
-  html { @apply bg-background; }
-  body { @apply bg-background text-foreground; }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply bg-background;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 
-  h1 { @apply font-serif text-4xl md:text-5xl font-normal tracking-tight text-balance; }
-  h2 { @apply font-serif text-3xl md:text-4xl font-normal tracking-tight text-balance; }
-  h3 { @apply font-serif text-2xl md:text-3xl font-normal text-balance; }
-  h4 { @apply font-serif text-xl md:text-2xl font-normal; }
-  h5 { @apply font-sans text-lg font-semibold; }
-  h6 { @apply font-sans text-base font-semibold; }
-  p  { @apply font-sans text-base leading-relaxed; }
+  h1 {
+    @apply font-serif text-4xl md:text-5xl font-normal tracking-tight text-balance;
+  }
+  h2 {
+    @apply font-serif text-3xl md:text-4xl font-normal tracking-tight text-balance;
+  }
+  h3 {
+    @apply font-serif text-2xl md:text-3xl font-normal text-balance;
+  }
+  h4 {
+    @apply font-serif text-xl md:text-2xl font-normal;
+  }
+  h5 {
+    @apply font-sans text-lg font-semibold;
+  }
+  h6 {
+    @apply font-sans text-base font-semibold;
+  }
+  p {
+    @apply font-sans text-base leading-relaxed;
+  }
 }
 
 @layer components {
-  .btn-primary, .btn-secondary, .btn-outline, .btn-ghost, .btn-link {
+  .btn-primary,
+  .btn-secondary,
+  .btn-outline,
+  .btn-ghost,
+  .btn-link {
     @apply inline-flex items-center justify-center gap-2 font-sans font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
     border-radius: var(--radius-button);
   }
-  .btn-primary   { @apply bg-primary text-primary-foreground hover:bg-rust active:scale-[0.98]; }
-  .btn-secondary { @apply bg-secondary text-secondary-foreground border border-border hover:bg-sand/50 active:scale-[0.98]; }
-  .btn-outline   { @apply bg-transparent text-foreground border-2 border-primary hover:bg-primary hover:text-primary-foreground active:scale-[0.98]; }
-  .btn-ghost     { @apply bg-transparent text-foreground hover:bg-secondary active:scale-[0.98]; }
-  .btn-link      { @apply bg-transparent text-primary underline-offset-4 hover:underline p-0; }
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-rust active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground border border-border hover:bg-sand/50 active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply bg-transparent text-foreground border-2 border-primary hover:bg-primary hover:text-primary-foreground active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply bg-transparent text-foreground hover:bg-secondary active:scale-[0.98];
+  }
+  .btn-link {
+    @apply bg-transparent text-primary underline-offset-4 hover:underline p-0;
+  }
 
-  .btn-sm   { @apply h-9 px-4 text-sm; }
-  .btn-md   { @apply h-11 px-6 text-base; }
-  .btn-lg   { @apply h-14 px-8 text-lg; }
-  .btn-icon { @apply h-11 w-11 p-0; }
+  .btn-sm {
+    @apply h-9 px-4 text-sm;
+  }
+  .btn-md {
+    @apply h-11 px-6 text-base;
+  }
+  .btn-lg {
+    @apply h-14 px-8 text-lg;
+  }
+  .btn-icon {
+    @apply h-11 w-11 p-0;
+  }
 
-  .card, .card-elevated, .card-interactive {
+  .card,
+  .card-elevated,
+  .card-interactive {
     @apply bg-card text-card-foreground border border-border;
     border-radius: var(--radius-card);
   }
-  .card             { @apply shadow-sm; }
-  .card-elevated    { @apply shadow-lg hover:shadow-xl transition-shadow duration-300; }
-  .card-interactive { @apply shadow-sm cursor-pointer hover:border-primary hover:shadow-md transition-all duration-200 active:scale-[0.99]; }
+  .card {
+    @apply shadow-sm;
+  }
+  .card-elevated {
+    @apply shadow-lg hover:shadow-xl transition-shadow duration-300;
+  }
+  .card-interactive {
+    @apply shadow-sm cursor-pointer hover:border-primary hover:shadow-md transition-all duration-200 active:scale-[0.99];
+  }
 
-  .badge-default, .badge-primary, .badge-accent,
-  .badge-success, .badge-warning, .badge-outline,
-  .badge-clean, .badge-dirty {
+  .badge-default,
+  .badge-primary,
+  .badge-accent,
+  .badge-success,
+  .badge-warning,
+  .badge-outline,
+  .badge-clean,
+  .badge-dirty {
     @apply inline-flex items-center font-sans text-xs font-medium px-3 py-1;
     border-radius: var(--radius-pill);
   }
-  .badge-default  { @apply bg-secondary text-secondary-foreground; }
-  .badge-primary  { @apply bg-primary text-primary-foreground; }
-  .badge-accent   { @apply bg-accent text-accent-foreground; }
-  .badge-success  { @apply bg-success text-success-foreground; }
-  .badge-warning  { @apply bg-warning text-warning-foreground; }
-  .badge-outline  { @apply bg-transparent border border-border text-foreground; }
-  .badge-clean    { @apply bg-success/15 text-success border border-success/30; }
-  .badge-dirty    { @apply bg-warning/15 text-warning border border-warning/30; }
+  .badge-default {
+    @apply bg-secondary text-secondary-foreground;
+  }
+  .badge-primary {
+    @apply bg-primary text-primary-foreground;
+  }
+  .badge-accent {
+    @apply bg-accent text-accent-foreground;
+  }
+  .badge-success {
+    @apply bg-success text-success-foreground;
+  }
+  .badge-warning {
+    @apply bg-warning text-warning-foreground;
+  }
+  .badge-outline {
+    @apply bg-transparent border border-border text-foreground;
+  }
+  .badge-clean {
+    @apply bg-success/15 text-success border border-success/30;
+  }
+  .badge-dirty {
+    @apply bg-warning/15 text-warning border border-warning/30;
+  }
 
-  .input, .input-error, .textarea {
+  .input,
+  .input-error,
+  .textarea {
     @apply flex h-11 w-full bg-background text-foreground border border-input px-4 py-2 font-sans text-base transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50;
     border-radius: var(--radius-input);
   }
-  .input-error { @apply border-destructive focus-visible:ring-destructive; }
-  .textarea    { @apply min-h-[120px] py-3 resize-none; }
-  .label       { @apply font-sans text-sm font-medium text-foreground; }
-  .helper-text { @apply font-sans text-sm text-muted-foreground; }
-  .error-text  { @apply font-sans text-sm text-destructive; }
+  .input-error {
+    @apply border-destructive focus-visible:ring-destructive;
+  }
+  .textarea {
+    @apply min-h-[120px] py-3 resize-none;
+  }
+  .label {
+    @apply font-sans text-sm font-medium text-foreground;
+  }
+  .helper-text {
+    @apply font-sans text-sm text-muted-foreground;
+  }
+  .error-text {
+    @apply font-sans text-sm text-destructive;
+  }
 
-  .progress-bar  { @apply h-2 w-full bg-secondary overflow-hidden; border-radius: var(--radius-pill); }
-  .progress-fill { @apply h-full bg-primary transition-all duration-500 ease-out; border-radius: var(--radius-pill); }
+  .progress-bar {
+    @apply h-2 w-full bg-secondary overflow-hidden;
+    border-radius: var(--radius-pill);
+  }
+  .progress-fill {
+    @apply h-full bg-primary transition-all duration-500 ease-out;
+    border-radius: var(--radius-pill);
+  }
 
-  .divider { @apply h-px w-full bg-border; }
+  .divider {
+    @apply h-px w-full bg-border;
+  }
 }
 
 @layer utilities {
-  .text-gradient      { @apply bg-gradient-to-r from-terracotta to-rust bg-clip-text text-transparent; }
-  .container-app      { @apply mx-auto w-full max-w-lg px-4 md:px-6; }
-  .min-h-screen-safe  { min-height: 100dvh; }
-  .h-screen-safe      { height: 100dvh; }
-  .safe-area-top      { padding-top: env(safe-area-inset-top); }
-  .safe-area-bottom   { padding-bottom: env(safe-area-inset-bottom); }
+  .text-gradient {
+    @apply bg-gradient-to-r from-terracotta to-rust bg-clip-text text-transparent;
+  }
+  .container-app {
+    @apply mx-auto w-full max-w-lg px-4 md:px-6;
+  }
+  .min-h-screen-safe {
+    min-height: 100dvh;
+  }
+  .h-screen-safe {
+    height: 100dvh;
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

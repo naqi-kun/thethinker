@@ -1,11 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Check,
-  Shirt, Star, Briefcase, Zap,
-  Laptop, Coffee, Sparkles, Mountain,
-  Circle, Leaf, Flame, Flower2,
-  Sun, Thermometer, CloudRain, Snowflake,
+  ArrowLeft,
+  Check,
+  Shirt,
+  Star,
+  Briefcase,
+  Zap,
+  Laptop,
+  Coffee,
+  Sparkles,
+  Mountain,
+  Circle,
+  Leaf,
+  Flame,
+  Flower2,
+  Sun,
+  Thermometer,
+  CloudRain,
+  Snowflake,
 } from 'lucide-react';
 
 type Option = {
@@ -25,40 +38,60 @@ const steps: Step[] = [
     question: "What's your go-to style?",
     hint: 'This helps us understand your fashion personality.',
     options: [
-      { label: 'Casual & Relaxed', description: 'Comfort comes first',       icon: Shirt     },
-      { label: 'Smart Casual',     description: 'Polished but laid-back',    icon: Star      },
-      { label: 'Formal',           description: 'Sharp and professional',    icon: Briefcase },
-      { label: 'Sporty & Active',  description: 'Built to move',             icon: Zap       },
+      { label: 'Casual & Relaxed', description: 'Comfort comes first', icon: Shirt },
+      { label: 'Smart Casual', description: 'Polished but laid-back', icon: Star },
+      { label: 'Formal', description: 'Sharp and professional', icon: Briefcase },
+      { label: 'Sporty & Active', description: 'Built to move', icon: Zap },
     ],
   },
   {
     question: 'What occasions do you mainly dress for?',
     hint: "We'll prioritize outfits that suit your lifestyle.",
     options: [
-      { label: 'Work & Office',    description: 'Weekday professional looks',  icon: Laptop    },
-      { label: 'Casual Outings',   description: 'Everyday errands & hangouts', icon: Coffee    },
-      { label: 'Events & Dining',  description: 'Special occasions',           icon: Sparkles  },
-      { label: 'Outdoor & Sport',  description: 'Active adventures',           icon: Mountain  },
+      {
+        label: 'Work & Office',
+        description: 'Weekday professional looks',
+        icon: Laptop,
+      },
+      {
+        label: 'Casual Outings',
+        description: 'Everyday errands & hangouts',
+        icon: Coffee,
+      },
+      { label: 'Events & Dining', description: 'Special occasions', icon: Sparkles },
+      { label: 'Outdoor & Sport', description: 'Active adventures', icon: Mountain },
     ],
   },
   {
     question: "What's your preferred color palette?",
     hint: 'Your recommendations will lean towards these tones.',
     options: [
-      { label: 'Neutrals',      description: 'Black, white, and grey',  icon: Circle  },
-      { label: 'Earth Tones',   description: 'Brown, beige, and olive', icon: Leaf    },
-      { label: 'Bold & Bright', description: 'Vivid, standout colors',  icon: Flame   },
-      { label: 'Soft Pastels',  description: 'Light, gentle tones',     icon: Flower2 },
+      { label: 'Neutrals', description: 'Black, white, and grey', icon: Circle },
+      { label: 'Earth Tones', description: 'Brown, beige, and olive', icon: Leaf },
+      { label: 'Bold & Bright', description: 'Vivid, standout colors', icon: Flame },
+      { label: 'Soft Pastels', description: 'Light, gentle tones', icon: Flower2 },
     ],
   },
   {
     question: "What's your local climate like?",
     hint: 'This shapes the type of clothing we recommend.',
     options: [
-      { label: 'Hot & Sunny',   description: 'Warm most of the year',   icon: Sun         },
-      { label: 'Warm & Mild',   description: 'Comfortable year-round',  icon: Thermometer },
-      { label: 'Cool & Rainy',  description: 'Layers and light jackets', icon: CloudRain  },
-      { label: 'Cold & Wintry', description: 'Heavy layers essential',  icon: Snowflake   },
+      { label: 'Hot & Sunny', description: 'Warm most of the year', icon: Sun },
+      {
+        label: 'Warm & Mild',
+        description: 'Comfortable year-round',
+        icon: Thermometer,
+      },
+      {
+        label: 'Cool & Rainy',
+        description: 'Layers and light jackets',
+        icon: CloudRain,
+      },
+      {
+        label: 'Cold & Wintry',
+        description: 'Heavy layers essential',
+        icon: Snowflake,
+      },
     ],
   },
 ];
@@ -98,17 +131,12 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen-safe bg-background">
-
       {/* Progress bar — fixed at top */}
       <div className="progress-bar fixed left-0 right-0 top-0 z-10 rounded-none">
-        <div
-          className="progress-fill"
-          style={{ width: `${progress}%` }}
-        />
+        <div className="progress-fill" style={{ width: `${progress}%` }} />
       </div>
 
       <div className="container-app py-16">
-
         {/* Header */}
         <div className="mb-8">
           <button onClick={handleBack} className="btn-ghost btn-sm mb-6 -ml-2 gap-1.5">
@@ -134,15 +162,18 @@ export default function OnboardingPage() {
                   isSelected ? 'border-primary bg-primary/10 shadow-md' : ''
                 }`}
               >
-                <div className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                  isSelected
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-muted-foreground'
-                }`}>
-                  {isSelected
-                    ? <Check className="h-4 w-4" />
-                    : <Icon className="h-4 w-4" />
-                  }
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                    isSelected
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-muted-foreground'
+                  }`}
+                >
+                  {isSelected ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{label}</p>
@@ -161,7 +192,6 @@ export default function OnboardingPage() {
         >
           {isLast ? 'Get Started' : 'Next'}
         </button>
-
       </div>
     </div>
   );
