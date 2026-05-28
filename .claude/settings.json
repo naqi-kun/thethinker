@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go get *)",
+      "Bash(Test-Path .env)",
+      "Bash(docker compose *)",
+      "Bash(cat /tmp/thethinker.log)",
+      "Read(//tmp/**)",
+      "Bash(curl -s http://localhost:8080/healthz)",
+      "Bash(curl -s -X POST http://localhost:8080/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"naqi@test.com\",\"password\":\"password123\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/healthz)",
+      "Bash(curl -s -X POST http://localhost:8080/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"naqi2@test.com\",\"password\":\"password123\"}')",
+      "Bash(pkill -f \"go run ./cmd/api\")",
+      "Bash(pkill -f \"thethinker\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

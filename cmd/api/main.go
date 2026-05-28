@@ -9,7 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
 )
 
 func main() {
@@ -17,10 +20,8 @@ func main() {
 	// tracer.Start(tracer.WithServiceName("thethinker-api"))
 	// defer tracer.Stop()
 
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		log.Fatal("DATABASE_URL is required")
-	}
+	databaseURL := requireEnv("DATABASE_URL")
+	jwtSecret := requireEnv("JWT_SECRET")
 
 	if err := postgres.RunMigrations(databaseURL); err != nil {
 		log.Fatalf("migrations: %v", err)
@@ -35,39 +36,39 @@ func main() {
 	}
 	defer db.Close()
 
-	userRepo     := postgres.NewUserRepository(db)
-	wardrobeRepo := postgres.NewWardrobeRepository(db)
-	calendarRepo := postgres.NewCalendarRepository(db)
+	// repositories
+	userRepo := postgres.NewUserRepository(db)
 
-	// TODO: wire repositories → services → handlers
-	// userSvc        := user.NewService(userRepo)
-	// wardrobeSvc    := wardrobe.NewService(wardrobeRepo)
-	// calendarSvc    := calendar.NewService(calendarRepo)
-	// weatherSvc     := weather.NewService()
-	// recommendSvc   := recommendation.NewService(wardrobeRepo, calendarRepo, weatherSvc)
-	//
-	// userHandler      := handlers.NewUserHandler(userSvc)
-	// wardrobeHandler  := handlers.NewWardrobeHandler(wardrobeSvc)
-	// calendarHandler  := handlers.NewCalendarHandler(calendarSvc)
-	// recommendHandler := handlers.NewRecommendationHandler(recommendSvc)
+	// TODO: wire remaining repos when their handlers are implemented
+	// wardrobeRepo := postgres.NewWardrobeRepository(db)
+	// calendarRepo := postgres.NewCalendarRepository(db)
 
-	_ = userRepo
-	_ = wardrobeRepo
-	_ = calendarRepo
+	// services
+	userSvc := user.NewService(userRepo, jwtSecret)
+
+	// handlers
+	userHandler := handlers.NewUserHandler(userSvc)
+
+	// middleware
+	auth := middleware.Auth(jwtSecret)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", healthz)
 
-	// TODO: register domain routes
-	// mux.HandleFunc("POST /auth/register",        userHandler.Register)
-	// mux.HandleFunc("POST /auth/login",           userHandler.Login)
-	// mux.HandleFunc("GET  /users/me/preferences", userHandler.GetPreferences)
-	// mux.HandleFunc("PUT  /users/me/preferences", userHandler.UpdatePreferences)
-	// mux.HandleFunc("GET  /wardrobe/items",       wardrobeHandler.List)
-	// mux.HandleFunc("POST /wardrobe/scan",        wardrobeHandler.Scan)
-	// mux.HandleFunc("POST /calendar/connect",     calendarHandler.Connect)
-	// mux.HandleFunc("DELETE /calendar/disconnect",calendarHandler.Disconnect)
-	// mux.HandleFunc("GET  /recommendations/outfit",recommendHandler.GetOutfit)
+	// auth — public
+	mux.HandleFunc("POST /auth/register", userHandler.Register)
+	mux.HandleFunc("POST /auth/login", userHandler.Login)
+
+	// user — protected
+	mux.Handle("GET /users/me/preferences", auth(http.HandlerFunc(userHandler.GetPreferences)))
+	mux.Handle("PUT /users/me/preferences", auth(http.HandlerFunc(userHandler.UpdatePreferences)))
+
+	// TODO: wire wardrobe, calendar, recommendation routes — KAN-14+
+	// mux.Handle("GET /wardrobe/items",          auth(http.HandlerFunc(wardrobeHandler.ListItems)))
+	// mux.Handle("POST /wardrobe/scan",          auth(http.HandlerFunc(wardrobeHandler.Scan)))
+	// mux.Handle("POST /calendar/connect",       auth(http.HandlerFunc(calendarHandler.Connect)))
+	// mux.Handle("DELETE /calendar/disconnect",  auth(http.HandlerFunc(calendarHandler.Disconnect)))
+	// mux.Handle("GET /recommendations/outfit",  auth(http.HandlerFunc(recommendHandler.GetOutfit)))
 
 	srv := &http.Server{
 		Addr:         ":" + port(),
@@ -100,4 +101,12 @@ func port() string {
 		return p
 	}
 	return "8080"
+}
+
+func requireEnv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		log.Fatalf("%s is required", key)
+	}
+	return v
 }
