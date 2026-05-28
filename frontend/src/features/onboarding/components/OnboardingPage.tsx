@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Waves, Coffee, Briefcase, Zap, Sun, Sunrise, Wind, Snowflake } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Waves,
+  Coffee,
+  Briefcase,
+  Zap,
+  Sun,
+  Sunrise,
+  Wind,
+  Snowflake,
+} from 'lucide-react';
 
 type Answers = {
   style: string;
@@ -107,7 +119,10 @@ export default function OnboardingPage() {
       {step === 0 && (
         <div className="w-full max-w-[480px] px-6 pt-8 pb-10">
           <div className="h-1 w-full bg-[#d9c2b8] mb-10">
-            <div className="h-1 bg-[#8e4925] transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div
+              className="h-1 bg-[#8e4925] transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
           </div>
 
           <h1 className="font-serif text-[30px] leading-[1.2] tracking-[-0.01em] text-[#28180d] mb-2">
@@ -133,7 +148,9 @@ export default function OnboardingPage() {
                   <div className="w-10 h-10 rounded-full bg-[#fbddca] flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
                     <Icon className="w-5 h-5 text-[#8e4925]" />
                   </div>
-                  <span className="text-[16px] font-medium text-[#54433c]">{label}</span>
+                  <span className="text-[16px] font-medium text-[#54433c]">
+                    {label}
+                  </span>
                   {selected && (
                     <div className="absolute top-3 right-3">
                       <Check className="w-5 h-5 text-[#8e4925]" />
@@ -145,7 +162,11 @@ export default function OnboardingPage() {
           </div>
 
           <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-10 shadow-sm">
-            <img src={STYLE_IMG} alt="Fashion editorial" className="w-full h-full object-cover" />
+            <img
+              src={STYLE_IMG}
+              alt="Fashion editorial"
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-[#f2d4c2]/40 to-transparent" />
           </div>
 
@@ -165,7 +186,10 @@ export default function OnboardingPage() {
           <header className="flex flex-col items-center gap-4 mb-10">
             <span className="font-serif text-[24px] text-[#8e4925]">TheThinker</span>
             <div className="w-full h-1 bg-[#fbddca] overflow-hidden">
-              <div className="h-full bg-[#8e4925] transition-all duration-700" style={{ width: `${progress}%` }} />
+              <div
+                className="h-full bg-[#8e4925] transition-all duration-700"
+                style={{ width: `${progress}%` }}
+              />
             </div>
             <div className="w-full flex justify-between">
               <span className="text-[12px] text-[#87736b]">Personalizing Profile</span>
@@ -177,7 +201,8 @@ export default function OnboardingPage() {
             What do you dress for?
           </h1>
           <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
-            Select the occasions that define your weekly routine so we can tailor your daily suggestions.
+            Select the occasions that define your weekly routine so we can tailor your
+            daily suggestions.
           </p>
 
           <div className="grid grid-cols-2 gap-4 mb-10">
@@ -197,7 +222,9 @@ export default function OnboardingPage() {
                     <img src={img} alt={label} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[15px] font-semibold text-[#28180d]">{label}</span>
+                    <span className="text-[15px] font-semibold text-[#28180d]">
+                      {label}
+                    </span>
                     {selected && <Check className="w-4 h-4 text-[#8e4925] shrink-0" />}
                   </div>
                   <span className="text-[12px] text-[#54433c]">{description}</span>
@@ -245,7 +272,10 @@ export default function OnboardingPage() {
           </header>
 
           <div className="w-full h-1 bg-[#ffe3d2] overflow-hidden mb-2">
-            <div className="h-full bg-[#8e4925] transition-all duration-700" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full bg-[#8e4925] transition-all duration-700"
+              style={{ width: `${progress}%` }}
+            />
           </div>
           <div className="flex justify-end mb-8">
             <span className="text-[12px] text-[#54433c]">Step 3 of 4</span>
@@ -255,7 +285,8 @@ export default function OnboardingPage() {
             Your color vibe?
           </h1>
           <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
-            Select the palette that best reflects your personal aesthetic and the moods you want to project.
+            Select the palette that best reflects your personal aesthetic and the moods
+            you want to project.
           </p>
 
           <div className="flex flex-col gap-4 mb-10">
@@ -272,7 +303,9 @@ export default function OnboardingPage() {
                   }`}
                 >
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-[14px] font-medium text-[#28180d]">{label}</span>
+                    <span className="text-[14px] font-medium text-[#28180d]">
+                      {label}
+                    </span>
                     {selected && <Check className="w-4 h-4 text-[#8e4925]" />}
                   </div>
                   <div className="flex gap-2">
@@ -317,7 +350,10 @@ export default function OnboardingPage() {
               <span className="text-[12px] text-[#8e4925] font-bold">100%</span>
             </div>
             <div className="h-1 bg-[#ffeade] w-full overflow-hidden">
-              <div className="h-full bg-[#8e4925] transition-all duration-1000" style={{ width: '100%' }} />
+              <div
+                className="h-full bg-[#8e4925] transition-all duration-1000"
+                style={{ width: '100%' }}
+              />
             </div>
           </div>
 
@@ -325,7 +361,8 @@ export default function OnboardingPage() {
             Where do you live?
           </h1>
           <p className="text-[16px] leading-[1.6] text-[#54433c] text-center mb-8 opacity-80">
-            This helps our AI recommend fabrics and layering strategies suited to your local environment.
+            This helps our AI recommend fabrics and layering strategies suited to your
+            local environment.
           </p>
 
           <div className="grid grid-cols-2 gap-4 mb-8">
@@ -342,14 +379,20 @@ export default function OnboardingPage() {
                   }`}
                 >
                   <Icon className="w-8 h-8 text-[#8e4925] mb-3" />
-                  <span className="text-[15px] font-semibold text-[#28180d]">{label}</span>
+                  <span className="text-[15px] font-semibold text-[#28180d]">
+                    {label}
+                  </span>
                 </button>
               );
             })}
           </div>
 
           <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-8 shadow-sm">
-            <img src={CLIMATE_IMG} alt="Warm interior" className="w-full h-full object-cover" />
+            <img
+              src={CLIMATE_IMG}
+              alt="Warm interior"
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
 
