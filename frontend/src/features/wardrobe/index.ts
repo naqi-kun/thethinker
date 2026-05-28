@@ -1,1 +1,1 @@
-// Wardrobe feature: clothing status and scan ingestion.
+export { default as WardrobePage } from './components/WardrobePage';
