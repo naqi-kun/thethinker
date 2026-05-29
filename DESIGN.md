@@ -2,6 +2,31 @@
 
 A warm & earthy mobile-first outfit recommendation app.
 
+**Stitch source:** https://stitch.withgoogle.com/projects/1555275230298263015
+
+---
+
+## Screen Map
+
+| Screen | Route | File | Status |
+|---|---|---|---|
+| Login | `/login` | `features/auth/components/LoginPage.tsx` | Exists — design mismatches |
+| Register | `/register` | `features/auth/components/RegisterPage.tsx` | KAN-12 (not merged) |
+| Onboarding — Style | `/onboarding` step 1 | `features/onboarding/components/OnboardingPage.tsx` | Exists |
+| Onboarding — Occasions | `/onboarding` step 2 | same | Exists |
+| Onboarding — Color Vibe | `/onboarding` step 3 | same | Exists |
+| Onboarding — Climate | `/onboarding` step 4 | same | Exists |
+| Wardrobe | `/wardrobe` | `features/wardrobe/components/WardrobePage.tsx` | Exists |
+| Scan | `/wardrobe/scan` | `features/wardrobe/components/ScanPage.tsx` | Exists |
+| Outfit | `/outfit` | `features/outfit/components/OutfitPage.tsx` | Exists |
+| Calendar | `/calendar` | `features/calendar/components/CalendarPage.tsx` | Exists |
+| Settings | `/settings` | `features/settings/components/SettingsPage.tsx` | Exists |
+
+### Not Yet Implemented
+- Google OAuth — "Continue with Google" on Login screen
+- Register page design (inferred from Login "Create an account" link)
+- Real wardrobe item photos (currently placeholders)
+
 ---
 
 ## Color Palette
@@ -246,164 +271,135 @@ shadcn reads `components.json` and places files in `components/ui/`. The compone
 
 ---
 
-## App-Specific Patterns
+## Screen Specs
 
-How the design system tokens map to each screen in TheThinker.
-
----
-
-### Screen 1 — Login
-
-**Goal:** Simple, warm entry point. Minimal friction.
-
-| Element | Token / Class | Notes |
-|---------|--------------|-------|
-| Page background | `bg-background` (Cream) | Full-screen warm white |
-| App name | `font-serif text-4xl text-espresso` | DM Serif Display heading |
-| Tagline | `font-sans text-muted-foreground` | Rust-toned subtext |
-| Email / Password fields | `input` | 6px radius, sand border |
-| Sign In button | `btn-primary btn-lg w-full` | Full-width terracotta |
-| "Sign up" link | `btn-link` | Inline terracotta text |
-
-```html
-<h1>TheThinker</h1>
-<p class="text-muted-foreground">Dress for every moment.</p>
-<input class="input" type="email" placeholder="Email" />
-<input class="input" type="password" placeholder="Password" />
-<button class="btn-primary btn-lg w-full">Sign In</button>
-<button class="btn-link">Don't have an account? Sign up</button>
-```
+Specs derived from Stitch screenshots. These override any earlier placeholder descriptions.
 
 ---
 
-### Screen 2 — Personalized Questions (Onboarding)
+### Login `/login`
 
-**Goal:** Learn the user's style in a friendly, step-by-step flow.
+![Login screen](design/screens/login.png)
 
-| Element | Token / Class | Notes |
-|---------|--------------|-------|
-| Step progress | `progress-bar` + `progress-fill` | Shows how many questions remain |
-| Step label | `font-sans text-sm text-muted-foreground` | "Step 2 of 5" |
-| Question | `font-serif text-2xl text-espresso` | DM Serif Display |
-| Option card | `card-interactive p-4` | Tappable choice cards |
-| Selected option | `border-primary bg-primary/10` | Terracotta highlight |
-| Selected badge | `badge-primary` | Confirms selection |
-| Next button | `btn-primary btn-md` | Disabled until option chosen |
-| Skip link | `btn-ghost btn-sm` | Low-emphasis escape |
-
-```html
-<div class="progress-bar"><div class="progress-fill" style="width: 40%"></div></div>
-<p class="text-muted-foreground text-sm">Step 2 of 5</p>
-<h3>What's your go-to style?</h3>
-<div class="card-interactive p-4">Casual & Relaxed</div>
-<div class="card-interactive p-4 border-primary bg-primary/10">
-  Smart Casual <span class="badge-primary ml-2">Selected</span>
-</div>
-<button class="btn-primary btn-md">Next</button>
-```
+- **Header:** Hanger icon in terracotta circle · "TheThinker" serif · "Your digital atelier await." muted
+- **Card:** "Welcome Back" heading · all-caps labels (EMAIL ADDRESS, PASSWORD) · `your@style.com` placeholder
+- **Password row:** label left · "Forgot?" muted link right
+- **Actions:** "Sign In" full-width terracotta · "or" divider · "Continue with Google" white outline button with Google icon
+- **Footer:** "New to the atelier? **Create an account**" (terracotta link → `/register`)
+- **Bottom decoration:** three square mood-board images (fabric · notebook · ceramics)
+- **Not implemented:** Google OAuth
 
 ---
 
-### Screen 3 — Clothes Status
+### Register `/register`
 
-**Goal:** Let users mark each garment as clean or dirty so the app only recommends wearable items.
+![Register screen](design/screens/register.png)
 
-| Element | Token / Class | Notes |
-|---------|--------------|-------|
-| Garment card | `card-interactive p-4` | Tappable, shows item photo + name |
-| Clean status | `badge-clean` | Green tint — safe to recommend |
-| Dirty status | `badge-dirty` | Gold tint — excluded from recommendations |
-| Status toggle | `btn-outline btn-sm` | Toggle between Clean / Dirty |
-| Section heading | `font-serif text-2xl` | "My Wardrobe" |
-| Item count | `badge-default` | "12 items · 8 clean" |
-
-```html
-<h2>My Wardrobe</h2>
-<span class="badge-default">12 items · 8 clean</span>
-
-<!-- Garment card -->
-<div class="card-interactive p-4 flex items-center gap-4">
-  <img class="avatar-lg rounded-md" src="..." />
-  <div>
-    <h5>White Linen Shirt</h5>
-    <span class="badge-clean">Clean</span>
-  </div>
-  <button class="btn-outline btn-sm ml-auto">Mark Dirty</button>
-</div>
-```
-
-**Status color logic:**
-
-| State | Badge | Background tint | Meaning |
-|-------|-------|----------------|---------|
-| Clean | `badge-clean` | `bg-success/15` | Will appear in recommendations |
-| Dirty | `badge-dirty` | `bg-warning/15` | Hidden from recommendations |
+- Design not captured in Stitch — mirror Login layout
+- Fields: name · email · password (confirm)
+- Footer: "Already have an account? **Sign in**" → `/login`
 
 ---
 
-### Screen 4 — Scan Wardrobe
+### Onboarding `/onboarding`
 
-**Goal:** Add new garments by photographing them.
+Shared chrome: "TheThinker" wordmark centred · full-width progress bar · step counter top-right · italic serif quote at very bottom.
 
-| Element | Token / Class | Notes |
-|---------|--------------|-------|
-| Scan frame / overlay | `border-2 border-primary rounded-xl` | Terracotta viewfinder border |
-| Instruction text | `font-sans text-sm text-muted-foreground` | Below the camera frame |
-| Capture button | `btn-primary btn-icon` | Large circular button |
-| Cancel | `btn-ghost btn-sm` | Low-emphasis exit |
-| Detected item card | `card-elevated p-4` | Pops up after scan with detected details |
-| Confirm badge | `badge-success` | "Item detected" |
-| Save button | `btn-primary btn-md w-full` | "Add to Wardrobe" |
+![Onboarding step 1 — style](design/screens/onboarding-style.png)
+![Onboarding step 2 — occasions](design/screens/onboarding-occasions.png)
+![Onboarding step 3 — color vibe](design/screens/onboarding-color.png)
+![Onboarding step 4 — climate](design/screens/onboarding-climate.png)
 
-```html
-<!-- After scan: item preview -->
-<div class="card-elevated p-4">
-  <span class="badge-success mb-2">Item detected</span>
-  <h5>Blue Denim Jacket</h5>
-  <p class="helper-text">Category: Outerwear</p>
-  <button class="btn-primary btn-md w-full mt-4">Add to Wardrobe</button>
-  <button class="btn-ghost btn-md w-full mt-2">Scan Again</button>
-</div>
-```
+#### Step 1 — What's your style?
+- Subtitle: "Choose the aesthetic that best describes your daily approach to fashion."
+- 2×2 icon grid: **Casual** (waves) · **Smart Casual** (coffee cup) · **Formal** (briefcase) · **Sporty** (lightning bolt)
+- Each card: terracotta icon circle + label, linen background
+- Large mood image below grid (coat rack)
+- CTA: "Next →" terracotta · no skip
+
+#### Step 2 — What do you dress for? *(Step 2 of 4)*
+- Subtitle: "Select the occasions that define your weekly routine…"
+- 2×2 photo grid: **Work** (Office & Business) · **Casual** (Daily & Errands) · **Events** (Dinners & Galas) · **Outdoor** (Sport & Nature)
+- CTA: "Next →" + "Skip for now" ghost button
+
+#### Step 3 — Your color vibe? *(Step 3 of 4)*
+- Four row cards each with label + 4 colour swatches:
+  - **Neutrals** — white, light grey, dark grey, black
+  - **Earth Tones** — terracotta, brown, taupe, olive
+  - **Bold** — red, navy, amber, green
+  - **Pastels** — pink, lavender, purple, mint
+- CTA: "Next →"
+
+#### Step 4 — Where do you live? *(Step 4 of 4 · 100%)*
+- 2×2 icon grid: **Hot** · **Warm** · **Cool** · **Cold**
+- Large mood image below grid
+- CTA: "**Get Started**" (no skip on final step)
+- Footer note: "You can change your location settings anytime in the app."
 
 ---
 
-### Screen 5 — Outfit Recommendation
+### Wardrobe `/wardrobe`
 
-**Goal:** Show a curated outfit based on the user's calendar event and available clean garments.
+![Wardrobe screen](design/screens/wardrobe.png)
 
-| Element | Token / Class | Notes |
-|---------|--------------|-------|
-| Event banner | `bg-linen border border-border rounded-lg p-3` | Shows the upcoming event |
-| Event label | `badge-accent` | Event type (e.g. "Work Meeting") |
-| Event name | `font-sans font-semibold text-espresso` | Calendar event title |
-| Outfit card | `card-elevated p-4` | Hero card for the recommended outfit |
-| "Recommended" tag | `badge-primary` | Highlights AI pick |
-| Garment chips | `badge-default` | Lists each piece (shirt, trousers, shoes) |
-| Accept button | `btn-primary btn-lg w-full` | "Wear This Today" |
-| See more button | `btn-secondary btn-md w-full` | "Show Other Options" |
-| Clean indicator | `badge-clean` (small) | Confirms each item is clean |
+- **Nav:** TheThinker wordmark left · Wardrobe / Outfit / Calendar / Settings tabs · avatar top-right
+- **Header:** "My Wardrobe" + item count badge (e.g. 42)
+- **Filter tabs:** All · Clean · Dirty
+- **Item card:** hanger icon · name bold + "Category · Color" · CLEAN/DIRTY badge · "Laundered?" toggle · delete icon
+- **Bottom CTAs:** "Scan New Item" (terracotta, scan icon) · "Get Outfit Recommendation" (linen/ghost, hanger icon)
 
-```html
-<!-- Event context -->
-<div class="bg-linen rounded-lg border p-3 flex items-center gap-3">
-  <span class="badge-accent">Work Meeting</span>
-  <p class="font-semibold text-espresso">Design Review — 10:00 AM</p>
-</div>
+---
 
-<!-- Outfit recommendation -->
-<div class="card-elevated p-5 mt-4">
-  <span class="badge-primary mb-3">Recommended for you</span>
-  <h3>Smart Casual Look</h3>
-  <div class="flex gap-2 flex-wrap mt-2">
-    <span class="badge-default">White Linen Shirt <span class="badge-clean ml-1">✓</span></span>
-    <span class="badge-default">Charcoal Trousers <span class="badge-clean ml-1">✓</span></span>
-    <span class="badge-default">White Sneakers <span class="badge-clean ml-1">✓</span></span>
-  </div>
-  <button class="btn-primary btn-lg w-full mt-5">Wear This Today</button>
-  <button class="btn-secondary btn-md w-full mt-2">Show Other Options</button>
-</div>
-```
+### Scan `/wardrobe/scan`
+
+![Scan screen](design/screens/scan.png)
+
+- **Header:** back arrow · "Scan Clothing" · avatar
+- **Upload zone:** dashed border card · cloud-upload icon · "Add to your Wardrobe" · guidance copy
+- **Primary CTA:** "Take Photo" (camera icon, terracotta)
+- **Secondary CTA:** "Upload from Gallery" (image icon, ghost)
+- **Tips section:** "TIPS FOR A PERFECT SCAN" all-caps label
+  - **Natural Lighting** — "Avoid harsh shadows or yellow indoor lights."
+  - **Flat Lay** — "Smooth out wrinkles for better silhouette detection."
+
+---
+
+### Outfit `/outfit`
+
+![Outfit screen](design/screens/outfit.png)
+
+- **Nav:** same nav, Outfit tab active
+- **Date header:** e.g. "Thursday, June 5" large serif
+- **Context chips:** sun icon + "72°F · Sunny" · calendar icon + "Client Meeting"
+- **Outfit stack:** stacked full-width photos with pill label overlays (e.g. "Structured Linen Shirt", "Tailored Trousers")
+- **Sticky CTA:** "Wear This Today ✓" terracotta
+
+---
+
+### Calendar `/calendar`
+
+![Calendar screen](design/screens/calendar.png)
+
+- **Header:** "Sync Your Life" · subtitle about calendar-based recommendations
+- **Integration cards:** icon + name + status + action
+  - Google Calendar — "● Connected" green · "Disconnect" text action
+  - Apple Calendar — "iCloud Synchronization" muted · "Connect" terracotta button
+- **Quote card:** mood image background · "THOUGHTFUL CURATION" all-caps · italic serif quote
+- **Privacy note:** small centred paragraph
+
+---
+
+### Settings `/settings`
+
+![Settings screen](design/screens/settings.png)
+
+- **Profile header:** avatar circle with edit badge · full name · email
+- **Preference cards** (each with title, subtitle, edit pencil):
+  - **Style Profile** — hashtag chips (#Minimalist, #Architectural, #Earthy)
+  - **Occasions** — pill chips (Studio Work, Client Meetings, Gala Events)
+  - **Color Palette** — swatches row + "+" add button
+  - **Climate** — single chip (e.g. "❄ Temperate / Coastal")
+- **Bottom:** "Sign Out" ghost button · "Version X.X.X (Stable)" muted
 
 ---
 
