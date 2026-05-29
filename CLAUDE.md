@@ -77,7 +77,7 @@ The Vite dev server runs on `http://localhost:5173` and proxies `/api/*` to `htt
 
 | Concern | Technology |
 |---|---|
-| Language | Go 1.24 (pinned in `backend/.go-version`) |
+| Language | Go 1.25 (pinned in `backend/.go-version`) |
 | Architecture | Domain-Driven Design (DDD) |
 | API contract | OpenAPI 3.0 (`api/openapi.yaml`) |
 | Database | Postgres via pgx/v5 + golang-migrate |
@@ -149,7 +149,7 @@ npx @redocly/cli lint api/openapi.yaml
 
 ### Go Version Management
 
-Go version is pinned to `1.24.0` in `backend/.go-version`.
+Go version is pinned to `1.25.0` in `backend/.go-version`.
 
-- **Linux / Mac:** use `gvm` — `gvm install go1.24.0 && gvm use go1.24.0`
-- **Windows:** use `goenv` — `goenv install 1.24.0 && goenv global 1.24.0`
+- **Linux / Mac:** use `gvm` — `gvm install go1.25.0 && gvm use go1.25.0`
+- **Windows:** use `goenv` — `goenv install 1.25.0 && goenv global 1.25.0`
