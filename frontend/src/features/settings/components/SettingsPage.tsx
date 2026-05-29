@@ -20,13 +20,13 @@ function Toggle({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+      className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
         checked ? 'bg-primary' : 'bg-border'
       }`}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-          checked ? 'translate-x-5' : 'translate-x-0.5'
+        className={`block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-[22px]' : 'translate-x-0.5'
         }`}
       />
     </button>
@@ -329,7 +329,7 @@ export default function SettingsPage() {
               label="Export data"
               description="Download your wardrobe and preferences."
             />
-            <button className="btn-secondary btn-sm shrink-0 gap-1.5">
+            <button className="btn-secondary btn-sm w-24 shrink-0 gap-1.5">
               <Download className="h-3.5 w-3.5" />
               Export
             </button>
@@ -339,7 +339,7 @@ export default function SettingsPage() {
               label="Clear outfit history"
               description="Remove all past outfit records."
             />
-            <button className="btn-sm shrink-0 gap-1.5 rounded-xl border border-warning/50 bg-warning/10 px-4 text-warning hover:bg-warning/20">
+            <button className="btn-secondary btn-sm w-24 shrink-0 gap-1.5 text-warning border-warning/50 hover:bg-warning/10">
               <Trash2 className="h-3.5 w-3.5" />
               Clear
             </button>
@@ -349,7 +349,7 @@ export default function SettingsPage() {
               label="Delete account"
               description="Permanently remove your account and all data."
             />
-            <button className="btn-sm shrink-0 gap-1.5 rounded-xl border border-destructive/50 bg-destructive/10 px-4 text-destructive hover:bg-destructive/20">
+            <button className="btn-secondary btn-sm w-24 shrink-0 gap-1.5 text-destructive border-destructive/50 hover:bg-destructive/10">
               <AlertTriangle className="h-3.5 w-3.5" />
               Delete
             </button>
