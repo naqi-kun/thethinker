@@ -1,0 +1,393 @@
+openapi: 3.0.3
+info:
+  title: TheThinker API
+  description: AI-powered outfit recommendation backend — Scan · Schedule · Style
+  version: 0.1.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: auth
+    description: Registration and login
+  - name: users
+    description: User profile and style preferences
+  - name: wardrobe
+    description: Clothing catalog and AI scan
+  - name: calendar
+    description: Google / Apple Calendar integration
+  - name: recommendations
+    description: Daily outfit suggestions
+
+paths:
+
+  # ── Auth ────────────────────────────────────────────────────────────────────
+
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Authenticate and receive a JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Users ───────────────────────────────────────────────────────────────────
+
+  /users/me/preferences:
+    get:
+      tags: [users]
+      summary: Get the authenticated user's style preferences (personalized Q answers)
+      responses:
+        '200':
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [users]
+      summary: Update style preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Preferences'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Preferences'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Wardrobe ────────────────────────────────────────────────────────────────
+
+  /wardrobe/items:
+    get:
+      tags: [wardrobe]
+      summary: List all clothing items in the wardrobe (clothes status screen)
+      parameters:
+        - name: category
+          in: query
+          description: Filter by clothing category
+          schema:
+            type: string
+            enum: [formal, casual, sport]
+      responses:
+        '200':
+          description: List of clothing items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ClothingItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /wardrobe/scan:
+    post:
+      tags: [wardrobe]
+      summary: Submit a photo for AI categorization and add to wardrobe
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Photo of the clothing item
+      responses:
+        '201':
+          description: Item scanned and added to wardrobe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClothingItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  # ── Calendar ────────────────────────────────────────────────────────────────
+
+  /calendar/connect:
+    post:
+      tags: [calendar]
+      summary: Connect a Google or Apple Calendar via OAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendarConnectRequest'
+      responses:
+        '200':
+          description: Calendar connected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarConnection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /calendar/disconnect:
+    delete:
+      tags: [calendar]
+      summary: Disconnect the linked calendar
+      responses:
+        '204':
+          description: Calendar disconnected
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Recommendations ─────────────────────────────────────────────────────────
+
+  /recommendations/outfit:
+    get:
+      tags: [recommendations]
+      summary: Get an outfit recommendation for the given date
+      parameters:
+        - name: date
+          in: query
+          description: Date to recommend for (ISO 8601, defaults to today)
+          schema:
+            type: string
+            format: date
+            example: '2025-06-01'
+      responses:
+        '200':
+          description: Outfit recommendation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitRecommendation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Bearer token
+        user_id:
+          type: string
+
+    Preferences:
+      type: object
+      properties:
+        styles:
+          type: array
+          description: Preferred clothing styles
+          items:
+            type: string
+            enum: [formal, casual, sport, streetwear, business_casual]
+        answers:
+          type: object
+          description: Personalized Q answers keyed by question ID
+          additionalProperties:
+            type: string
+
+    ClothingItem:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+          enum: [formal, casual, sport]
+        sub_type:
+          type: string
+          example: shirt
+        color:
+          type: string
+          example: navy blue
+        image_url:
+          type: string
+          format: uri
+        last_worn:
+          type: string
+          format: date-time
+          nullable: true
+
+    CalendarConnectRequest:
+      type: object
+      required: [provider, auth_code]
+      properties:
+        provider:
+          type: string
+          enum: [google, apple]
+        auth_code:
+          type: string
+          description: OAuth authorization code from the provider
+
+    CalendarConnection:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [google, apple]
+        connected_at:
+          type: string
+          format: date-time
+
+    OutfitRecommendation:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        occasion:
+          type: string
+          example: business meeting
+        weather:
+          $ref: '#/components/schemas/WeatherSnapshot'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClothingItem'
+
+    WeatherSnapshot:
+      type: object
+      properties:
+        temperature:
+          type: number
+          description: Temperature in Celsius
+        feels_like:
+          type: number
+        description:
+          type: string
+          example: partly cloudy
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request body or parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid JWT
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: Request is well-formed but semantically invalid (e.g., unrecognizable clothing image)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

@@ -1,10 +1,24 @@
-# TheThinker — Frontend
+# TheThinker
 
-AI-powered outfit recommendation frontend. Users scan their wardrobe, sync their calendar, and receive a daily outfit suggestion based on occasion, weather, and personal style.
+AI-powered outfit recommendation app. Users scan their wardrobe, sync their calendar, and receive a daily outfit suggestion based on occasion, weather, and personal style.
 
 **Tagline:** Scan · Schedule · Style
 
-## Stack
+## Repository Layout
+
+```
+backend/       ← Go API server (DDD)
+frontend/      ← React SPA (Vite + Tailwind v4)
+api/           ← OpenAPI spec (shared contract)
+k8s/           ← Kubernetes manifests
+docker-compose.yml  ← local Postgres for development
+```
+
+---
+
+## Frontend
+
+### Stack
 
 | Concern | Technology |
 |---|---|
@@ -16,9 +30,9 @@ AI-powered outfit recommendation frontend. Users scan their wardrobe, sync their
 | Formatting | Prettier |
 | API contract | Consumes TheThinker backend OpenAPI endpoints |
 
-## Repository Layout
+### Directory Layout
 
-```text
+```
 frontend/
   src/
     app/                            # minimal app shell and global CSS starter
@@ -32,17 +46,16 @@ frontend/
       api/                          # API client and contract-aligned types
 ```
 
-## Frontend Rules
+### Frontend Rules
 
 1. Keep feature-specific UI, state, and data access under `frontend/src/features/<feature>/`.
 2. Keep shared primitives under `frontend/src/shared/`.
 3. Keep app-level composition under `frontend/src/app/`.
 4. Use `frontend/src/shared/api/types.ts` for backend contract-aligned types.
 5. Use `nvm use` before running Node commands.
-6. Run lint, format check, and build before opening a merge request.
-7. Run lint, format check, and type check before opening a merge request.
+6. Run lint, format check, and type check before opening a merge request.
 
-## Key Commands
+### Key Commands
 
 ```bash
 nvm use
@@ -55,3 +68,88 @@ npm run build
 ```
 
 The Vite dev server runs on `http://localhost:5173` and proxies `/api/*` to `http://localhost:8080`.
+
+---
+
+## Backend
+
+### Stack
+
+| Concern | Technology |
+|---|---|
+| Language | Go 1.26 (pinned in `backend/.go-version`) |
+| Architecture | Domain-Driven Design (DDD) |
+| API contract | OpenAPI 3.0 (`api/openapi.yaml`) |
+| Database | Postgres via pgx/v5 + golang-migrate |
+| CI/CD | GitLab CI (`.gitlab-ci.yml`) |
+| Deployment | Kubernetes (`k8s/`) |
+| Observability | Datadog (`dd-trace-go` — not yet wired) |
+
+### Directory Layout
+
+```
+backend/
+  cmd/
+    api/
+      main.go                       ← entrypoint; wires all dependencies via DI
+
+  internal/
+    domain/                         ← pure business logic; no infra imports allowed
+      user/                         ← Auth, profile, style preferences
+      wardrobe/                     ← Clothing catalog, AI scan ingestion
+      calendar/                     ← Google/Apple OAuth, event fetching
+      recommendation/               ← Outfit selection logic
+      weather/                      ← External weather API abstraction
+
+    infrastructure/
+      persistence/postgres/         ← DB implementations
+      external/weather/             ← 3rd-party weather API stub
+      external/calendar/            ← Google / Apple Calendar OAuth stub
+
+    interfaces/http/
+      handlers/                     ← one handler file per domain
+      middleware/auth.go            ← JWT validation
+
+  pkg/
+    errors/errors.go                ← AppError type and sentinel errors
+    logger/logger.go                ← structured JSON logger (slog)
+    token/token.go                  ← JWT Sign/Verify helpers
+```
+
+### Backend Rules
+
+1. `internal/domain/**` must **never** import `internal/infrastructure/**` or `internal/interfaces/**`.
+2. Repository interfaces live in the domain package; implementations live in infrastructure.
+3. All dependency injection is wired in `cmd/api/main.go`.
+
+### Key Commands
+
+```bash
+cd backend
+go build ./...     # build all packages
+go vet ./...       # static analysis
+go test ./...      # run tests
+```
+
+### OpenAPI Spec
+
+`api/openapi.yaml` is the contract between backend and frontend. **Do not add or change HTTP endpoints without updating the spec first.**
+
+Endpoints at a glance:
+- `POST /auth/register` · `POST /auth/login`
+- `GET /users/me/preferences` · `PUT /users/me/preferences`
+- `GET /wardrobe/items` · `POST /wardrobe/scan`
+- `POST /calendar/connect` · `DELETE /calendar/disconnect`
+- `GET /recommendations/outfit`
+
+To validate the spec locally:
+```bash
+npx @redocly/cli lint api/openapi.yaml
+```
+
+### Go Version Management
+
+Go version is pinned to `1.26.0` in `backend/.go-version`.
+
+- **Linux / Mac:** use `gvm` — `gvm install go1.26.0 && gvm use go1.26.0`
+- **Windows:** use `goenv` — `goenv install 1.26.0 && goenv global 1.26.0`
