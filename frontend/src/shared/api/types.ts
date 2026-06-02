@@ -1,3 +1,8 @@
+export type AuthResponse = {
+  token: string;
+  user_id: string;
+};
+
 export type StylePreference =
   | 'formal'
   | 'casual'

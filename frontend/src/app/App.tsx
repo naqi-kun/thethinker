@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { LandingPage } from '../features/landing';
-import { LoginPage } from '../features/auth';
+import { LoginPage, RegisterPage, ProtectedRoute } from '../features/auth';
 import { OnboardingPage } from '../features/onboarding';
 import { WardrobePage, ScanPage } from '../features/wardrobe';
 import { OutfitPage } from '../features/outfit';
@@ -12,12 +12,55 @@ export function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/onboarding" element={<OnboardingPage />} />
-      <Route path="/wardrobe" element={<WardrobePage />} />
-      <Route path="/wardrobe/scan" element={<ScanPage />} />
-      <Route path="/outfit" element={<OutfitPage />} />
-      <Route path="/calendar" element={<CalendarPage />} />
-      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <OnboardingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wardrobe"
+        element={
+          <ProtectedRoute>
+            <WardrobePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wardrobe/scan"
+        element={
+          <ProtectedRoute>
+            <ScanPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/outfit"
+        element={
+          <ProtectedRoute>
+            <OutfitPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <ProtectedRoute>
+            <CalendarPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

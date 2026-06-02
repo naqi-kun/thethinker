@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import { login } from '../api';
+import { register } from '../api';
 import { token } from '../../../shared/api/token';
 import { ApiError } from '../../../shared/api/httpClient';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,14 +18,24 @@ export default function LoginPage() {
 
   async function handleSubmit() {
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const result = await login({ email, password });
+      const result = await register({ email, password });
       token.set(result.token);
       navigate('/onboarding');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        setError('Incorrect email or password.');
+      if (err instanceof ApiError && err.status === 409) {
+        setError('An account with this email already exists.');
       } else {
         setError('Something went wrong. Please try again.');
       }
@@ -48,7 +59,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="card p-8 shadow-sm">
           <h2 className="mb-6 text-center font-serif text-2xl text-espresso">
-            Welcome Back
+            Join the Atelier
           </h2>
 
           <form
@@ -83,20 +94,12 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label
-                  className="block text-xs font-medium uppercase tracking-widest text-espresso"
-                  htmlFor="password"
-                >
-                  Password
-                </label>
-                <button
-                  type="button"
-                  className="btn-link text-xs text-muted-foreground"
-                >
-                  Forgot?
-                </button>
-              </div>
+              <label
+                className="block text-xs font-medium uppercase tracking-widest text-espresso"
+                htmlFor="password"
+              >
+                Password
+              </label>
               <div className="relative">
                 <input
                   id="password"
@@ -122,12 +125,30 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="space-y-1.5">
+              <label
+                className="block text-xs font-medium uppercase tracking-widest text-espresso"
+                htmlFor="confirmPassword"
+              >
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                className="input"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+
             <button
               type="submit"
               className="btn-primary btn-lg w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
 
@@ -147,12 +168,9 @@ export default function LoginPage() {
           </button>
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
-            New to the atelier?{' '}
-            <Link
-              to="/register"
-              className="font-semibold text-terracotta hover:underline"
-            >
-              Create an account
+            Already have an account?{' '}
+            <Link to="/login" className="font-semibold text-terracotta hover:underline">
+              Sign in
             </Link>
           </p>
         </div>
