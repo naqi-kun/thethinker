@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
@@ -37,17 +38,19 @@ func main() {
 	defer db.Close()
 
 	// repositories
-	userRepo := postgres.NewUserRepository(db)
+	userRepo     := postgres.NewUserRepository(db)
+	wardrobeRepo := postgres.NewWardrobeRepository(db)
 
 	// TODO: wire remaining repos when their handlers are implemented
-	// wardrobeRepo := postgres.NewWardrobeRepository(db)
 	// calendarRepo := postgres.NewCalendarRepository(db)
 
 	// services
-	userSvc := user.NewService(userRepo, jwtSecret)
+	userSvc     := user.NewService(userRepo, jwtSecret)
+	wardrobeSvc := wardrobe.NewService(wardrobeRepo)
 
 	// handlers
-	userHandler := handlers.NewUserHandler(userSvc)
+	userHandler     := handlers.NewUserHandler(userSvc)
+	wardrobeHandler := handlers.NewWardrobeHandler(wardrobeSvc)
 
 	// middleware
 	auth := middleware.Auth(jwtSecret)
@@ -63,8 +66,10 @@ func main() {
 	mux.Handle("GET /users/me/preferences", auth(http.HandlerFunc(userHandler.GetPreferences)))
 	mux.Handle("PUT /users/me/preferences", auth(http.HandlerFunc(userHandler.UpdatePreferences)))
 
-	// TODO: wire wardrobe, calendar, recommendation routes — KAN-14+
-	// mux.Handle("GET /wardrobe/items",          auth(http.HandlerFunc(wardrobeHandler.ListItems)))
+	mux.Handle("GET /wardrobe/items",  auth(http.HandlerFunc(wardrobeHandler.ListItems)))
+	mux.Handle("POST /wardrobe/items", auth(http.HandlerFunc(wardrobeHandler.AddItem)))
+
+	// TODO: wire remaining routes — KAN-14+
 	// mux.Handle("POST /wardrobe/scan",          auth(http.HandlerFunc(wardrobeHandler.Scan)))
 	// mux.Handle("POST /calendar/connect",       auth(http.HandlerFunc(calendarHandler.Connect)))
 	// mux.Handle("DELETE /calendar/disconnect",  auth(http.HandlerFunc(calendarHandler.Disconnect)))
