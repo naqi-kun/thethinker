@@ -27,3 +27,6 @@ backend/server
 
 # Claude Code
 .claude/
+.agents/
+.hallmark/
+skills-lock.json
