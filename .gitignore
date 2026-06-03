@@ -26,4 +26,6 @@ backend/server
 *.pem
 
 # Claude Code
-.claude/
+# Share skills and project settings with the team; keep personal/local config out.
+.claude/settings.local.json
+.claude/*.local.json
