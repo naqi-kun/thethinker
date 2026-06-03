@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import { addItem } from '../api';
-import type { AddItemPayload, ClothingCategory, ClothingFit, ClothingSeason } from '../../../shared/api/types';
+import type {
+  AddItemPayload,
+  ClothingCategory,
+  ClothingFit,
+  ClothingSeason,
+} from '../../../shared/api/types';
 
 type FormState = {
   category: ClothingCategory | '';
@@ -114,7 +119,9 @@ export default function AddItemPage() {
           </button>
           <div>
             <h2 className="mb-0.5">Add Item</h2>
-            <p className="helper-text">Classify a piece of clothing for your wardrobe.</p>
+            <p className="helper-text">
+              Classify a piece of clothing for your wardrobe.
+            </p>
           </div>
         </div>
 

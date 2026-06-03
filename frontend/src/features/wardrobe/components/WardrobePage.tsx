@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Footprints, Plus, Scan, Search, Shirt, ShoppingBag, Watch } from 'lucide-react';
+import {
+  Footprints,
+  Plus,
+  Scan,
+  Search,
+  Shirt,
+  ShoppingBag,
+  Watch,
+} from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import { listItems } from '../api';
 import type { ClothingItem, ClothingSeason } from '../../../shared/api/types';
@@ -19,11 +27,19 @@ const CATEGORY_TABS: FilterTab[] = [
 
 function subTypeToCategory(subType: string): WardrobeCategory {
   const s = subType.toLowerCase();
-  if (['shirt', 't-shirt', 'blouse', 'top', 'sweater', 'hoodie', 'tee'].some((t) => s.includes(t)))
+  if (
+    ['shirt', 't-shirt', 'blouse', 'top', 'sweater', 'hoodie', 'tee'].some((t) =>
+      s.includes(t),
+    )
+  )
     return 'Tops';
   if (['pants', 'jeans', 'trousers', 'shorts', 'skirt'].some((t) => s.includes(t)))
     return 'Bottoms';
-  if (['shoes', 'sneakers', 'boots', 'loafers', 'sandals', 'heels'].some((t) => s.includes(t)))
+  if (
+    ['shoes', 'sneakers', 'boots', 'loafers', 'sandals', 'heels'].some((t) =>
+      s.includes(t),
+    )
+  )
     return 'Shoes';
   if (['jacket', 'coat', 'blazer', 'cardigan', 'outerwear'].some((t) => s.includes(t)))
     return 'Outerwear';
@@ -119,7 +135,11 @@ function ItemCard({ item }: { item: ClothingItem }) {
     <div className="card-interactive flex flex-col overflow-hidden">
       <div className="flex aspect-square items-center justify-center bg-linen/60">
         {item.image_url ? (
-          <img src={item.image_url} alt={displayName} className="h-full w-full object-cover" />
+          <img
+            src={item.image_url}
+            alt={displayName}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
@@ -171,7 +191,9 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
     <div className="mb-6 grid grid-cols-5 divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map(({ label, count }) => (
         <div key={label} className="flex flex-col items-center py-3">
-          <span className="font-serif text-xl font-normal text-foreground">{count}</span>
+          <span className="font-serif text-xl font-normal text-foreground">
+            {count}
+          </span>
           <span className="text-[10px] text-muted-foreground">{label}</span>
         </div>
       ))}
