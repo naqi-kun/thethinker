@@ -1,0 +1,80 @@
+package classifier
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"time"
+
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
+)
+
+var _ wardrobe.Classifier = (*Client)(nil)
+
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+}
+
+func NewClient(baseURL string) *Client {
+	return &Client{
+		baseURL:    baseURL,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+	}
+}
+
+type classifyResponse struct {
+	Category string `json:"category"`
+	SubType  string `json:"sub_type"`
+	Color    string `json:"color"`
+	Fit      string `json:"fit"`
+	Season   string `json:"season"`
+}
+
+func (c *Client) Classify(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error) {
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+
+	part, err := w.CreateFormFile("image", "image")
+	if err != nil {
+		return nil, fmt.Errorf("classifier: create form file: %w", err)
+	}
+	if _, err := io.Copy(part, bytes.NewReader(imageBytes)); err != nil {
+		return nil, fmt.Errorf("classifier: copy image: %w", err)
+	}
+	w.Close()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/classify", &body)
+	if err != nil {
+		return nil, fmt.Errorf("classifier: build request: %w", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("classifier: http: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("classifier: status %d: %s", resp.StatusCode, raw)
+	}
+
+	var result classifyResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("classifier: decode: %w", err)
+	}
+
+	return &wardrobe.ClassifyResult{
+		Category: result.Category,
+		SubType:  result.SubType,
+		Color:    result.Color,
+		Fit:      result.Fit,
+		Season:   result.Season,
+	}, nil
+}
