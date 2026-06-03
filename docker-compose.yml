@@ -34,6 +34,9 @@ services:
       AI_SERVICE_URL: http://ai:8001
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_SERVICE_NAME: thethinker-api
+      GCS_BUCKET: ${GCS_BUCKET:-wardrobe-images}
+      GCS_EMULATOR_HOST: ${GCS_EMULATOR_HOST:-}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
     depends_on:
       db:
         condition: service_healthy

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Footprints,
@@ -7,10 +7,11 @@ import {
   Search,
   Shirt,
   ShoppingBag,
+  Upload,
   Watch,
 } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
-import { listItems } from '../api';
+import { listItems, uploadItemImage } from '../api';
 import type { ClothingItem, ClothingSeason } from '../../../shared/api/types';
 
 type WardrobeCategory = 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
@@ -126,14 +127,41 @@ function ReadinessHint({ items }: { items: ClothingItem[] }) {
   );
 }
 
-function ItemCard({ item }: { item: ClothingItem }) {
+function ItemCard({
+  item,
+  onImageUploaded,
+}: {
+  item: ClothingItem;
+  onImageUploaded?: (id: string, imageUrl: string) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const category = subTypeToCategory(item.sub_type);
   const displayName = `${capitalize(item.color)} ${item.sub_type}`;
   const tags = [item.category, item.fit].filter(Boolean) as string[];
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const updated = await uploadItemImage(item.id, file);
+      onImageUploaded?.(item.id, updated.image_url ?? '');
+    } catch {
+      setUploadError('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  }
+
   return (
     <div className="card-interactive flex flex-col overflow-hidden">
-      <div className="flex aspect-square items-center justify-center bg-linen/60">
+      <div className="relative flex aspect-square items-center justify-center bg-linen/60">
         {item.image_url ? (
           <img
             src={item.image_url}
@@ -152,6 +180,28 @@ function ItemCard({ item }: { item: ClothingItem }) {
             />
           </div>
         )}
+
+        {/* Upload button overlay */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-sm border border-border hover:bg-background transition-colors disabled:opacity-50"
+          title="Upload image"
+        >
+          {uploading ? (
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          ) : (
+            <Upload className="h-3.5 w-3.5 text-foreground" />
+          )}
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
 
       <div className="flex flex-col gap-1.5 p-3">
@@ -173,6 +223,10 @@ function ItemCard({ item }: { item: ClothingItem }) {
               ? seasonLabel(item.season)
               : ''}
         </p>
+
+        {uploadError && (
+          <p className="text-[10px] text-destructive">{uploadError}</p>
+        )}
       </div>
     </div>
   );
@@ -219,6 +273,12 @@ export default function WardrobePage() {
       .catch(() => setError('Failed to load wardrobe items.'))
       .finally(() => setLoading(false));
   }, []);
+
+  function handleImageUploaded(id: string, imageUrl: string) {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, image_url: imageUrl } : item)),
+    );
+  }
 
   const filtered = items.filter((item) => {
     const category = subTypeToCategory(item.sub_type);
@@ -300,7 +360,11 @@ export default function WardrobePage() {
             {filtered.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {filtered.map((item) => (
-                  <ItemCard key={item.id} item={item} />
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    onImageUploaded={handleImageUploaded}
+                  />
                 ))}
               </div>
             ) : (
