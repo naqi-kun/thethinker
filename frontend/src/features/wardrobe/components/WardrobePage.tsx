@@ -195,9 +195,7 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
     <div className="mb-6 grid grid-cols-5 divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map(({ label, count }) => (
         <div key={label} className="flex flex-col items-center py-3">
-          <span className="font-serif text-xl font-normal text-foreground">
-            {count}
-          </span>
+          <span className="font-serif text-xl font-normal text-foreground">{count}</span>
           <span className="text-[10px] text-muted-foreground">{label}</span>
         </div>
       ))}
@@ -312,7 +310,9 @@ export default function WardrobePage() {
                 <p className="helper-text mb-6">
                   {search
                     ? `No results for "${search}". Try a different search term.`
-                    : `You have no ${activeTab.toLowerCase()} in your wardrobe yet.`}
+                    : items.length === 0
+                      ? 'Scan your first item to build your wardrobe.'
+                      : `You have no ${activeTab.toLowerCase()} in your wardrobe yet.`}
                 </p>
                 <button
                   onClick={() => navigate('/wardrobe/add')}

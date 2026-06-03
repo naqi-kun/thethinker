@@ -1,5 +1,3 @@
-// Convenience aliases over the auto-generated schema — do not add manual type definitions here.
-// To add or change a type, update api/openapi.yaml and re-run: npm run gen:api
 import type { components } from './schema';
 
 export type AuthResponse = components['schemas']['AuthResponse'];
