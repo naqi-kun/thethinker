@@ -1,18 +1,22 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
-	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
 )
 
-type RecommendationHandler struct {
-	wardrobeSvc *wardrobe.Service
+type wardrobeAccepter interface {
+	MarkItemsWorn(ctx context.Context, userID string, itemIDs []string) error
 }
 
-func NewRecommendationHandler(wardrobeSvc *wardrobe.Service) *RecommendationHandler {
+type RecommendationHandler struct {
+	wardrobeSvc wardrobeAccepter
+}
+
+func NewRecommendationHandler(wardrobeSvc wardrobeAccepter) *RecommendationHandler {
 	return &RecommendationHandler{wardrobeSvc: wardrobeSvc}
 }
 
