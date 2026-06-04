@@ -22,22 +22,51 @@ docker-compose.yml  ← local Postgres for development
 
 ## Getting Started
 
-### Backend
+### Prerequisites
+
+| Tool | Version | Install |
+|---|---|---|
+| Aspire CLI | 13.4 | `dotnet tool install -g aspire` |
+| Go | 1.25 | `goenv install 1.25.0` |
+| Node | 22.16.0 | `nvm install 22.16.0` |
+| Docker | any | [docker.com](https://docker.com) |
+
+### Run everything (recommended)
 
 ```bash
-# Requires Go 1.26 — see backend/.go-version
+aspire run
+```
+
+This single command starts Postgres, the Go backend, and the React frontend — fully wired with service discovery and telemetry. The Aspire dashboard URL is printed on startup.
+
+### Other Aspire commands
+
+```bash
+aspire run          # start all services
+aspire stop         # stop all services
+aspire ps           # list running resources and their ports
+aspire logs backend # stream logs from a specific resource
+aspire dashboard    # open the Aspire dashboard in a browser
+```
+
+### Individual services (without Aspire)
+
+<details>
+<summary>Backend only</summary>
+
+```bash
 cd backend
-cp .env.example ../.env   # edit with your values
-docker compose up -d      # start Postgres
+docker compose up -d   # start Postgres
 go run ./cmd/api
 ```
 
 Server starts on `http://localhost:8080`. Hit `GET /healthz` to confirm.
+</details>
 
-### Frontend
+<details>
+<summary>Frontend only</summary>
 
 ```bash
-# Requires Node 22.16.0 via nvm
 nvm use
 cd frontend
 npm install
@@ -45,6 +74,7 @@ npm run dev
 ```
 
 App starts on `http://localhost:5173` and proxies `/api/*` to the backend.
+</details>
 
 ---
 
