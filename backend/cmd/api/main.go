@@ -55,6 +55,9 @@ func main() {
 
 	// handlers
 	userHandler := handlers.NewUserHandler(userSvc)
+	wardrobeHandler := handlers.NewWardrobeHandler()
+	calendarHandler := handlers.NewCalendarHandler()
+	recommendHandler := handlers.NewRecommendationHandler()
 
 	// middleware
 	auth := middleware.Auth(jwtSecret)
@@ -70,12 +73,16 @@ func main() {
 	mux.Handle("GET /users/me/preferences", auth(http.HandlerFunc(userHandler.GetPreferences)))
 	mux.Handle("PUT /users/me/preferences", auth(http.HandlerFunc(userHandler.UpdatePreferences)))
 
-	// TODO: wire wardrobe, calendar, recommendation routes — KAN-14+
-	// mux.Handle("GET /wardrobe/items",          auth(http.HandlerFunc(wardrobeHandler.ListItems)))
-	// mux.Handle("POST /wardrobe/scan",          auth(http.HandlerFunc(wardrobeHandler.Scan)))
-	// mux.Handle("POST /calendar/connect",       auth(http.HandlerFunc(calendarHandler.Connect)))
-	// mux.Handle("DELETE /calendar/disconnect",  auth(http.HandlerFunc(calendarHandler.Disconnect)))
-	// mux.Handle("GET /recommendations/outfit",  auth(http.HandlerFunc(recommendHandler.GetOutfit)))
+	// wardrobe — protected (KAN-14+: handlers return 501 until service is implemented)
+	mux.Handle("GET /wardrobe/items", auth(http.HandlerFunc(wardrobeHandler.ListItems)))
+	mux.Handle("POST /wardrobe/scan", auth(http.HandlerFunc(wardrobeHandler.Scan)))
+
+	// calendar — protected (KAN-14+: handlers return 501 until service is implemented)
+	mux.Handle("POST /calendar/connect", auth(http.HandlerFunc(calendarHandler.Connect)))
+	mux.Handle("DELETE /calendar/disconnect", auth(http.HandlerFunc(calendarHandler.Disconnect)))
+
+	// recommendations — protected (KAN-14+: handler returns 501 until service is implemented)
+	mux.Handle("GET /recommendations/outfit", auth(http.HandlerFunc(recommendHandler.GetOutfit)))
 
 	srv := &http.Server{
 		Addr:         ":" + port(),

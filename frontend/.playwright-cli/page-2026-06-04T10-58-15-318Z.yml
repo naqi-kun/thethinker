@@ -1,0 +1,25 @@
+- generic [ref=e287]:
+  - banner [ref=e288]:
+    - generic [ref=e289]: TheThinker
+  - generic [ref=e291]:
+    - generic [ref=e292]: Step 4 of 4
+    - generic [ref=e293]: 100%
+  - heading "Where do you live?" [level=1] [ref=e296]
+  - paragraph [ref=e297]: This helps our AI recommend fabrics and layering strategies suited to your local environment.
+  - generic [ref=e298]:
+    - button "Hot" [ref=e299]:
+      - img [ref=e300]
+      - generic [ref=e306]: Hot
+    - button "Warm" [active] [ref=e307]:
+      - img [ref=e308]
+      - generic [ref=e313]: Warm
+    - button "Cool" [ref=e314]:
+      - img [ref=e315]
+      - generic [ref=e319]: Cool
+    - button "Cold" [ref=e320]:
+      - img [ref=e321]
+      - generic [ref=e334]: Cold
+  - img "Warm interior" [ref=e336]
+  - generic [ref=e338]:
+    - button "Get Started" [ref=e339]
+    - paragraph [ref=e340]: You can change your location settings anytime in the app.

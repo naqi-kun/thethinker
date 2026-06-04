@@ -11,6 +11,15 @@ variables:
 
 # ── Frontend ────────────────────────────────────────────────
 
+frontend-schema-sync:
+  stage: lint
+  image: node:${NODE_VERSION}-alpine
+  script:
+    - cd frontend
+    - npm ci
+    - npm run gen:api
+    - git diff --exit-code src/shared/api/schema.d.ts
+
 frontend-lint:
   stage: lint
   image: node:${NODE_VERSION}-alpine

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Calendar, Check } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
+import { connectCalendar, disconnectCalendar } from '../api';
 
 type Provider = {
   id: 'google' | 'apple';
@@ -15,12 +16,40 @@ const providers: Provider[] = [
 
 export default function CalendarPage() {
   const [connected, setConnected] = useState<Record<Provider['id'], boolean>>({
-    google: true,
+    google: false,
     apple: false,
   });
+  const [loading, setLoading] = useState<Record<Provider['id'], boolean>>({
+    google: false,
+    apple: false,
+  });
+  const [error, setError] = useState<string | null>(null);
 
-  function toggle(id: Provider['id']) {
-    setConnected((prev) => ({ ...prev, [id]: !prev[id] }));
+  async function connect(id: Provider['id']) {
+    setLoading((prev) => ({ ...prev, [id]: true }));
+    setError(null);
+    try {
+      // auth_code comes from an OAuth popup in the full implementation
+      await connectCalendar(id, '');
+      setConnected((prev) => ({ ...prev, [id]: true }));
+    } catch {
+      setError(`Failed to connect ${id} calendar. Please try again.`);
+    } finally {
+      setLoading((prev) => ({ ...prev, [id]: false }));
+    }
+  }
+
+  async function disconnect(id: Provider['id']) {
+    setLoading((prev) => ({ ...prev, [id]: true }));
+    setError(null);
+    try {
+      await disconnectCalendar();
+      setConnected((prev) => ({ ...prev, [id]: false }));
+    } catch {
+      setError(`Failed to disconnect ${id} calendar. Please try again.`);
+    } finally {
+      setLoading((prev) => ({ ...prev, [id]: false }));
+    }
   }
 
   return (
@@ -28,19 +57,23 @@ export default function CalendarPage() {
       <TopNav />
 
       <main className="mx-auto max-w-xl px-6 py-12">
-        {/* Heading */}
         <div className="mb-8 text-center">
           <h2 className="mb-3">Sync Your Life</h2>
           <p className="mx-auto max-w-md text-sm text-muted-foreground">
-            Connect your calendar to let TheThinker suggest outfits based on your
-            upcoming events and local weather.
+            Connect your calendar to let TheThinker suggest outfits based on your upcoming
+            events and local weather.
           </p>
         </div>
 
-        {/* Providers */}
+        {error && (
+          <p className="mb-4 text-center text-sm text-destructive">{error}</p>
+        )}
+
         <div className="mb-8 space-y-3">
           {providers.map((provider) => {
             const isConnected = connected[provider.id];
+            const isLoading = loading[provider.id];
+
             return (
               <div
                 key={provider.id}
@@ -51,9 +84,7 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="font-sans font-semibold text-foreground">
-                    {provider.name}
-                  </p>
+                  <p className="font-sans font-semibold text-foreground">{provider.name}</p>
                   {isConnected ? (
                     <p className="flex items-center gap-1 text-xs text-success">
                       <Check className="h-3 w-3" />
@@ -66,17 +97,19 @@ export default function CalendarPage() {
 
                 {isConnected ? (
                   <button
-                    onClick={() => toggle(provider.id)}
-                    className="btn-link shrink-0 text-sm font-medium text-muted-foreground hover:text-foreground"
+                    onClick={() => disconnect(provider.id)}
+                    disabled={isLoading}
+                    className="btn-link shrink-0 text-sm font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
-                    Disconnect
+                    {isLoading ? 'Disconnecting…' : 'Disconnect'}
                   </button>
                 ) : (
                   <button
-                    onClick={() => toggle(provider.id)}
-                    className="btn-primary btn-sm shrink-0"
+                    onClick={() => connect(provider.id)}
+                    disabled={isLoading}
+                    className="btn-primary btn-sm shrink-0 disabled:opacity-50"
                   >
-                    Connect
+                    {isLoading ? 'Connecting…' : 'Connect'}
                   </button>
                 )}
               </div>
@@ -84,7 +117,6 @@ export default function CalendarPage() {
           })}
         </div>
 
-        {/* Quote card */}
         <div
           className="relative mb-8 overflow-hidden rounded-xl bg-gradient-to-br from-sand via-linen to-cream p-6"
           style={{ minHeight: '140px' }}
@@ -100,11 +132,10 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Privacy note */}
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
           TheThinker values your privacy. We only access event titles and{' '}
-          <span className="text-terracotta underline">locations</span> to provide
-          context for your outfit{' '}
+          <span className="text-terracotta underline">locations</span> to provide context
+          for your outfit{' '}
           <span className="text-terracotta underline">recommendations</span>. Your
           calendar data is never shared with third parties.
         </p>

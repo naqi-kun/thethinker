@@ -1,0 +1,20 @@
+- generic [ref=e151]:
+  - heading "What's your style?" [level=1] [ref=e154]
+  - paragraph [ref=e155]: Choose the aesthetic that best describes your daily approach to fashion.
+  - generic [ref=e156]:
+    - button "Casual" [ref=e157]:
+      - img [ref=e159]
+      - generic [ref=e163]: Casual
+    - button "Smart Casual" [ref=e164]:
+      - img [ref=e166]
+      - generic [ref=e168]: Smart Casual
+    - button "Formal" [ref=e169]:
+      - img [ref=e171]
+      - generic [ref=e174]: Formal
+    - button "Sporty" [ref=e175]:
+      - img [ref=e177]
+      - generic [ref=e179]: Sporty
+  - img "Fashion editorial" [ref=e181]
+  - button "Next" [disabled] [ref=e183]:
+    - text: Next
+    - img [ref=e184]

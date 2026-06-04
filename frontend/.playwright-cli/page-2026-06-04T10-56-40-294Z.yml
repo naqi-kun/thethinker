@@ -1,0 +1,57 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]: TheThinker
+    - button "Sign in" [ref=e6]
+  - generic [ref=e7]:
+    - img [ref=e9]
+    - heading "TheThinker" [level=1] [ref=e11]
+    - paragraph [ref=e12]: Scan · Schedule · Style
+    - paragraph [ref=e13]: AI-powered outfit recommendations based on your wardrobe, calendar, and weather. Stop thinking about what to wear.
+    - generic [ref=e14]:
+      - button "Get started" [ref=e15]:
+        - text: Get started
+        - img [ref=e16]
+      - button "View wardrobe" [ref=e18]
+  - generic [ref=e20]:
+    - paragraph [ref=e21]: What you'll see every morning
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Today's Outfit
+        - generic [ref=e27]: Ready
+      - generic [ref=e29]:
+        - generic [ref=e32]: White Oxford Shirt
+        - generic [ref=e35]: Charcoal Trousers
+        - generic [ref=e38]: Tan Loafers
+        - generic [ref=e41]: Silver Watch
+      - generic [ref=e42]:
+        - generic [ref=e43]: ☀️ 22°C · Sunny
+        - generic [ref=e44]: 📅 Client Meeting
+  - generic [ref=e45]:
+    - heading "How it works" [level=2] [ref=e46]
+    - generic [ref=e47]:
+      - generic [ref=e48]:
+        - img [ref=e50]
+        - generic [ref=e55]:
+          - paragraph [ref=e56]: Step 1
+          - heading "Scan your wardrobe" [level=5] [ref=e57]
+          - paragraph [ref=e58]: Photograph each clothing item once. TheThinker learns your style from what you actually own.
+      - generic [ref=e59]:
+        - img [ref=e61]
+        - generic [ref=e63]:
+          - paragraph [ref=e64]: Step 2
+          - heading "Sync your schedule" [level=5] [ref=e65]
+          - paragraph [ref=e66]: Connect your calendar so recommendations match your day — board meeting, casual Friday, dinner out.
+      - generic [ref=e67]:
+        - img [ref=e69]
+        - generic [ref=e71]:
+          - paragraph [ref=e72]: Step 3
+          - heading "Get styled for the day" [level=5] [ref=e73]
+          - paragraph [ref=e74]: Every morning, receive a complete outfit tailored to your calendar, the weather, and your personal style.
+  - generic [ref=e76]:
+    - heading "Ready to dress smarter?" [level=3] [ref=e77]
+    - paragraph [ref=e78]: Your wardrobe is already full of great outfits. Let TheThinker surface them.
+    - button "Get started" [ref=e79]:
+      - text: Get started
+      - img [ref=e80]
+  - contentinfo [ref=e82]:
+    - paragraph [ref=e83]: © 2026 TheThinker · Scan · Schedule · Style
