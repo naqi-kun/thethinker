@@ -20,6 +20,10 @@ backend/server
 *.test
 *.out
 
+# Runtime logs
+*-stdout.log
+*-stderr.log
+
 # Misc
 .DS_Store
 *.pem
