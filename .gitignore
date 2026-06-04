@@ -25,7 +25,11 @@ backend/server
 *.pem
 
 # Claude Code
+# Share skills and project settings with the team; keep personal/local config out.
 .claude/settings.local.json
+.claude/*.local.json
+
+# Agents / build output / Aspire
 .agents/
 node_modules/
 dist/
