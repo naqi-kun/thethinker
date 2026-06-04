@@ -3,7 +3,9 @@ import type { AddItemPayload, ClothingItem } from '../../shared/api/types';
 
 export async function listItems(category?: string): Promise<ClothingItem[]> {
   const { data } = await apiClient.GET('/wardrobe/items', {
-    params: { query: category ? { category: category as ClothingItem['category'] } : undefined },
+    params: {
+      query: category ? { category: category as ClothingItem['category'] } : undefined,
+    },
   });
   return data!;
 }

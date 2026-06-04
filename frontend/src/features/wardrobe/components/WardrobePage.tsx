@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Footprints, Plus, Scan, Search, Shirt, ShoppingBag, Watch } from 'lucide-react';
+import {
+  Footprints,
+  Plus,
+  Scan,
+  Search,
+  Shirt,
+  ShoppingBag,
+  Watch,
+} from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import { listItems } from '../api';
 import type { ClothingItem, ClothingSeason } from '../../../shared/api/types';
@@ -127,7 +135,11 @@ function ItemCard({ item }: { item: ClothingItem }) {
     <div className="card-interactive flex flex-col overflow-hidden">
       <div className="flex aspect-square items-center justify-center bg-linen/60">
         {item.image_url ? (
-          <img src={item.image_url} alt={displayName} className="h-full w-full object-cover" />
+          <img
+            src={item.image_url}
+            alt={displayName}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
@@ -183,7 +195,9 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
     <div className="mb-6 grid grid-cols-5 divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map(({ label, count }) => (
         <div key={label} className="flex flex-col items-center py-3">
-          <span className="font-serif text-xl font-normal text-foreground">{count}</span>
+          <span className="font-serif text-xl font-normal text-foreground">
+            {count}
+          </span>
           <span className="text-[10px] text-muted-foreground">{label}</span>
         </div>
       ))}
@@ -316,7 +330,10 @@ export default function WardrobePage() {
       {items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-sm">
           <div className="container-app py-4">
-            <button onClick={() => navigate('/outfit')} className="btn-primary btn-lg w-full">
+            <button
+              onClick={() => navigate('/outfit')}
+              className="btn-primary btn-lg w-full"
+            >
               Get Outfit Recommendation
             </button>
           </div>
