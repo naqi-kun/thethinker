@@ -1,6 +1,5 @@
 # Environment
 .env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -29,3 +28,9 @@ backend/server
 # Share skills and project settings with the team; keep personal/local config out.
 .claude/settings.local.json
 .claude/*.local.json
+
+# Agents / build output / Aspire
+.agents/
+node_modules/
+dist/
+.aspire/
