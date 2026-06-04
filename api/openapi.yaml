@@ -292,6 +292,24 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /recommendations/outfit/accept:
+    post:
+      tags: [recommendations]
+      summary: Accept today's outfit and mark all items as worn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptOutfitRequest'
+      responses:
+        '204':
+          description: Items marked as worn
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
 components:
 
   securitySchemes:
@@ -422,6 +440,17 @@ components:
         connected_at:
           type: string
           format: date-time
+
+    AcceptOutfitRequest:
+      type: object
+      required: [item_ids]
+      properties:
+        item_ids:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 10
 
     OutfitRecommendation:
       type: object

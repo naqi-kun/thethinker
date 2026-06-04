@@ -5,3 +5,9 @@ export async function getOutfit(): Promise<OutfitRecommendation> {
   const { data } = await apiClient.GET('/recommendations/outfit');
   return data!;
 }
+
+export async function acceptOutfit(itemIds: string[]): Promise<void> {
+  await apiClient.POST('/recommendations/outfit/accept', {
+    body: { item_ids: itemIds },
+  });
+}

@@ -11,3 +11,4 @@ export type AddItemPayload = components['schemas']['AddItemRequest'];
 export type CalendarConnection = components['schemas']['CalendarConnection'];
 export type WeatherSnapshot = components['schemas']['WeatherSnapshot'];
 export type OutfitRecommendation = components['schemas']['OutfitRecommendation'];
+export type AcceptOutfitRequest = components['schemas']['AcceptOutfitRequest'];
