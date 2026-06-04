@@ -1,0 +1,16 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - button "Go back" [ref=e6]:
+      - img [ref=e7]
+    - heading "Scan Clothing" [level=4] [ref=e9]
+  - generic [ref=e12]:
+    - img [ref=e14]
+    - heading "Add to your Wardrobe" [level=5] [ref=e17]
+    - paragraph [ref=e18]: Upload a high-quality photo of your item. For best results, use a plain background and natural light.
+  - generic [ref=e19]:
+    - button "Take Photo" [ref=e20]:
+      - img [ref=e21]
+      - text: Take Photo
+    - button "Upload from Gallery" [ref=e24]:
+      - img [ref=e25]
+      - text: Upload from Gallery

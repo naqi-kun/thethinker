@@ -1,0 +1,36 @@
+- generic [ref=e189]:
+  - banner [ref=e190]:
+    - generic [ref=e191]: TheThinker
+    - generic [ref=e194]:
+      - generic [ref=e195]: Personalizing Profile
+      - generic [ref=e196]: Step 2 of 4
+  - heading "What do you dress for?" [level=1] [ref=e197]
+  - paragraph [ref=e198]: Select the occasions that define your weekly routine so we can tailor your daily suggestions.
+  - generic [ref=e199]:
+    - button "Work Work Office & Business" [ref=e200]:
+      - img "Work" [ref=e202]
+      - generic [ref=e203]:
+        - generic [ref=e204]: Work
+        - img [ref=e231]
+      - generic [ref=e205]: Office & Business
+    - button "Casual Casual Daily & Errands" [active] [ref=e206]:
+      - img "Casual" [ref=e208]
+      - generic [ref=e209]:
+        - generic [ref=e210]: Casual
+        - img [ref=e233]
+      - generic [ref=e211]: Daily & Errands
+    - button "Events Events Dinners & Galas" [ref=e212]:
+      - img "Events" [ref=e214]
+      - generic [ref=e216]: Events
+      - generic [ref=e217]: Dinners & Galas
+    - button "Outdoor Outdoor Sport & Nature" [ref=e218]:
+      - img "Outdoor" [ref=e220]
+      - generic [ref=e222]: Outdoor
+      - generic [ref=e223]: Sport & Nature
+  - generic [ref=e224]:
+    - button "Next" [ref=e225]:
+      - text: Next
+      - img [ref=e226]
+    - button "Skip for now" [ref=e228]
+  - contentinfo [ref=e229]:
+    - paragraph [ref=e230]: "\"Style is a way to say who you are without having to speak.\""

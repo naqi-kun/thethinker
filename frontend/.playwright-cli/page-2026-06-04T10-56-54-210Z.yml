@@ -1,0 +1,30 @@
+- generic [ref=e84]:
+  - generic [ref=e85]:
+    - img [ref=e87]
+    - paragraph [ref=e89]: TheThinker
+    - paragraph [ref=e90]: Your digital atelier await.
+  - generic [ref=e92]:
+    - heading "Welcome Back" [level=2] [ref=e93]
+    - generic [ref=e94]:
+      - generic [ref=e95]:
+        - generic [ref=e96]: Email Address
+        - textbox "Email Address" [ref=e97]:
+          - /placeholder: your@style.com
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - generic [ref=e100]: Password
+          - button "Forgot?" [ref=e101]
+        - generic [ref=e102]:
+          - textbox "Password" [ref=e103]:
+            - /placeholder: ••••••••
+          - button "Show password" [ref=e104]:
+            - img [ref=e105]
+      - button "Sign In" [ref=e108]
+    - generic [ref=e111]: or
+    - button "Continue with Google" [disabled]:
+      - img
+      - text: Continue with Google
+    - paragraph [ref=e113]:
+      - text: New to the atelier?
+      - link "Create an account" [ref=e114] [cursor=pointer]:
+        - /url: /register
