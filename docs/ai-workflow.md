@@ -42,6 +42,8 @@ docs/ai-workflow.md               ← this guide
     new-frontend-feature/SKILL.md
     pre-mr-check/SKILL.md
     diagnose/SKILL.md
+    grill-with-docs/SKILL.md
+    handoff/SKILL.md
 ```
 
 ---
@@ -59,6 +61,8 @@ picks the matching skill automatically.
 | **`new-frontend-feature`** | Adding a new screen or self-contained UI | Vertical-slice layout under `features/<feature>/`; shared stuff stays in `shared/` |
 | **`pre-mr-check`** | Before opening/updating a merge request | Runs the same lint/test/build the GitLab CI runs, so the pipeline is green first try |
 | **`diagnose`** | Something's broken and the cause isn't obvious | Reproduce → isolate layer → hypothesize → instrument → fix → verify (no shotgun edits) |
+| **`grill-with-docs`** | Before building a non-trivial feature | Interrogates the plan one question at a time against our DDD domain model, keeps a glossary current, records big decisions as ADRs |
+| **`handoff`** | Session getting long, or passing work to a teammate | Writes a compact handoff doc so the next agent/person continues without losing context |
 
 ### Our two non-negotiable rules (the agent now knows these)
 

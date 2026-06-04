@@ -25,6 +25,8 @@ This repo ships reusable Claude Code skills under `.claude/skills/`. Prefer them
 | `new-frontend-feature` | Scaffolding a new vertical-slice feature in the React app |
 | `pre-mr-check` | Running the full lint/test/build gate before a merge request |
 | `diagnose` | Systematic debugging when the cause of a bug isn't obvious |
+| `grill-with-docs` | Stress-testing a plan against the DDD domain model before building |
+| `handoff` | Summarizing a session so another agent or teammate can continue |
 
 See [docs/ai-workflow.md](docs/ai-workflow.md) for the team onboarding guide.
 
