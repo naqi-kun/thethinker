@@ -60,14 +60,12 @@ export default function CalendarPage() {
         <div className="mb-8 text-center">
           <h2 className="mb-3">Sync Your Life</h2>
           <p className="mx-auto max-w-md text-sm text-muted-foreground">
-            Connect your calendar to let TheThinker suggest outfits based on your upcoming
-            events and local weather.
+            Connect your calendar to let TheThinker suggest outfits based on your
+            upcoming events and local weather.
           </p>
         </div>
 
-        {error && (
-          <p className="mb-4 text-center text-sm text-destructive">{error}</p>
-        )}
+        {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}
 
         <div className="mb-8 space-y-3">
           {providers.map((provider) => {
@@ -84,7 +82,9 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="font-sans font-semibold text-foreground">{provider.name}</p>
+                  <p className="font-sans font-semibold text-foreground">
+                    {provider.name}
+                  </p>
                   {isConnected ? (
                     <p className="flex items-center gap-1 text-xs text-success">
                       <Check className="h-3 w-3" />
@@ -134,8 +134,8 @@ export default function CalendarPage() {
 
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
           TheThinker values your privacy. We only access event titles and{' '}
-          <span className="text-terracotta underline">locations</span> to provide context
-          for your outfit{' '}
+          <span className="text-terracotta underline">locations</span> to provide
+          context for your outfit{' '}
           <span className="text-terracotta underline">recommendations</span>. Your
           calendar data is never shared with third parties.
         </p>

@@ -44,7 +44,9 @@ function ItemCard({ item }: { item: ClothingItem }) {
       </div>
 
       <div className="flex flex-col gap-1.5 p-3">
-        <p className="truncate text-sm font-semibold text-foreground">{item.sub_type}</p>
+        <p className="truncate text-sm font-semibold text-foreground">
+          {item.sub_type}
+        </p>
         <p className="text-xs text-muted-foreground capitalize">{item.color}</p>
 
         <span className="badge-default w-fit px-2 py-0.5 text-[10px] capitalize">
@@ -53,7 +55,12 @@ function ItemCard({ item }: { item: ClothingItem }) {
 
         {item.last_worn && (
           <p className="text-[10px] text-muted-foreground">
-            Worn {new Date(item.last_worn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            Worn{' '}
+            {new Date(item.last_worn).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
           </p>
         )}
       </div>
@@ -73,7 +80,9 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
     <div className="mb-6 grid grid-cols-4 divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map(({ label, count }) => (
         <div key={label} className="flex flex-col items-center py-3">
-          <span className="font-serif text-xl font-normal text-foreground">{count}</span>
+          <span className="font-serif text-xl font-normal text-foreground">
+            {count}
+          </span>
           <span className="text-[10px] text-muted-foreground">{label}</span>
         </div>
       ))}

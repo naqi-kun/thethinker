@@ -29,10 +29,10 @@ const errorMiddleware: Middleware = {
         window.location.href = '/login';
         return;
       }
-      const body = await response
+      const body = (await response
         .clone()
         .json()
-        .catch(() => ({})) as { code?: string; message?: string };
+        .catch(() => ({}))) as { code?: string; message?: string };
       throw new ApiError(
         response.status,
         body.code ?? 'UNKNOWN',

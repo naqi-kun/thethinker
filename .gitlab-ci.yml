@@ -15,6 +15,7 @@ frontend-schema-sync:
   stage: lint
   image: node:${NODE_VERSION}-alpine
   script:
+    - apk add --no-cache git
     - cd frontend
     - npm ci
     - npm run gen:api

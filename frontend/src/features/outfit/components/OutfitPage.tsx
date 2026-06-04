@@ -33,7 +33,9 @@ function ItemCard({ item }: { item: ClothingItem }) {
 }
 
 export default function OutfitPage() {
-  const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(null);
+  const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
@@ -65,7 +67,8 @@ export default function OutfitPage() {
               {recommendation.weather && (
                 <span className="badge-default gap-1.5">
                   <Sun className="h-3.5 w-3.5 text-warning" />
-                  {recommendation.weather.temperature}°C · {recommendation.weather.description}
+                  {recommendation.weather.temperature}°C ·{' '}
+                  {recommendation.weather.description}
                 </span>
               )}
               {recommendation.occasion && (
