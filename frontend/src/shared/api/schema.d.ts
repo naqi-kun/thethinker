@@ -184,7 +184,33 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
+        /** Manually classify and add a clothing item */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddItemRequest"];
+                };
+            };
+            responses: {
+                /** @description Item added to wardrobe */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClothingItem"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -388,6 +414,20 @@ export interface components {
                 [key: string]: string;
             };
         };
+        AddItemRequest: {
+            /** @enum {string} */
+            category: "formal" | "casual" | "sport";
+            /** @example jeans */
+            sub_type: string;
+            /** @example navy blue */
+            color: string;
+            /** @enum {string} */
+            fit: "slim" | "regular" | "relaxed" | "oversized";
+            /** @enum {string} */
+            season: "all" | "spring_summer" | "autumn_winter" | "winter";
+            /** Format: uri */
+            image_url?: string;
+        };
         ClothingItem: {
             id: string;
             /** @enum {string} */
@@ -396,6 +436,10 @@ export interface components {
             sub_type: string;
             /** @example navy blue */
             color: string;
+            /** @enum {string} */
+            fit?: "slim" | "regular" | "relaxed" | "oversized";
+            /** @enum {string} */
+            season?: "all" | "spring_summer" | "autumn_winter" | "winter";
             /** Format: uri */
             image_url?: string;
             /** Format: date-time */

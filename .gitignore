@@ -33,8 +33,10 @@ backend/server
 .claude/settings.local.json
 .claude/*.local.json
 
-# Agents / build output / Aspire
+# Agents / build output / Aspire / Hallmark
 .agents/
+.hallmark/
+skills-lock.json
 node_modules/
 dist/
 .aspire/

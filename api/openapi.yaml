@@ -133,6 +133,26 @@ paths:
                   $ref: '#/components/schemas/ClothingItem'
         '401':
           $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [wardrobe]
+      summary: Manually classify and add a clothing item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddItemRequest'
+      responses:
+        '201':
+          description: Item added to wardrobe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClothingItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /wardrobe/scan:
     post:
@@ -281,6 +301,29 @@ components:
           additionalProperties:
             type: string
 
+    AddItemRequest:
+      type: object
+      required: [category, sub_type, color, fit, season]
+      properties:
+        category:
+          type: string
+          enum: [formal, casual, sport]
+        sub_type:
+          type: string
+          example: jeans
+        color:
+          type: string
+          example: navy blue
+        fit:
+          type: string
+          enum: [slim, regular, relaxed, oversized]
+        season:
+          type: string
+          enum: [all, spring_summer, autumn_winter, winter]
+        image_url:
+          type: string
+          format: uri
+
     ClothingItem:
       type: object
       required: [id, category, sub_type, color]
@@ -296,6 +339,12 @@ components:
         color:
           type: string
           example: navy blue
+        fit:
+          type: string
+          enum: [slim, regular, relaxed, oversized]
+        season:
+          type: string
+          enum: [all, spring_summer, autumn_winter, winter]
         image_url:
           type: string
           format: uri

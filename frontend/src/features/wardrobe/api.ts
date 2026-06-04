@@ -1,8 +1,17 @@
 import { apiClient } from '../../shared/api/client';
-import type { ClothingItem } from '../../shared/api/types';
+import type { AddItemPayload, ClothingItem } from '../../shared/api/types';
 
-export async function listItems(): Promise<ClothingItem[]> {
-  const { data } = await apiClient.GET('/wardrobe/items');
+export async function listItems(category?: string): Promise<ClothingItem[]> {
+  const { data } = await apiClient.GET('/wardrobe/items', {
+    params: {
+      query: category ? { category: category as ClothingItem['category'] } : undefined,
+    },
+  });
+  return data!;
+}
+
+export async function addItem(payload: AddItemPayload): Promise<ClothingItem> {
+  const { data } = await apiClient.POST('/wardrobe/items', { body: payload });
   return data!;
 }
 

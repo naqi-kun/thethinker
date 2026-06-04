@@ -1,0 +1,3 @@
+ALTER TABLE wardrobe_items
+  DROP COLUMN IF EXISTS fit,
+  DROP COLUMN IF EXISTS season;
