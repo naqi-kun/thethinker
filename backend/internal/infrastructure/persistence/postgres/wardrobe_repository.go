@@ -147,7 +147,7 @@ func (r *WardrobeRepository) Delete(ctx context.Context, id string) error {
 
 func (r *WardrobeRepository) MarkWorn(ctx context.Context, userID string, itemIDs []string, wornAt time.Time) error {
 	_, err := r.db.Exec(ctx,
-		`UPDATE wardrobe_items SET last_worn = $1 WHERE user_id = $2 AND id = ANY($3)`,
+		`UPDATE wardrobe_items SET last_worn = $1 WHERE user_id = $2 AND id::text = ANY($3)`,
 		wornAt, userID, itemIDs,
 	)
 	return err

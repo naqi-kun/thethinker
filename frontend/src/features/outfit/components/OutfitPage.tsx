@@ -24,7 +24,9 @@ function ItemCard({ item }: { item: ClothingItem }) {
         />
       ) : (
         <div className="flex h-36 w-full flex-col items-center justify-center gap-1 bg-linen/60">
-          <p className="text-xs font-medium capitalize text-espresso">{item.sub_type}</p>
+          <p className="text-xs font-medium capitalize text-espresso">
+            {item.sub_type}
+          </p>
           <p className="text-xs capitalize text-muted-foreground">{item.color}</p>
         </div>
       )}
@@ -36,7 +38,9 @@ function ItemCard({ item }: { item: ClothingItem }) {
 }
 
 export default function OutfitPage() {
-  const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(null);
+  const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
