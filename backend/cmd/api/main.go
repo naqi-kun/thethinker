@@ -13,12 +13,22 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
+	"school-gitlab.xsolla.dev/team3/thethinker/pkg/telemetry"
 )
 
 func main() {
-	// TODO: initialize Datadog tracer
-	// tracer.Start(tracer.WithServiceName("thethinker-api"))
-	// defer tracer.Stop()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stop()
+
+	shutdownTelemetry, err := telemetry.Setup(ctx)
+	if err != nil {
+		log.Fatalf("telemetry: %v", err)
+	}
+	defer func() {
+		if err := shutdownTelemetry(context.Background()); err != nil {
+			log.Printf("telemetry shutdown: %v", err)
+		}
+	}()
 
 	databaseURL := requireEnv("DATABASE_URL")
 	jwtSecret := requireEnv("JWT_SECRET")
@@ -26,9 +36,6 @@ func main() {
 	if err := postgres.RunMigrations(databaseURL); err != nil {
 		log.Fatalf("migrations: %v", err)
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
-	defer stop()
 
 	db, err := postgres.NewPool(ctx, databaseURL)
 	if err != nil {
@@ -72,7 +79,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         ":" + port(),
-		Handler:      mux,
+		Handler:      middleware.Tracing(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
