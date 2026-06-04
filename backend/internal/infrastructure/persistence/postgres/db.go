@@ -35,7 +35,9 @@ func RunMigrations(databaseURL string) error {
 		return fmt.Errorf("iofs.New: %w", err)
 	}
 	// golang-migrate pgx/v5 driver registers under the "pgx5" scheme.
+	// Normalize both postgres:// and postgresql:// (Aspire injects the latter).
 	pgx5URL := strings.Replace(databaseURL, "postgres://", "pgx5://", 1)
+	pgx5URL = strings.Replace(pgx5URL, "postgresql://", "pgx5://", 1)
 	m, err := migrate.NewWithSourceInstance("iofs", src, pgx5URL)
 	if err != nil {
 		return fmt.Errorf("migrate.New: %w", err)
