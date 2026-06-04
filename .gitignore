@@ -27,6 +27,7 @@ backend/server
 
 # Claude Code
 .claude/settings.local.json
+.agents/
 node_modules/
 dist/
 .aspire/
