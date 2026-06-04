@@ -1,7 +1,7 @@
 // Aspire TypeScript AppHost
 // For more information, see: https://aspire.dev
 
-import { createBuilder } from './.aspire/modules/aspire.mjs';
+import { createBuilder, OtlpProtocol } from './.aspire/modules/aspire.mjs';
 
 const builder = await createBuilder();
 
@@ -20,6 +20,8 @@ const backend = await builder.addGoApp('backend', './backend', { packagePath: '.
 await backend.withHttpEndpoint({ env: 'PORT' });
 await backend.withEnvironment('DATABASE_URL', dbUri);
 await backend.withEnvironment('JWT_SECRET', jwtSecret);
+await backend.withOtlpExporter({ protocol: OtlpProtocol.Grpc });
+await backend.withEnvironment('OTEL_BSP_EXPORT_TIMEOUT', '60000');
 await backend.waitFor(db);
 
 // React + Vite frontend — VITE_BACKEND_URL drives the dev-server proxy target

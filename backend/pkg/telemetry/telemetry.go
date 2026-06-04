@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -19,7 +19,7 @@ func Setup(ctx context.Context) (shutdown func(context.Context) error, err error
 		return func(context.Context) error { return nil }, nil
 	}
 
-	exporter, err := otlptracehttp.New(ctx)
+	exporter, err := otlptracegrpc.New(ctx)
 	if err != nil {
 		return nil, err
 	}
