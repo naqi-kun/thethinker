@@ -15,12 +15,22 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
+	"school-gitlab.xsolla.dev/team3/thethinker/pkg/telemetry"
 )
 
 func main() {
-	// TODO: initialize Datadog tracer
-	// tracer.Start(tracer.WithServiceName("thethinker-api"))
-	// defer tracer.Stop()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stop()
+
+	shutdownTelemetry, err := telemetry.Setup(ctx)
+	if err != nil {
+		log.Fatalf("telemetry: %v", err)
+	}
+	defer func() {
+		if err := shutdownTelemetry(context.Background()); err != nil {
+			log.Printf("telemetry shutdown: %v", err)
+		}
+	}()
 
 	databaseURL  := requireEnv("DATABASE_URL")
 	jwtSecret    := requireEnv("JWT_SECRET")
@@ -29,9 +39,6 @@ func main() {
 	if err := postgres.RunMigrations(databaseURL); err != nil {
 		log.Fatalf("migrations: %v", err)
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
-	defer stop()
 
 	db, err := postgres.NewPool(ctx, databaseURL)
 	if err != nil {
@@ -52,8 +59,10 @@ func main() {
 	wardrobeSvc      := wardrobe.NewService(wardrobeRepo, classifierClient)
 
 	// handlers
-	userHandler     := handlers.NewUserHandler(userSvc)
-	wardrobeHandler := handlers.NewWardrobeHandler(wardrobeSvc)
+	userHandler      := handlers.NewUserHandler(userSvc)
+	wardrobeHandler  := handlers.NewWardrobeHandler(wardrobeSvc)
+	calendarHandler  := handlers.NewCalendarHandler()
+	recommendHandler := handlers.NewRecommendationHandler()
 
 	// middleware
 	auth := middleware.Auth(jwtSecret)
@@ -69,19 +78,21 @@ func main() {
 	mux.Handle("GET /users/me/preferences", auth(http.HandlerFunc(userHandler.GetPreferences)))
 	mux.Handle("PUT /users/me/preferences", auth(http.HandlerFunc(userHandler.UpdatePreferences)))
 
+	// wardrobe — protected
 	mux.Handle("GET /wardrobe/items",  auth(http.HandlerFunc(wardrobeHandler.ListItems)))
 	mux.Handle("POST /wardrobe/items", auth(http.HandlerFunc(wardrobeHandler.AddItem)))
+	mux.Handle("POST /wardrobe/scan",  auth(http.HandlerFunc(wardrobeHandler.Scan)))
 
-	mux.Handle("POST /wardrobe/scan", auth(http.HandlerFunc(wardrobeHandler.Scan)))
+	// calendar — protected (KAN-14+: handlers return 501 until service is implemented)
+	mux.Handle("POST /calendar/connect",      auth(http.HandlerFunc(calendarHandler.Connect)))
+	mux.Handle("DELETE /calendar/disconnect", auth(http.HandlerFunc(calendarHandler.Disconnect)))
 
-	// TODO: wire remaining routes — KAN-14+
-	// mux.Handle("POST /calendar/connect",       auth(http.HandlerFunc(calendarHandler.Connect)))
-	// mux.Handle("DELETE /calendar/disconnect",  auth(http.HandlerFunc(calendarHandler.Disconnect)))
-	// mux.Handle("GET /recommendations/outfit",  auth(http.HandlerFunc(recommendHandler.GetOutfit)))
+	// recommendations — protected (KAN-14+: handler returns 501 until service is implemented)
+	mux.Handle("GET /recommendations/outfit", auth(http.HandlerFunc(recommendHandler.GetOutfit)))
 
 	srv := &http.Server{
 		Addr:         ":" + port(),
-		Handler:      mux,
+		Handler:      middleware.Tracing(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

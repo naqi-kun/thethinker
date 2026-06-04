@@ -1,14 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Footprints,
-  Plus,
-  Scan,
-  Search,
-  Shirt,
-  ShoppingBag,
-  Watch,
-} from 'lucide-react';
+import { Footprints, Plus, Scan, Search, Shirt, ShoppingBag, Watch } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import { listItems } from '../api';
 import type { ClothingItem, ClothingSeason } from '../../../shared/api/types';
@@ -68,11 +60,11 @@ function categoryIcon(category: WardrobeCategory) {
     case 'Tops':
       return <Shirt className="h-5 w-5" />;
     case 'Bottoms':
-      return <Shirt className="h-5 w-5" />;
+      return <ShoppingBag className="h-5 w-5" />;
     case 'Shoes':
       return <Footprints className="h-5 w-5" />;
     case 'Outerwear':
-      return <ShoppingBag className="h-5 w-5" />;
+      return <Watch className="h-5 w-5" />;
     case 'Accessories':
       return <Watch className="h-5 w-5" />;
   }
@@ -129,17 +121,13 @@ function ReadinessHint({ items }: { items: ClothingItem[] }) {
 function ItemCard({ item }: { item: ClothingItem }) {
   const category = subTypeToCategory(item.sub_type);
   const displayName = `${capitalize(item.color)} ${item.sub_type}`;
-  const tags = [item.category, item.fit];
+  const tags = [item.category, item.fit].filter(Boolean) as string[];
 
   return (
     <div className="card-interactive flex flex-col overflow-hidden">
       <div className="flex aspect-square items-center justify-center bg-linen/60">
         {item.image_url ? (
-          <img
-            src={item.image_url}
-            alt={displayName}
-            className="h-full w-full object-cover"
-          />
+          <img src={item.image_url} alt={displayName} className="h-full w-full object-cover" />
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
@@ -167,7 +155,11 @@ function ItemCard({ item }: { item: ClothingItem }) {
         </div>
 
         <p className="text-[10px] text-muted-foreground">
-          {item.last_worn ? `Worn ${item.last_worn}` : seasonLabel(item.season)}
+          {item.last_worn
+            ? `Worn ${item.last_worn}`
+            : item.season
+              ? seasonLabel(item.season)
+              : ''}
         </p>
       </div>
     </div>
@@ -191,9 +183,7 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
     <div className="mb-6 grid grid-cols-5 divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map(({ label, count }) => (
         <div key={label} className="flex flex-col items-center py-3">
-          <span className="font-serif text-xl font-normal text-foreground">
-            {count}
-          </span>
+          <span className="font-serif text-xl font-normal text-foreground">{count}</span>
           <span className="text-[10px] text-muted-foreground">{label}</span>
         </div>
       ))}
@@ -207,11 +197,12 @@ export default function WardrobePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     listItems()
       .then(setItems)
-      .catch(() => setItems([]))
+      .catch(() => setError('Failed to load wardrobe items.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -225,7 +216,7 @@ export default function WardrobePage() {
       displayName.includes(normalizedSearch) ||
       item.color.toLowerCase().includes(normalizedSearch) ||
       item.category.includes(normalizedSearch) ||
-      item.fit.includes(normalizedSearch);
+      (item.fit ?? '').includes(normalizedSearch);
 
     return matchesCategory && matchesSearch;
   });
@@ -240,7 +231,7 @@ export default function WardrobePage() {
             <h2 className="mb-1">Wardrobe</h2>
             <p className="helper-text">Your scanned closet, always in order.</p>
           </div>
-          <div className="flex shrink-0 flex-col gap-2 mt-1">
+          <div className="mt-1 flex shrink-0 flex-col gap-2">
             <button
               onClick={() => navigate('/wardrobe/scan')}
               className="btn-primary btn-sm gap-1.5"
@@ -260,6 +251,8 @@ export default function WardrobePage() {
 
         {loading ? (
           <div className="py-20 text-center helper-text">Loading…</div>
+        ) : error ? (
+          <p className="py-20 text-center text-sm text-destructive">{error}</p>
         ) : (
           <>
             <StatsBar items={items} />
@@ -323,10 +316,7 @@ export default function WardrobePage() {
       {items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-sm">
           <div className="container-app py-4">
-            <button
-              onClick={() => navigate('/outfit')}
-              className="btn-primary btn-lg w-full"
-            >
+            <button onClick={() => navigate('/outfit')} className="btn-primary btn-lg w-full">
               Get Outfit Recommendation
             </button>
           </div>

@@ -1,60 +1,15 @@
-export type AuthResponse = {
-  token: string;
-  user_id: string;
-};
+// Convenience aliases over the auto-generated schema — do not add manual type definitions here.
+// To add or change a type, update api/openapi.yaml and re-run: npm run gen:api
+import type { components } from './schema';
 
-export type StylePreference =
-  | 'formal'
-  | 'casual'
-  | 'sport'
-  | 'streetwear'
-  | 'business_casual';
-
-export type ClothingCategory = 'formal' | 'casual' | 'sport';
-
-export type ClothingFit = 'slim' | 'regular' | 'relaxed' | 'oversized';
-
-export type ClothingSeason = 'all' | 'spring_summer' | 'autumn_winter' | 'winter';
-
-export type Preferences = {
-  styles: StylePreference[];
-  answers: Record<string, string>;
-};
-
-export type ClothingItem = {
-  id: string;
-  category: ClothingCategory;
-  sub_type: string;
-  color: string;
-  fit: ClothingFit;
-  season: ClothingSeason;
-  image_url?: string;
-  last_worn?: string | null;
-};
-
-export type AddItemPayload = {
-  category: ClothingCategory;
-  sub_type: string;
-  color: string;
-  fit: ClothingFit;
-  season: ClothingSeason;
-  image_url?: string;
-};
-
-export type CalendarConnection = {
-  provider: 'google' | 'apple';
-  connected_at: string;
-};
-
-export type WeatherSnapshot = {
-  temperature: number;
-  feels_like: number;
-  description: string;
-};
-
-export type OutfitRecommendation = {
-  date: string;
-  occasion: string;
-  weather: WeatherSnapshot;
-  items: ClothingItem[];
-};
+export type AuthResponse = components['schemas']['AuthResponse'];
+export type Preferences = components['schemas']['Preferences'];
+export type StylePreference = NonNullable<Preferences['styles']>[number];
+export type ClothingItem = components['schemas']['ClothingItem'];
+export type ClothingCategory = ClothingItem['category'];
+export type ClothingFit = NonNullable<ClothingItem['fit']>;
+export type ClothingSeason = NonNullable<ClothingItem['season']>;
+export type AddItemPayload = components['schemas']['AddItemRequest'];
+export type CalendarConnection = components['schemas']['CalendarConnection'];
+export type WeatherSnapshot = components['schemas']['WeatherSnapshot'];
+export type OutfitRecommendation = components['schemas']['OutfitRecommendation'];

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { token } from '../../../shared/api/token';
+import { buildPreferences, savePreferences } from '../api';
 import {
   ArrowLeft,
   ArrowRight,
@@ -83,6 +84,12 @@ export default function OnboardingPage() {
   });
 
   const progress = ((step + 1) / 4) * 100;
+  const [displayProgress, setDisplayProgress] = useState(0);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDisplayProgress(progress), 30);
+    return () => clearTimeout(id);
+  }, [progress]);
 
   const canProceed = [
     answers.style !== '',
@@ -91,11 +98,13 @@ export default function OnboardingPage() {
     answers.climate !== '',
   ][step];
 
-  function handleNext() {
+  async function handleNext() {
     if (step < 3) {
       setStep((s) => s + 1);
     } else {
-      // TODO: POST answers to /api/users/me/preferences
+      await savePreferences(buildPreferences(answers)).catch(() => {
+        // Backend not yet fully implemented; navigate regardless
+      });
       navigate('/wardrobe');
     }
   }
@@ -125,8 +134,8 @@ export default function OnboardingPage() {
         <div className="w-full max-w-[480px] px-6 pt-8 pb-10">
           <div className="h-1 w-full bg-[#d9c2b8] mb-10">
             <div
-              className="h-1 bg-[#8e4925] transition-all duration-500"
-              style={{ width: `${progress}%` }}
+              className="h-1 bg-[#8e4925] transition-all duration-700 ease-in-out"
+              style={{ width: `${displayProgress}%` }}
             />
           </div>
 
@@ -192,8 +201,8 @@ export default function OnboardingPage() {
             <span className="font-serif text-[24px] text-[#8e4925]">TheThinker</span>
             <div className="w-full h-1 bg-[#fbddca] overflow-hidden">
               <div
-                className="h-full bg-[#8e4925] transition-all duration-700"
-                style={{ width: `${progress}%` }}
+                className="h-full bg-[#8e4925] transition-all duration-700 ease-in-out"
+                style={{ width: `${displayProgress}%` }}
               />
             </div>
             <div className="w-full flex justify-between">
@@ -278,8 +287,8 @@ export default function OnboardingPage() {
 
           <div className="w-full h-1 bg-[#ffe3d2] overflow-hidden mb-2">
             <div
-              className="h-full bg-[#8e4925] transition-all duration-700"
-              style={{ width: `${progress}%` }}
+              className="h-full bg-[#8e4925] transition-all duration-700 ease-in-out"
+              style={{ width: `${displayProgress}%` }}
             />
           </div>
           <div className="flex justify-end mb-8">
@@ -356,8 +365,8 @@ export default function OnboardingPage() {
             </div>
             <div className="h-1 bg-[#ffeade] w-full overflow-hidden">
               <div
-                className="h-full bg-[#8e4925] transition-all duration-1000"
-                style={{ width: '100%' }}
+                className="h-full bg-[#8e4925] transition-all duration-700 ease-in-out"
+                style={{ width: `${displayProgress}%` }}
               />
             </div>
           </div>

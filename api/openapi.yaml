@@ -278,6 +278,7 @@ components:
 
     AuthResponse:
       type: object
+      required: [token, user_id]
       properties:
         token:
           type: string
@@ -325,6 +326,7 @@ components:
 
     ClothingItem:
       type: object
+      required: [id, category, sub_type, color]
       properties:
         id:
           type: string
@@ -364,6 +366,7 @@ components:
 
     CalendarConnection:
       type: object
+      required: [provider, connected_at]
       properties:
         provider:
           type: string
@@ -374,6 +377,7 @@ components:
 
     OutfitRecommendation:
       type: object
+      required: [date, items]
       properties:
         date:
           type: string
@@ -390,6 +394,7 @@ components:
 
     WeatherSnapshot:
       type: object
+      required: [temperature, feels_like, description]
       properties:
         temperature:
           type: number

@@ -20,16 +20,26 @@ services:
     ports:
       - "8001:8001"
 
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4318:4318"     # OTLP HTTP receiver
+
   backend:
     build: ./backend
     environment:
       DATABASE_URL: postgres://thethinker:thethinker@db:5432/thethinker?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
       AI_SERVICE_URL: http://ai:8001
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_SERVICE_NAME: thethinker-api
     depends_on:
       db:
         condition: service_healthy
       ai:
+        condition: service_started
+      jaeger:
         condition: service_started
 
   frontend:

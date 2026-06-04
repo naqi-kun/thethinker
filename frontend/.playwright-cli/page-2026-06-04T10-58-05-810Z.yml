@@ -1,0 +1,24 @@
+- generic [ref=e235]:
+  - banner [ref=e236]:
+    - button [ref=e237]:
+      - img [ref=e238]
+    - generic [ref=e240]: TheThinker
+  - generic [ref=e244]: Step 3 of 4
+  - heading "Your color vibe?" [level=1] [ref=e245]
+  - paragraph [ref=e246]: Select the palette that best reflects your personal aesthetic and the moods you want to project.
+  - generic [ref=e247]:
+    - button "Neutrals" [active] [ref=e248]:
+      - generic [ref=e249]:
+        - generic [ref=e250]: Neutrals
+        - img [ref=e285]
+    - button "Earth Tones" [ref=e256]:
+      - generic [ref=e258]: Earth Tones
+    - button "Bold" [ref=e264]:
+      - generic [ref=e266]: Bold
+    - button "Pastels" [ref=e272]:
+      - generic [ref=e274]: Pastels
+  - generic [ref=e280]:
+    - button "Next" [ref=e281]:
+      - text: Next
+      - img [ref=e282]
+    - paragraph [ref=e284]: "Step 3 of 4: Refining your aesthetic"

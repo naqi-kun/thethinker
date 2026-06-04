@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, CloudUpload, Image, RotateCcw, Check } from 'lucide-react';
-import { apiRequest } from '../../../shared/api/httpClient';
-import type { ClothingItem } from '../../../shared/api/types';
+import { scanItem } from '../api';
 
 type ScanState = 'idle' | 'camera' | 'captured' | 'uploading' | 'error';
 
@@ -87,9 +86,7 @@ export default function ScanPage() {
     setScanState('uploading');
 
     try {
-      const form = new FormData();
-      form.append('image', capturedBlob, 'scan.jpg');
-      await apiRequest<ClothingItem>('/wardrobe/scan', { method: 'POST', body: form });
+      await scanItem(capturedBlob);
       if (capturedUrl) URL.revokeObjectURL(capturedUrl);
       navigate('/wardrobe');
     } catch {

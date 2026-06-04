@@ -1,0 +1,23 @@
+- generic [ref=e341]:
+  - banner [ref=e342]:
+    - generic [ref=e343]:
+      - link "TheThinker" [ref=e344] [cursor=pointer]:
+        - /url: /
+      - navigation [ref=e345]:
+        - link "Wardrobe" [ref=e346] [cursor=pointer]:
+          - /url: /wardrobe
+        - link "Outfit" [ref=e347] [cursor=pointer]:
+          - /url: /outfit
+        - link "Calendar" [ref=e348] [cursor=pointer]:
+          - /url: /calendar
+      - button "Account menu" [ref=e350]:
+        - img [ref=e351]
+  - main [ref=e354]:
+    - generic [ref=e355]:
+      - generic [ref=e356]:
+        - heading "Wardrobe" [level=2] [ref=e357]
+        - paragraph [ref=e358]: Your scanned closet, always in order.
+      - button "Scan item" [ref=e359]:
+        - img [ref=e360]
+        - text: Scan item
+    - paragraph [ref=e365]: Failed to load wardrobe items.
