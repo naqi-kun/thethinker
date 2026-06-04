@@ -11,6 +11,7 @@ import (
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
@@ -21,8 +22,9 @@ func main() {
 	// tracer.Start(tracer.WithServiceName("thethinker-api"))
 	// defer tracer.Stop()
 
-	databaseURL := requireEnv("DATABASE_URL")
-	jwtSecret := requireEnv("JWT_SECRET")
+	databaseURL  := requireEnv("DATABASE_URL")
+	jwtSecret    := requireEnv("JWT_SECRET")
+	aiServiceURL := requireEnv("AI_SERVICE_URL")
 
 	if err := postgres.RunMigrations(databaseURL); err != nil {
 		log.Fatalf("migrations: %v", err)
@@ -45,8 +47,9 @@ func main() {
 	// calendarRepo := postgres.NewCalendarRepository(db)
 
 	// services
-	userSvc     := user.NewService(userRepo, jwtSecret)
-	wardrobeSvc := wardrobe.NewService(wardrobeRepo)
+	userSvc          := user.NewService(userRepo, jwtSecret)
+	classifierClient := classifier.NewClient(aiServiceURL)
+	wardrobeSvc      := wardrobe.NewService(wardrobeRepo, classifierClient)
 
 	// handlers
 	userHandler     := handlers.NewUserHandler(userSvc)
@@ -69,8 +72,9 @@ func main() {
 	mux.Handle("GET /wardrobe/items",  auth(http.HandlerFunc(wardrobeHandler.ListItems)))
 	mux.Handle("POST /wardrobe/items", auth(http.HandlerFunc(wardrobeHandler.AddItem)))
 
+	mux.Handle("POST /wardrobe/scan", auth(http.HandlerFunc(wardrobeHandler.Scan)))
+
 	// TODO: wire remaining routes — KAN-14+
-	// mux.Handle("POST /wardrobe/scan",          auth(http.HandlerFunc(wardrobeHandler.Scan)))
 	// mux.Handle("POST /calendar/connect",       auth(http.HandlerFunc(calendarHandler.Connect)))
 	// mux.Handle("DELETE /calendar/disconnect",  auth(http.HandlerFunc(calendarHandler.Disconnect)))
 	// mux.Handle("GET /recommendations/outfit",  auth(http.HandlerFunc(recommendHandler.GetOutfit)))

@@ -15,14 +15,22 @@ services:
       timeout: 5s
       retries: 5
 
+  ai:
+    build: ./ai
+    ports:
+      - "8001:8001"
+
   backend:
     build: ./backend
     environment:
       DATABASE_URL: postgres://thethinker:thethinker@db:5432/thethinker?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      AI_SERVICE_URL: http://ai:8001
     depends_on:
       db:
         condition: service_healthy
+      ai:
+        condition: service_started
 
   frontend:
     build: ./frontend

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"time"
 
@@ -115,6 +116,44 @@ func (h *WardrobeHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WardrobeHandler) Scan(w http.ResponseWriter, r *http.Request) {
-	// TODO: parse multipart image, call svc.IngestScan, return created item
-	http.Error(w, "not implemented", http.StatusNotImplemented)
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid multipart form")
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "image field is required")
+		return
+	}
+	defer file.Close()
+
+	imageBytes, err := io.ReadAll(file)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to read image")
+		return
+	}
+
+	contentType := header.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	item, err := h.svc.IngestScan(r.Context(), userID, imageBytes, contentType)
+	if err != nil {
+		if errors.Is(err, wardrobe.ErrInvalidClassification) {
+			writeError(w, http.StatusUnprocessableEntity, "UNPROCESSABLE", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "scan failed")
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, toItemResponse(item))
 }
