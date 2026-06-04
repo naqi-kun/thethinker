@@ -25,4 +25,8 @@ backend/server
 *.pem
 
 # Claude Code
-.claude/
+.claude/settings.local.json
+.agents/
+node_modules/
+dist/
+.aspire/
