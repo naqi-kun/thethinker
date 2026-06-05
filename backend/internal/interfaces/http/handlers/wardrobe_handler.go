@@ -166,8 +166,10 @@ func (h *WardrobeHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "clothing item not found")
 		case errors.Is(err, wardrobe.ErrForbidden):
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "access denied")
+		case errors.Is(err, wardrobe.ErrInvalidImage):
+			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "uploaded file is not a valid JPEG or PNG image")
 		default:
-			writeError(w, http.StatusInternalServerError, "INTERNAL", err.Error())
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to upload image")
 		}
 		return
 	}
@@ -182,8 +184,9 @@ func (h *WardrobeHandler) Scan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid multipart form")
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "FILE_TOO_LARGE", "max upload size is 10 MB")
 		return
 	}
 

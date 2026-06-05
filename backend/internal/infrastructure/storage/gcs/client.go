@@ -38,6 +38,19 @@ func New(ctx context.Context, bucket string) (*Client, error) {
 		return nil, fmt.Errorf("gcs: create client: %w", err)
 	}
 
+	// On the local emulator, create the bucket if it doesn't exist so uploads
+	// work out of the box (KAN-29: closed loop with local upload). fake-gcs-server
+	// does not auto-create buckets. In production the bucket is provisioned ahead
+	// of time, so we only do this against the emulator.
+	if emulatorHost != "" {
+		b := gcsClient.Bucket(bucket)
+		if _, err := b.Attrs(ctx); err == storage.ErrBucketNotExist {
+			if err := b.Create(ctx, "thethinker-local", nil); err != nil {
+				return nil, fmt.Errorf("gcs: create emulator bucket %q: %w", bucket, err)
+			}
+		}
+	}
+
 	publicBase := fmt.Sprintf("https://storage.googleapis.com/%s", bucket)
 	if emulatorHost != "" {
 		publicBase = fmt.Sprintf("http://%s/%s", emulatorHost, bucket)

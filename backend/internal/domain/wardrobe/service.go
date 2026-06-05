@@ -103,10 +103,11 @@ func (s *Service) UploadImage(ctx context.Context, itemID, userID string, imageD
 		return nil, ErrForbidden
 	}
 
-	// Optimize: resize + compress to JPEG.
+	// Optimize: resize + compress to JPEG. A decode/encode failure means the
+	// upload wasn't a usable image, so surface it as an invalid-input error.
 	processed, err := processImage(bytes.NewReader(imageData))
 	if err != nil {
-		return nil, fmt.Errorf("wardrobe: process image: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrInvalidImage, err)
 	}
 
 	objectName := path.Join("wardrobe", userID, itemID, time.Now().UTC().Format("20060102T150405")+"-"+uuid.NewString()+".jpg")
