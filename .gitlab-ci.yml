@@ -50,8 +50,25 @@ backend-lint:
 backend-test:
   stage: test
   image: golang:${GO_VERSION}-alpine
+  variables:
+    # Minimum module-wide statement coverage. Raise this as more tests land —
+    # never lower it. Measured baseline at introduction (KAN-33): ~10%.
+    COVERAGE_THRESHOLD: "10"
   script:
-    - cd backend && go test ./...
+    - cd backend
+    - go test -coverpkg=./... -coverprofile=coverage.out ./...
+    - go tool cover -func=coverage.out | tail -1
+    - |
+      total=$(go tool cover -func=coverage.out | awk '/^total:/ { sub(/%/, "", $3); print $3 }')
+      echo "Total coverage: ${total}% (threshold: ${COVERAGE_THRESHOLD}%)"
+      awk -v got="$total" -v thr="$COVERAGE_THRESHOLD" 'BEGIN {
+        if (got+0 < thr+0) {
+          printf "FAIL: coverage %.1f%% is below threshold %s%%\n", got, thr
+          exit 1
+        }
+        printf "OK: coverage %.1f%% meets threshold %s%%\n", got, thr
+      }'
+  coverage: '/^total:\s+\(statements\)\s+\d+\.\d+%/'
 
 backend-build:
   stage: build
