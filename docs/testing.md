@@ -46,23 +46,27 @@ go tool cover -html=coverage.out               # browse coverage in a browser
 
 ## Frontend — end-to-end smoke tests (Playwright)
 
-A minimal Playwright setup lives in `frontend/`. The config auto-starts the Vite dev
-server, so you don't need to launch anything first. The current smoke test only covers
-pages that render **without the backend** (landing, login), so it's self-contained.
+A Playwright setup lives in `frontend/`, following the official guide
+(<https://playwright.dev/docs/intro>). The config auto-starts the Vite dev server, so
+you don't need to launch anything first. The current smoke test only covers pages that
+render **without the backend** (landing, login), so it's self-contained. Tests run
+across **Chromium, Firefox, and WebKit** (the Playwright default).
 
-First-time setup (downloads the browser):
+First-time setup (downloads the browsers):
 
 ```bash
 cd frontend
 npm install
-npm run e2e:install        # downloads Chromium
+npm run e2e:install        # downloads Chromium, Firefox, WebKit
 ```
 
 Run the smoke tests:
 
 ```bash
-npm run e2e                # headless
+npm run e2e                # headless, all browsers
+npm run e2e -- --project=chromium   # single browser
 npm run e2e:ui             # interactive UI mode (great for debugging)
+npx playwright show-report # open the HTML report after a run
 ```
 
 Files:
