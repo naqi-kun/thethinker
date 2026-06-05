@@ -3,6 +3,7 @@ import { Briefcase, Check, RefreshCw, Sun } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import type { ClothingItem, OutfitRecommendation } from '../../../shared/api/types';
 import { acceptOutfit, getOutfit } from '../api';
+import SwapBottomSheet from './SwapBottomSheet';
 
 const MAX_ITEMS = 10;
 
@@ -12,9 +13,12 @@ const today = new Date().toLocaleDateString('en-US', {
   day: 'numeric',
 });
 
-function ItemCard({ item }: { item: ClothingItem }) {
+function ItemCard({ item, onClick }: { item: ClothingItem; onClick: () => void }) {
   return (
-    <div className="relative w-full overflow-hidden rounded-lg">
+    <button
+      onClick={onClick}
+      className="relative w-full overflow-hidden rounded-lg text-left"
+    >
       {item.image_url ? (
         <img
           src={item.image_url}
@@ -33,7 +37,10 @@ function ItemCard({ item }: { item: ClothingItem }) {
       <span className="absolute bottom-2 left-2 rounded-full bg-cream/90 px-2.5 py-0.5 text-xs font-medium text-espresso shadow-sm backdrop-blur-sm">
         {item.sub_type}
       </span>
-    </div>
+      <span className="absolute right-2 top-2 rounded-full bg-black/30 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
+        swap
+      </span>
+    </button>
   );
 }
 
@@ -45,6 +52,7 @@ export default function OutfitPage() {
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
 
   const fetchOutfit = useCallback(() => {
     setLoading(true);
@@ -73,6 +81,21 @@ export default function OutfitPage() {
       setAccepting(false);
     }
   }, [recommendation, accepting, accepted]);
+
+  const handleSwap = useCallback(
+    (replacement: ClothingItem) => {
+      if (!recommendation || !swappingItem) return;
+      setRecommendation({
+        ...recommendation,
+        items: recommendation.items.map((i) =>
+          i.id === swappingItem.id ? replacement : i,
+        ),
+      });
+      setSwappingItem(null);
+      setAccepted(false);
+    },
+    [recommendation, swappingItem],
+  );
 
   const displayItems: ClothingItem[] = recommendation?.items.slice(0, MAX_ITEMS) ?? [];
 
@@ -120,7 +143,11 @@ export default function OutfitPage() {
             <div className="mb-6 rounded-xl border border-border bg-cream p-4">
               <div className="grid grid-cols-2 gap-3">
                 {displayItems.map((item: ClothingItem) => (
-                  <ItemCard key={item.id} item={item} />
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    onClick={() => setSwappingItem(item)}
+                  />
                 ))}
               </div>
             </div>
@@ -148,6 +175,15 @@ export default function OutfitPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {swappingItem && (
+        <SwapBottomSheet
+          item={swappingItem}
+          outfitItemIds={displayItems.map((i) => i.id)}
+          onSwap={handleSwap}
+          onClose={() => setSwappingItem(null)}
+        />
       )}
     </div>
   );
