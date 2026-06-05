@@ -224,9 +224,7 @@ function ItemCard({
               : ''}
         </p>
 
-        {uploadError && (
-          <p className="text-[10px] text-destructive">{uploadError}</p>
-        )}
+        {uploadError && <p className="text-[10px] text-destructive">{uploadError}</p>}
       </div>
     </div>
   );

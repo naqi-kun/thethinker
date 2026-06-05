@@ -53,6 +53,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("gcs: %v", err)
 	}
+	defer gcsClient.Close()
 
 	// repositories
 	userRepo     := postgres.NewUserRepository(db)

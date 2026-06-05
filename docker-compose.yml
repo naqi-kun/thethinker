@@ -26,6 +26,12 @@ services:
       - "16686:16686"   # Jaeger UI
       - "4318:4318"     # OTLP HTTP receiver
 
+  gcs:
+    image: fsouza/fake-gcs-server:1.49
+    command: ["-scheme", "http", "-port", "4443", "-backend", "memory"]
+    ports:
+      - "4443:4443"
+
   backend:
     build: ./backend
     environment:
@@ -35,7 +41,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_SERVICE_NAME: thethinker-api
       GCS_BUCKET: ${GCS_BUCKET:-wardrobe-images}
-      GCS_EMULATOR_HOST: ${GCS_EMULATOR_HOST:-}
+      GCS_EMULATOR_HOST: ${GCS_EMULATOR_HOST:-gcs:4443}
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
     depends_on:
       db:
@@ -43,6 +49,8 @@ services:
       ai:
         condition: service_started
       jaeger:
+        condition: service_started
+      gcs:
         condition: service_started
 
   frontend:

@@ -28,7 +28,10 @@ export async function scanItem(image: Blob): Promise<ClothingItem> {
   return data!;
 }
 
-export async function uploadItemImage(itemId: string, file: File): Promise<ClothingItem> {
+export async function uploadItemImage(
+  itemId: string,
+  file: File,
+): Promise<ClothingItem> {
   const authToken = token.get();
   const form = new FormData();
   form.append('image', file);
@@ -40,7 +43,10 @@ export async function uploadItemImage(itemId: string, file: File): Promise<Cloth
   });
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({})) as { code?: string; message?: string };
+    const body = (await response.json().catch(() => ({}))) as {
+      code?: string;
+      message?: string;
+    };
     throw new Error(body.message ?? 'Upload failed');
   }
 
