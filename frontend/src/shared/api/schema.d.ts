@@ -316,6 +316,15 @@ export interface paths {
                     };
                 };
                 401: components["responses"]["Unauthorized"];
+                /** @description File too large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
                 422: components["responses"]["UnprocessableEntity"];
             };
         };
