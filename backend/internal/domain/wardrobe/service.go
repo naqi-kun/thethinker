@@ -20,6 +20,10 @@ func NewService(repo Repository, classifier Classifier) *Service {
 	return &Service{repo: repo, classifier: classifier}
 }
 
+// AddItem persists a new clothing item for the given user.
+// Callers are responsible for constructing item via the Parse* helpers so that
+// all enum fields hold intentional values — zero values are valid (e.g. CategoryFormal)
+// and cannot be distinguished from an uninitialized struct at this layer.
 func (s *Service) AddItem(ctx context.Context, userID string, item ClothingItem) (*ClothingItem, error) {
 	item.ID = uuid.New().String()
 	item.UserID = userID
@@ -61,23 +65,23 @@ func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []by
 
 	category, err := ParseCategory(result.Category)
 	if err != nil {
-		return nil, ErrInvalidClassification
+		return nil, err
 	}
 	subType, err := ParseSubType(result.SubType)
 	if err != nil {
-		return nil, ErrInvalidClassification
+		return nil, err
 	}
 	color, err := ParseColor(result.Color)
 	if err != nil {
-		return nil, ErrInvalidClassification
+		return nil, err
 	}
 	fit, err := ParseFit(result.Fit)
 	if err != nil {
-		return nil, ErrInvalidClassification
+		return nil, err
 	}
 	season, err := ParseSeason(result.Season)
 	if err != nil {
-		return nil, ErrInvalidClassification
+		return nil, err
 	}
 
 	item := ClothingItem{
