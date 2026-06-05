@@ -154,6 +154,48 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /wardrobe/items/{id}/image:
+    post:
+      tags: [wardrobe]
+      summary: Upload an image for an existing clothing item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Photo of the clothing item (JPEG or PNG, max 10 MB)
+      responses:
+        '200':
+          description: Image uploaded and URL updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClothingItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /wardrobe/scan:
     post:
       tags: [wardrobe]
@@ -179,6 +221,12 @@ paths:
                 $ref: '#/components/schemas/ClothingItem'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 

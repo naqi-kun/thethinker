@@ -1,4 +1,5 @@
 import { apiClient } from '../../shared/api/client';
+import { token } from '../../shared/api/token';
 import type {
   AddItemPayload,
   ClothingCategory,
@@ -27,4 +28,29 @@ export async function scanItem(image: Blob): Promise<ClothingItem> {
     },
   });
   return data! as ClothingItem;
+}
+
+export async function uploadItemImage(
+  itemId: string,
+  file: File,
+): Promise<ClothingItem> {
+  const authToken = token.get();
+  const form = new FormData();
+  form.append('image', file);
+
+  const response = await fetch(`/api/wardrobe/items/${itemId}/image`, {
+    method: 'POST',
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+    body: form,
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as {
+      code?: string;
+      message?: string;
+    };
+    throw new Error(body.message ?? 'Upload failed');
+  }
+
+  return response.json() as Promise<ClothingItem>;
 }

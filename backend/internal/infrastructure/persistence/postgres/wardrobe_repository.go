@@ -132,6 +132,14 @@ func (r *WardrobeRepository) Save(ctx context.Context, item *wardrobe.ClothingIt
 	return err
 }
 
+func (r *WardrobeRepository) UpdateImageURL(ctx context.Context, id, imageURL string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE wardrobe_items SET image_url = $1 WHERE id = $2`,
+		imageURL, id,
+	)
+	return err
+}
+
 func (r *WardrobeRepository) Delete(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM wardrobe_items WHERE id = $1`, id)
 	return err

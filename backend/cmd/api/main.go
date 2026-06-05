@@ -13,6 +13,7 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
+	gcsclient "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/storage/gcs"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
 	"school-gitlab.xsolla.dev/team3/thethinker/pkg/telemetry"
@@ -35,6 +36,7 @@ func main() {
 	databaseURL  := requireEnv("DATABASE_URL")
 	jwtSecret    := requireEnv("JWT_SECRET")
 	aiServiceURL := requireEnv("AI_SERVICE_URL")
+	gcsBucket    := getEnvOrDefault("GCS_BUCKET", "wardrobe-images")
 
 	if err := postgres.RunMigrations(databaseURL); err != nil {
 		log.Fatalf("migrations: %v", err)
@@ -46,6 +48,13 @@ func main() {
 	}
 	defer db.Close()
 
+	// storage
+	gcsClient, err := gcsclient.New(ctx, gcsBucket)
+	if err != nil {
+		log.Fatalf("gcs: %v", err)
+	}
+	defer gcsClient.Close()
+
 	// repositories
 	userRepo     := postgres.NewUserRepository(db)
 	wardrobeRepo := postgres.NewWardrobeRepository(db)
@@ -56,7 +65,7 @@ func main() {
 	// services
 	userSvc          := user.NewService(userRepo, jwtSecret)
 	classifierClient := classifier.NewClient(aiServiceURL)
-	wardrobeSvc      := wardrobe.NewService(wardrobeRepo, classifierClient)
+	wardrobeSvc      := wardrobe.NewService(wardrobeRepo, classifierClient, gcsClient)
 
 	// handlers
 	userHandler      := handlers.NewUserHandler(userSvc)
@@ -79,9 +88,10 @@ func main() {
 	mux.Handle("PUT /users/me/preferences", auth(http.HandlerFunc(userHandler.UpdatePreferences)))
 
 	// wardrobe — protected
-	mux.Handle("GET /wardrobe/items",  auth(http.HandlerFunc(wardrobeHandler.ListItems)))
-	mux.Handle("POST /wardrobe/items", auth(http.HandlerFunc(wardrobeHandler.AddItem)))
-	mux.Handle("POST /wardrobe/scan",  auth(http.HandlerFunc(wardrobeHandler.Scan)))
+	mux.Handle("GET /wardrobe/items",             auth(http.HandlerFunc(wardrobeHandler.ListItems)))
+	mux.Handle("POST /wardrobe/items",            auth(http.HandlerFunc(wardrobeHandler.AddItem)))
+	mux.Handle("POST /wardrobe/items/{id}/image", auth(http.HandlerFunc(wardrobeHandler.UploadImage)))
+	mux.Handle("POST /wardrobe/scan",             auth(http.HandlerFunc(wardrobeHandler.Scan)))
 
 	// calendar — protected (KAN-14+: handlers return 501 until service is implemented)
 	mux.Handle("POST /calendar/connect",      auth(http.HandlerFunc(calendarHandler.Connect)))
@@ -129,4 +139,11 @@ func requireEnv(key string) string {
 		log.Fatalf("%s is required", key)
 	}
 	return v
+}
+
+func getEnvOrDefault(key, defaultVal string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return defaultVal
 }

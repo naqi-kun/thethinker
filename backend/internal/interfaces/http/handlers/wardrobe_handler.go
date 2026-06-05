@@ -5,11 +5,14 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
 )
+
+const maxUploadSize = 10 << 20 // 10 MB
 
 type WardrobeHandler struct {
 	svc *wardrobe.Service
@@ -137,6 +140,65 @@ func (h *WardrobeHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+func (h *WardrobeHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	// Extract item ID from path: /wardrobe/items/{id}/image
+	// Go 1.22+ ServeMux supports path params via r.PathValue.
+	itemID := r.PathValue("id")
+	if itemID == "" {
+		// Fallback: parse manually for older routers.
+		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+		if len(parts) >= 3 {
+			itemID = parts[2]
+		}
+	}
+	if itemID == "" {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "item ID is required")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "FILE_TOO_LARGE", "max upload size is 10 MB")
+		return
+	}
+
+	file, _, err := r.FormFile("image")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "image field is required")
+		return
+	}
+	defer file.Close()
+
+	imageData, err := io.ReadAll(file)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to read uploaded file")
+		return
+	}
+
+	item, err := h.svc.UploadImage(r.Context(), itemID, userID, imageData)
+	if err != nil {
+		switch {
+		case errors.Is(err, wardrobe.ErrNotFound):
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "clothing item not found")
+		case errors.Is(err, wardrobe.ErrForbidden):
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "access denied")
+		case errors.Is(err, wardrobe.ErrInvalidImage):
+			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "uploaded file is not a valid JPEG or PNG image")
+		default:
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to upload image")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toItemResponse(item))
+}
+
 func (h *WardrobeHandler) Scan(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserID(r.Context())
 	if !ok {
@@ -144,8 +206,9 @@ func (h *WardrobeHandler) Scan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid multipart form")
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "FILE_TOO_LARGE", "max upload size is 10 MB")
 		return
 	}
 
