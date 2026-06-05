@@ -195,7 +195,9 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
     <div className="mb-6 grid grid-cols-5 divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
       {stats.map(({ label, count }) => (
         <div key={label} className="flex flex-col items-center py-3">
-          <span className="font-serif text-xl font-normal text-foreground">{count}</span>
+          <span className="font-serif text-xl font-normal text-foreground">
+            {count}
+          </span>
           <span className="text-[10px] text-muted-foreground">{label}</span>
         </div>
       ))}
