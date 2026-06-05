@@ -171,7 +171,7 @@ function ItemCard({ item }: { item: ClothingItem }) {
             ? `Worn ${item.last_worn}`
             : item.season
               ? seasonLabel(item.season)
-              : ''}
+              : null}
         </p>
       </div>
     </div>
@@ -230,7 +230,7 @@ export default function WardrobePage() {
       displayName.includes(normalizedSearch) ||
       item.color.toLowerCase().includes(normalizedSearch) ||
       item.category.includes(normalizedSearch) ||
-      (item.fit ?? '').includes(normalizedSearch);
+      (item.fit?.includes(normalizedSearch) ?? false);
 
     return matchesCategory && matchesSearch;
   });
@@ -312,7 +312,9 @@ export default function WardrobePage() {
                 <p className="helper-text mb-6">
                   {search
                     ? `No results for "${search}". Try a different search term.`
-                    : `You have no ${activeTab.toLowerCase()} in your wardrobe yet.`}
+                    : items.length === 0
+                      ? 'Scan your first item to build your wardrobe.'
+                      : `You have no ${activeTab.toLowerCase()} in your wardrobe yet.`}
                 </p>
                 <button
                   onClick={() => navigate('/wardrobe/add')}
