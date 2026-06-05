@@ -45,11 +45,11 @@ type clothingItemResponse struct {
 func toItemResponse(item *wardrobe.ClothingItem) clothingItemResponse {
 	resp := clothingItemResponse{
 		ID:       item.ID,
-		Category: item.Category,
-		SubType:  item.SubType,
-		Color:    item.Color,
-		Fit:      item.Fit,
-		Season:   item.Season,
+		Category: item.Category.String(),
+		SubType:  item.SubType.String(),
+		Color:    item.Color.String(),
+		Fit:      item.Fit.String(),
+		Season:   item.Season.String(),
 		ImageURL: item.ImageURL,
 	}
 	if item.LastWorn != nil {
@@ -71,24 +71,42 @@ func (h *WardrobeHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
 		return
 	}
-	if req.Category == "" || req.SubType == "" || req.Color == "" || req.Fit == "" || req.Season == "" {
-		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "category, sub_type, color, fit, and season are required")
+
+	category, err := wardrobe.ParseCategory(req.Category)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+	subType, err := wardrobe.ParseSubType(req.SubType)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+	color, err := wardrobe.ParseColor(req.Color)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+	fit, err := wardrobe.ParseFit(req.Fit)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+	season, err := wardrobe.ParseSeason(req.Season)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
 		return
 	}
 
 	item, err := h.svc.AddItem(r.Context(), userID, wardrobe.ClothingItem{
-		Category: req.Category,
-		SubType:  req.SubType,
-		Color:    req.Color,
-		Fit:      req.Fit,
-		Season:   req.Season,
+		Category: category,
+		SubType:  subType,
+		Color:    color,
+		Fit:      fit,
+		Season:   season,
 		ImageURL: req.ImageURL,
 	})
 	if err != nil {
-		if errors.Is(err, wardrobe.ErrInvalidClassification) {
-			writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
-			return
-		}
 		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to save item")
 		return
 	}
@@ -107,6 +125,10 @@ func (h *WardrobeHandler) ListItems(w http.ResponseWriter, r *http.Request) {
 
 	items, err := h.svc.ListItems(r.Context(), userID, category)
 	if err != nil {
+		if errors.Is(err, wardrobe.ErrInvalidClassification) {
+			writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to list items")
 		return
 	}

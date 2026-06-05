@@ -30,10 +30,11 @@ func NewService(repo Repository, classifier Classifier, imageStore ImageStore) *
 	return &Service{repo: repo, classifier: classifier, imageStore: imageStore}
 }
 
+// AddItem persists a new clothing item for the given user.
+// Callers are responsible for constructing item via the Parse* helpers so that
+// all enum fields hold intentional values — zero values are valid (e.g. CategoryFormal)
+// and cannot be distinguished from an uninitialized struct at this layer.
 func (s *Service) AddItem(ctx context.Context, userID string, item ClothingItem) (*ClothingItem, error) {
-	if err := item.Validate(); err != nil {
-		return nil, err
-	}
 	item.ID = uuid.New().String()
 	item.UserID = userID
 	item.CreatedAt = time.Now()
@@ -43,46 +44,66 @@ func (s *Service) AddItem(ctx context.Context, userID string, item ClothingItem)
 	return &item, nil
 }
 
-func (s *Service) ListItems(ctx context.Context, userID, category string) ([]*ClothingItem, error) {
+func (s *Service) ListItems(ctx context.Context, userID, categoryStr string) ([]*ClothingItem, error) {
 	items, err := s.repo.FindByUserID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("wardrobe: list items: %w", err)
 	}
-	if category == "" {
+	if categoryStr == "" {
 		return items, nil
+	}
+	cat, err := ParseCategory(categoryStr)
+	if err != nil {
+		return nil, err
 	}
 	filtered := items[:0]
 	for _, item := range items {
-		if item.Category == category {
+		if item.Category == cat {
 			filtered = append(filtered, item)
 		}
 	}
 	return filtered, nil
 }
 
-// IngestScan classifies the provided image bytes via the AI service,
-// creates a ClothingItem, persists it, and returns the saved item.
+// IngestScan classifies the image, converts the AI string output to typed enums,
+// persists the item, and returns it.
 func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []byte, contentType string) (*ClothingItem, error) {
 	result, err := s.classifier.Classify(ctx, imageBytes, contentType)
 	if err != nil {
 		return nil, fmt.Errorf("classify image: %w", err)
 	}
 
-	item := ClothingItem{
-		Category: result.Category,
-		SubType:  result.SubType,
-		Color:    result.Color,
-		Fit:      result.Fit,
-		Season:   result.Season,
-		ImageURL: "",
-	}
-	if err := item.Validate(); err != nil {
+	category, err := ParseCategory(result.Category)
+	if err != nil {
 		return nil, err
 	}
-	item.ID = uuid.New().String()
-	item.UserID = userID
-	item.CreatedAt = time.Now()
+	subType, err := ParseSubType(result.SubType)
+	if err != nil {
+		return nil, err
+	}
+	color, err := ParseColor(result.Color)
+	if err != nil {
+		return nil, err
+	}
+	fit, err := ParseFit(result.Fit)
+	if err != nil {
+		return nil, err
+	}
+	season, err := ParseSeason(result.Season)
+	if err != nil {
+		return nil, err
+	}
 
+	item := ClothingItem{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		Category:  category,
+		SubType:   subType,
+		Color:     color,
+		Fit:       fit,
+		Season:    season,
+		CreatedAt: time.Now(),
+	}
 	if err := s.repo.Save(ctx, &item); err != nil {
 		return nil, err
 	}

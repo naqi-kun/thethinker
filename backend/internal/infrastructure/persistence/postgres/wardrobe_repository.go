@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,6 +21,47 @@ func NewWardrobeRepository(db *pgxpool.Pool) *WardrobeRepository {
 	return &WardrobeRepository{db: db}
 }
 
+// scanRow reads the raw string values that pgx returns for enum columns and
+// converts them to the typed enum values used by the domain.
+func scanRow(
+	id, userID, category, subType, color, fit, season, imageURL *string,
+	lastWorn *time.Time,
+	createdAt *time.Time,
+) (*wardrobe.ClothingItem, error) {
+	cat, err := wardrobe.ParseCategory(*category)
+	if err != nil {
+		return nil, err
+	}
+	sub, err := wardrobe.ParseSubType(*subType)
+	if err != nil {
+		return nil, err
+	}
+	col, err := wardrobe.ParseColor(*color)
+	if err != nil {
+		return nil, err
+	}
+	f, err := wardrobe.ParseFit(*fit)
+	if err != nil {
+		return nil, err
+	}
+	sea, err := wardrobe.ParseSeason(*season)
+	if err != nil {
+		return nil, err
+	}
+	return &wardrobe.ClothingItem{
+		ID:        *id,
+		UserID:    *userID,
+		Category:  cat,
+		SubType:   sub,
+		Color:     col,
+		Fit:       f,
+		Season:    sea,
+		ImageURL:  *imageURL,
+		LastWorn:  lastWorn,
+		CreatedAt: *createdAt,
+	}, nil
+}
+
 func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([]*wardrobe.ClothingItem, error) {
 	rows, err := r.db.Query(ctx,
 		`SELECT id, user_id, category, sub_type, color, fit, season, image_url, last_worn, created_at
@@ -33,12 +75,16 @@ func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([
 
 	var items []*wardrobe.ClothingItem
 	for rows.Next() {
-		item := &wardrobe.ClothingItem{}
-		if err := rows.Scan(
-			&item.ID, &item.UserID, &item.Category, &item.SubType,
-			&item.Color, &item.Fit, &item.Season, &item.ImageURL,
-			&item.LastWorn, &item.CreatedAt,
-		); err != nil {
+		var (
+			id, uid, category, subType, color, fit, season, imageURL string
+			lastWorn                                                  *time.Time
+			createdAt                                                 time.Time
+		)
+		if err := rows.Scan(&id, &uid, &category, &subType, &color, &fit, &season, &imageURL, &lastWorn, &createdAt); err != nil {
+			return nil, err
+		}
+		item, err := scanRow(&id, &uid, &category, &subType, &color, &fit, &season, &imageURL, lastWorn, &createdAt)
+		if err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -47,23 +93,23 @@ func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([
 }
 
 func (r *WardrobeRepository) FindByID(ctx context.Context, id string) (*wardrobe.ClothingItem, error) {
-	item := &wardrobe.ClothingItem{}
+	var (
+		rid, uid, category, subType, color, fit, season, imageURL string
+		lastWorn                                                   *time.Time
+		createdAt                                                  time.Time
+	)
 	err := r.db.QueryRow(ctx,
 		`SELECT id, user_id, category, sub_type, color, fit, season, image_url, last_worn, created_at
 		 FROM wardrobe_items WHERE id = $1`,
 		id,
-	).Scan(
-		&item.ID, &item.UserID, &item.Category, &item.SubType,
-		&item.Color, &item.Fit, &item.Season, &item.ImageURL,
-		&item.LastWorn, &item.CreatedAt,
-	)
+	).Scan(&rid, &uid, &category, &subType, &color, &fit, &season, &imageURL, &lastWorn, &createdAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	return item, nil
+	return scanRow(&rid, &uid, &category, &subType, &color, &fit, &season, &imageURL, lastWorn, &createdAt)
 }
 
 func (r *WardrobeRepository) Save(ctx context.Context, item *wardrobe.ClothingItem) error {
@@ -78,9 +124,10 @@ func (r *WardrobeRepository) Save(ctx context.Context, item *wardrobe.ClothingIt
 		   season    = EXCLUDED.season,
 		   image_url = EXCLUDED.image_url,
 		   last_worn = EXCLUDED.last_worn`,
-		item.ID, item.UserID, item.Category, item.SubType,
-		item.Color, item.Fit, item.Season, item.ImageURL,
-		item.LastWorn, item.CreatedAt,
+		item.ID, item.UserID,
+		item.Category.String(), item.SubType.String(), item.Color.String(),
+		item.Fit.String(), item.Season.String(),
+		item.ImageURL, item.LastWorn, item.CreatedAt,
 	)
 	return err
 }
