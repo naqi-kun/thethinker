@@ -228,11 +228,7 @@ export default function WardrobePage() {
       displayName.includes(normalizedSearch) ||
       item.color.toLowerCase().includes(normalizedSearch) ||
       item.category.includes(normalizedSearch) ||
-<<<<<<< HEAD
-      (item.fit ?? '').includes(normalizedSearch);
-=======
       (item.fit?.includes(normalizedSearch) ?? false);
->>>>>>> d22578d (fix: align types with schema and restore scanItem in wardrobe api)
 
     return matchesCategory && matchesSearch;
   });
