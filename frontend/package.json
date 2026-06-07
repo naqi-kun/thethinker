@@ -10,7 +10,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
-    "gen:api": "openapi-typescript ../api/openapi.yaml -o src/shared/api/schema.d.ts"
+    "gen:api": "openapi-typescript ../api/openapi.yaml -o src/shared/api/schema.d.ts",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:install": "playwright install"
   },
   "dependencies": {
     "@datadog/browser-rum": "^7.2.0",
@@ -26,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.49.1",
     "@tailwindcss/vite": "^4.1.7",
     "@types/node": "^22.19.19",
     "@types/react": "^19.0.2",
