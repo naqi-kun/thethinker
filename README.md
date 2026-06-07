@@ -15,7 +15,7 @@ backend/       ← Go API server (DDD)
 frontend/      ← React SPA (Vite + Tailwind v4)
 api/           ← OpenAPI spec (shared contract)
 k8s/           ← Kubernetes manifests
-docker-compose.yml  ← local Postgres for development
+apphost.mts    ← Aspire AppHost — all services wired here
 ```
 
 ---
@@ -37,7 +37,7 @@ docker-compose.yml  ← local Postgres for development
 aspire run
 ```
 
-This single command starts Postgres, the Go backend, and the React frontend — fully wired with service discovery and telemetry. The Aspire dashboard URL is printed on startup.
+This single command starts Postgres, Jaeger, the AI service, the Go backend, and the React frontend — fully wired with service discovery and telemetry. The Aspire dashboard URL is printed on startup.
 
 ### Other Aspire commands
 
@@ -55,9 +55,12 @@ aspire dashboard    # open the Aspire dashboard in a browser
 <summary>Backend only</summary>
 
 ```bash
+# Start all supporting services (Postgres, AI, Jaeger) via Aspire
+aspire run
+
+# Then in a separate terminal, run just the backend directly
 cd backend
-docker compose up -d   # start Postgres
-go run ./cmd/api
+DATABASE_URL=<your-postgres-url> JWT_SECRET=dev go run ./cmd/api
 ```
 
 Server starts on `http://localhost:8080`. Hit `GET /healthz` to confirm.
