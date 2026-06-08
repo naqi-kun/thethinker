@@ -9,8 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/recommendation"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/weather"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 	gcsclient "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/storage/gcs"
@@ -58,20 +60,20 @@ func main() {
 	// repositories
 	userRepo     := postgres.NewUserRepository(db)
 	wardrobeRepo := postgres.NewWardrobeRepository(db)
-
-	// TODO: wire remaining repos when their handlers are implemented
-	// calendarRepo := postgres.NewCalendarRepository(db)
+	calendarRepo := postgres.NewCalendarRepository(db)
 
 	// services
 	userSvc          := user.NewService(userRepo, jwtSecret)
 	classifierClient := classifier.NewClient(aiServiceURL)
 	wardrobeSvc      := wardrobe.NewService(wardrobeRepo, classifierClient, gcsClient)
+	weatherSvc       := weather.NewService()
+	recommendSvc     := recommendation.NewService(wardrobeRepo, calendarRepo, weatherSvc)
 
 	// handlers
 	userHandler      := handlers.NewUserHandler(userSvc)
 	wardrobeHandler  := handlers.NewWardrobeHandler(wardrobeSvc)
 	calendarHandler  := handlers.NewCalendarHandler()
-	recommendHandler := handlers.NewRecommendationHandler(wardrobeSvc)
+	recommendHandler := handlers.NewRecommendationHandler(recommendSvc, wardrobeSvc)
 
 	// middleware
 	auth := middleware.Auth(jwtSecret)
