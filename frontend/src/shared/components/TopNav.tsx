@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { User, LogIn, Settings, LogOut } from 'lucide-react';
+import { User, Settings, LogOut } from 'lucide-react';
+import { token } from '../api/token';
 
 const navItems = [
   { to: '/wardrobe', label: 'Wardrobe' },
@@ -71,13 +72,6 @@ export default function TopNav() {
           {open && (
             <div className="absolute right-0 top-11 z-30 min-w-[176px] overflow-hidden rounded-xl border border-border bg-background shadow-lg">
               <button
-                onClick={() => go('/login')}
-                className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm text-foreground hover:bg-secondary"
-              >
-                <LogIn className="h-4 w-4 text-muted-foreground" />
-                Sign in
-              </button>
-              <button
                 onClick={() => go('/settings')}
                 className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm text-foreground hover:bg-secondary"
               >
@@ -86,7 +80,7 @@ export default function TopNav() {
               </button>
               <div className="my-1 h-px bg-border" />
               <button
-                onClick={() => go('/')}
+                onClick={() => { token.clear(); go('/'); }}
                 className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm text-foreground hover:bg-secondary"
               >
                 <LogOut className="h-4 w-4 text-muted-foreground" />

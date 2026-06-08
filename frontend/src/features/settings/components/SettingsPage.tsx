@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Download, Trash2, AlertTriangle } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
+import { token } from '../../../shared/api/token';
 
 // ─── Toggle ──────────────────────────────────────────────────────────────────
 
@@ -162,7 +163,7 @@ export default function SettingsPage() {
               description="You'll be returned to the home screen."
             />
             <button
-              onClick={() => navigate('/')}
+              onClick={() => { token.clear(); navigate('/'); }}
               className="btn-outline btn-sm shrink-0 gap-1.5 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
             >
               <LogOut className="h-3.5 w-3.5" />

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { token } from '../../../shared/api/token';
 import { buildPreferences, savePreferences } from '../api';
+import type { OnboardingAnswers } from '../api';
 import {
   ArrowLeft,
   ArrowRight,
@@ -14,14 +15,14 @@ import {
   Sunrise,
   Wind,
   Snowflake,
+  MapPin,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
-type Answers = {
-  style: string;
-  occasions: string[];
-  palette: string;
-  climate: string;
-};
+const TOTAL_STEPS = 8;
+
+// ─── Data ────────────────────────────────────────────────────────────────────
 
 const STYLE_OPTIONS = [
   { label: 'Casual', icon: Waves },
@@ -53,6 +54,78 @@ const OCCASION_OPTIONS = [
   },
 ];
 
+const INSPIRATION_OPTIONS = [
+  {
+    label: 'Minimalist',
+    description: 'Clean lines, neutral tones',
+    img: 'https://images.unsplash.com/photo-1490481560014-77c2b51a4a6a?w=400&q=80',
+    bg: '#DDD8D2',
+  },
+  {
+    label: 'Street Style',
+    description: 'Urban, edgy, expressive',
+    img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
+    bg: '#2D2D2D',
+  },
+  {
+    label: 'Business',
+    description: 'Polished & professional',
+    img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+    bg: '#3A3A4A',
+  },
+  {
+    label: 'Casual Chic',
+    description: 'Relaxed but put-together',
+    img: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&q=80',
+    bg: '#C8B89A',
+  },
+  {
+    label: 'Athletic',
+    description: 'Performance meets style',
+    img: 'https://images.unsplash.com/photo-1571731956672-f2b94d7dd0cb?w=400&q=80',
+    bg: '#4A7C8A',
+  },
+  {
+    label: 'Classic',
+    description: 'Timeless, refined pieces',
+    img: 'https://images.unsplash.com/photo-1516762689617-e1cfffed4669?w=400&q=80',
+    bg: '#8A7A6A',
+  },
+];
+
+const SKIN_TONE_OPTIONS = [
+  { label: 'Very Fair', color: '#FDDBB4', note: 'Porcelain / Ivory' },
+  { label: 'Fair', color: '#F5C89A', note: 'Light / Peach' },
+  { label: 'Medium', color: '#E8A87C', note: 'Beige / Sand' },
+  { label: 'Tan', color: '#C68642', note: 'Warm / Caramel' },
+  { label: 'Deep', color: '#8D5524', note: 'Brown / Cocoa' },
+  { label: 'Very Deep', color: '#4A2912', note: 'Dark / Ebony' },
+];
+
+const BODY_SHAPE_OPTIONS = [
+  { label: 'Hourglass', description: 'Balanced bust & hips, defined waist' },
+  { label: 'Pear', description: 'Hips wider than shoulders' },
+  { label: 'Apple', description: 'Fuller midsection, slimmer legs' },
+  { label: 'Rectangle', description: 'Even proportions throughout' },
+  { label: 'Inv. Triangle', description: 'Shoulders wider than hips' },
+  { label: 'Athletic', description: 'Muscular, defined proportions' },
+];
+
+const HEIGHT_OPTIONS = [
+  { label: 'Petite', description: "Under 5'4\" / 163 cm" },
+  { label: 'Average', description: "5'4\"–5'7\" / 163–170 cm" },
+  { label: 'Tall', description: "5'8\"+ / 173 cm+" },
+];
+
+const FACE_SHAPE_OPTIONS = [
+  { label: 'Oval', description: 'Balanced, slightly longer' },
+  { label: 'Round', description: 'Equal width & length' },
+  { label: 'Square', description: 'Strong jaw, defined angles' },
+  { label: 'Heart', description: 'Wide forehead, narrow chin' },
+  { label: 'Diamond', description: 'Wide cheekbones, narrow top & bottom' },
+  { label: 'Oblong', description: 'Longer face, high forehead' },
+];
+
 const PALETTE_OPTIONS = [
   { label: 'Neutrals', colors: ['#F5F5F5', '#E5E5E5', '#404040', '#171717'] },
   { label: 'Earth Tones', colors: ['#8e4925', '#54433c', '#A89F91', '#606C38'] },
@@ -70,20 +143,68 @@ const CLIMATE_OPTIONS = [
 const STYLE_IMG =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBgY9BEv4EjGch1d6jZktemkFedZvfr0wy5ZmA6HwKy7b93MVDKH5F14wCNzh0zH55dkOvY6Vo7PauTdOcZlwCmMAB3QHC5VQfPHkEL9dShGFany7DL635mP1D61bLeXa9j70w9hxfOuEBVck9-zDEUFZ__IAr-wyq-LolULE4i5beE3j7CvcDXqNw2-j0f6HR0THNNHG3LMFVloGVRzW3Vp9oh1JVuBJEk0A-njUIU9zgtLF9ZapDINvjmXyQSqc3AEdJR8n2C-4A';
 
-const CLIMATE_IMG =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBQY5Kp7GItOiUt6jWhvPyLQMOlbA0SL-mPZuAaPmTBOt47L3TYjGwk93-Ik0PjarNkG3_KiwO9RQRAqvGTJU8bVCUGyOQQE4B_9fwf3mgpV_3xkWWdW3B3iJd1begrfzKxK3mG7raPRJMXmhqMtHxtzzPlDnLRF-sKSR38w0WMT1rUpPVnhoSRyICbJRhm52i0AUpex4_VymcDduTy5StLmHTBgdScfDLEGI1Jb_idcYIm-jzxNjyV7Oapii9rPtI7eCpwE_wojYE';
+// ─── Shared step header ───────────────────────────────────────────────────────
+
+function StepHeader({
+  displayStep,
+  total,
+  displayProgress,
+  onBack,
+}: {
+  displayStep: number;
+  total: number;
+  displayProgress: number;
+  onBack: () => void;
+}) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={onBack}
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[#ffeade] transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="w-5 h-5 text-[#54433c]" />
+        </button>
+        <span className="font-serif text-[20px] text-[#8e4925]">TheThinker</span>
+        <div className="w-9" />
+      </div>
+      <div className="w-full h-1 bg-[#ffeade] overflow-hidden mb-2">
+        <div
+          className="h-full bg-[#8e4925] transition-all duration-700 ease-in-out"
+          style={{ width: `${displayProgress}%` }}
+        />
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-[12px] text-[#87736b]">Personalizing Profile</span>
+        <span className="text-[12px] text-[#8e4925] font-bold">
+          Step {displayStep} of {total}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Answers>({
+  const [answers, setAnswers] = useState<OnboardingAnswers>({
     style: '',
     occasions: [],
+    inspiration: [],
+    skinTone: '',
+    bodyShape: '',
+    height: '',
+    faceShape: '',
     palette: '',
+    location: '',
     climate: '',
   });
+  const [showBodyGuide, setShowBodyGuide] = useState(false);
 
-  const progress = ((step + 1) / 4) * 100;
+  const progress = ((step + 1) / TOTAL_STEPS) * 100;
   const [displayProgress, setDisplayProgress] = useState(0);
 
   useEffect(() => {
@@ -94,17 +215,19 @@ export default function OnboardingPage() {
   const canProceed = [
     answers.style !== '',
     answers.occasions.length > 0,
+    answers.inspiration.length > 0,
+    answers.skinTone !== '',
+    answers.bodyShape !== '' && answers.height !== '',
+    true, // face shape is optional
     answers.palette !== '',
-    answers.climate !== '',
+    answers.location.trim() !== '' || answers.climate !== '',
   ][step];
 
   async function handleNext() {
-    if (step < 3) {
+    if (step < TOTAL_STEPS - 1) {
       setStep((s) => s + 1);
     } else {
-      await savePreferences(buildPreferences(answers)).catch(() => {
-        // Backend not yet fully implemented; navigate regardless
-      });
+      await savePreferences(buildPreferences(answers)).catch(() => {});
       navigate('/wardrobe');
     }
   }
@@ -127,17 +250,29 @@ export default function OnboardingPage() {
     }));
   }
 
+  function toggleInspiration(label: string) {
+    setAnswers((a) => ({
+      ...a,
+      inspiration: a.inspiration.includes(label)
+        ? a.inspiration.filter((i) => i !== label)
+        : [...a.inspiration, label],
+    }));
+  }
+
+  const headerProps = {
+    displayStep: step + 1,
+    total: TOTAL_STEPS,
+    displayProgress,
+    onBack: handleBack,
+  };
+
   return (
     <div className="min-h-screen bg-[#fff8f5] flex flex-col items-center">
-      {/* ── STEP 1: Style preference ── */}
+
+      {/* ── STEP 1: Style ─────────────────────────────────────────────────── */}
       {step === 0 && (
         <div className="w-full max-w-[480px] px-6 pt-8 pb-10">
-          <div className="h-1 w-full bg-[#d9c2b8] mb-10">
-            <div
-              className="h-1 bg-[#8e4925] transition-all duration-700 ease-in-out"
-              style={{ width: `${displayProgress}%` }}
-            />
-          </div>
+          <StepHeader {...headerProps} />
 
           <h1 className="font-serif text-[30px] leading-[1.2] tracking-[-0.01em] text-[#28180d] mb-2">
             What's your style?
@@ -159,12 +294,10 @@ export default function OnboardingPage() {
                       : 'border border-transparent bg-[#fff1ea] hover:bg-[#ffeade]'
                   }`}
                 >
-                  <div className="w-10 h-10 rounded-full bg-[#fbddca] flex items-center justify-center mb-4 transition-transform group-hover:scale-110">
+                  <div className="w-10 h-10 rounded-full bg-[#fbddca] flex items-center justify-center mb-4">
                     <Icon className="w-5 h-5 text-[#8e4925]" />
                   </div>
-                  <span className="text-[16px] font-medium text-[#54433c]">
-                    {label}
-                  </span>
+                  <span className="text-[16px] font-medium text-[#54433c]">{label}</span>
                   {selected && (
                     <div className="absolute top-3 right-3">
                       <Check className="w-5 h-5 text-[#8e4925]" />
@@ -176,11 +309,7 @@ export default function OnboardingPage() {
           </div>
 
           <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-10 shadow-sm">
-            <img
-              src={STYLE_IMG}
-              alt="Fashion editorial"
-              className="w-full h-full object-cover"
-            />
+            <img src={STYLE_IMG} alt="Fashion editorial" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#f2d4c2]/40 to-transparent" />
           </div>
 
@@ -194,29 +323,16 @@ export default function OnboardingPage() {
         </div>
       )}
 
-      {/* ── STEP 2: Occasions (multi-select) ── */}
+      {/* ── STEP 2: Occasions ─────────────────────────────────────────────── */}
       {step === 1 && (
         <div className="w-full max-w-[480px] px-6 py-10 flex flex-col min-h-screen">
-          <header className="flex flex-col items-center gap-4 mb-10">
-            <span className="font-serif text-[24px] text-[#8e4925]">TheThinker</span>
-            <div className="w-full h-1 bg-[#fbddca] overflow-hidden">
-              <div
-                className="h-full bg-[#8e4925] transition-all duration-700 ease-in-out"
-                style={{ width: `${displayProgress}%` }}
-              />
-            </div>
-            <div className="w-full flex justify-between">
-              <span className="text-[12px] text-[#87736b]">Personalizing Profile</span>
-              <span className="text-[12px] text-[#8e4925] font-bold">Step 2 of 4</span>
-            </div>
-          </header>
+          <StepHeader {...headerProps} />
 
           <h1 className="font-serif text-[30px] leading-[1.2] text-[#28180d] mb-2">
             What do you dress for?
           </h1>
           <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
-            Select the occasions that define your weekly routine so we can tailor your
-            daily suggestions.
+            Select the occasions that define your weekly routine.
           </p>
 
           <div className="grid grid-cols-2 gap-4 mb-10">
@@ -236,9 +352,7 @@ export default function OnboardingPage() {
                     <img src={img} alt={label} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[15px] font-semibold text-[#28180d]">
-                      {label}
-                    </span>
+                    <span className="text-[15px] font-semibold text-[#28180d]">{label}</span>
                     {selected && <Check className="w-4 h-4 text-[#8e4925] shrink-0" />}
                   </div>
                   <span className="text-[12px] text-[#54433c]">{description}</span>
@@ -251,7 +365,7 @@ export default function OnboardingPage() {
             <button
               onClick={handleNext}
               disabled={!canProceed}
-              className="w-full py-4 bg-[#8e4925] text-white text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(142,73,37,0.15)] hover:bg-[#ac613b] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-[#8e4925] text-white text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-[#ac613b] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Next <ArrowRight className="w-4 h-4" />
             </button>
@@ -262,45 +376,304 @@ export default function OnboardingPage() {
               Skip for now
             </button>
           </div>
-
-          <footer className="mt-10 text-center">
-            <p className="text-[12px] text-[#87736b] italic">
-              "Style is a way to say who you are without having to speak."
-            </p>
-          </footer>
         </div>
       )}
 
-      {/* ── STEP 3: Color palette ── */}
+      {/* ── STEP 3: Inspiration ───────────────────────────────────────────── */}
       {step === 2 && (
-        <div className="w-full max-w-[480px] px-6 pt-10 pb-10 flex flex-col min-h-screen">
-          <header className="flex justify-between items-center mb-8">
-            <button
-              onClick={handleBack}
-              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#ffeade] transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#54433c]" />
-            </button>
-            <span className="font-serif text-[20px] text-[#8e4925]">TheThinker</span>
-            <div className="w-10" />
-          </header>
+        <div className="w-full max-w-[480px] px-6 py-10 flex flex-col min-h-screen">
+          <StepHeader {...headerProps} />
 
-          <div className="w-full h-1 bg-[#ffe3d2] overflow-hidden mb-2">
-            <div
-              className="h-full bg-[#8e4925] transition-all duration-700 ease-in-out"
-              style={{ width: `${displayProgress}%` }}
-            />
+          <h1 className="font-serif text-[30px] leading-[1.2] text-[#28180d] mb-2">
+            What inspires you?
+          </h1>
+          <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
+            Select outfit aesthetics that resonate with you. Pick as many as you like.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4 mb-10">
+            {INSPIRATION_OPTIONS.map(({ label, description, img, bg }) => {
+              const selected = answers.inspiration.includes(label);
+              return (
+                <button
+                  key={label}
+                  onClick={() => toggleInspiration(label)}
+                  className={`flex flex-col p-4 rounded-xl border transition-all duration-200 text-left active:scale-[0.98] ${
+                    selected
+                      ? 'border-[#8e4925] bg-[#fbddca]'
+                      : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
+                  }`}
+                >
+                  <div
+                    className="h-28 w-full rounded-lg overflow-hidden mb-3 flex items-center justify-center"
+                    style={{ backgroundColor: bg }}
+                  >
+                    <img
+                      src={img}
+                      alt={label}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[15px] font-semibold text-[#28180d]">{label}</span>
+                    {selected && <Check className="w-4 h-4 text-[#8e4925] shrink-0" />}
+                  </div>
+                  <span className="text-[12px] text-[#54433c]">{description}</span>
+                </button>
+              );
+            })}
           </div>
-          <div className="flex justify-end mb-8">
-            <span className="text-[12px] text-[#54433c]">Step 3 of 4</span>
+
+          <div className="mt-auto flex flex-col gap-3">
+            <button
+              onClick={handleNext}
+              disabled={!canProceed}
+              className="w-full py-4 bg-[#8e4925] text-white text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-[#ac613b] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next <ArrowRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setStep((s) => s + 1)}
+              className="w-full py-4 text-[#87736b] text-[15px] font-semibold rounded-xl hover:text-[#54433c] transition-colors"
+            >
+              Skip for now
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* ── STEP 4: Skin Tone ─────────────────────────────────────────────── */}
+      {step === 3 && (
+        <div className="w-full max-w-[480px] px-6 py-10">
+          <StepHeader {...headerProps} />
+
+          <h1 className="font-serif text-[30px] leading-[1.2] text-[#28180d] mb-2">
+            Your skin tone
+          </h1>
+          <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
+            Helps us recommend colors and contrasts that flatter your natural complexion.
+          </p>
+
+          <div className="grid grid-cols-3 gap-4 mb-10">
+            {SKIN_TONE_OPTIONS.map(({ label, color, note }) => {
+              const selected = answers.skinTone === label;
+              return (
+                <button
+                  key={label}
+                  onClick={() => setAnswers((a) => ({ ...a, skinTone: label }))}
+                  className={`relative flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 active:scale-[0.98] ${
+                    selected
+                      ? 'border-[#8e4925] bg-[#ffeade]'
+                      : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
+                  }`}
+                >
+                  {selected && (
+                    <div className="absolute top-2 right-2">
+                      <Check className="w-4 h-4 text-[#8e4925]" />
+                    </div>
+                  )}
+                  <div
+                    className="w-14 h-14 rounded-full mb-3 border-2 border-white shadow-md"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="text-[13px] font-semibold text-[#28180d] text-center leading-tight">
+                    {label}
+                  </span>
+                  <span className="text-[11px] text-[#87736b] text-center mt-0.5 leading-tight">
+                    {note}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleNext}
+            disabled={!canProceed}
+            className="w-full py-4 bg-[#8e4925] text-white text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-[#ac613b] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── STEP 5: Body Profile ──────────────────────────────────────────── */}
+      {step === 4 && (
+        <div className="w-full max-w-[480px] px-6 py-10">
+          <StepHeader {...headerProps} />
+
+          <h1 className="font-serif text-[30px] leading-[1.2] text-[#28180d] mb-2">
+            Your body profile
+          </h1>
+          <p className="text-[16px] leading-[1.6] text-[#54433c] mb-4">
+            Helps us recommend silhouettes and fits that work best for your shape.
+          </p>
+
+          {/* Body shape guide accordion */}
+          <button
+            onClick={() => setShowBodyGuide((v) => !v)}
+            className="flex items-center gap-1.5 text-[13px] text-[#8e4925] font-medium mb-5 hover:underline"
+          >
+            {showBodyGuide ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+            How do I find my body shape?
+          </button>
+
+          {showBodyGuide && (
+            <div className="mb-6 p-4 rounded-xl bg-[#fff1ea] border border-[#ffd4ba] text-[13px] text-[#54433c] space-y-1.5 leading-relaxed">
+              <p className="font-semibold text-[#28180d]">Measure three key areas:</p>
+              <p>• <strong>Shoulders</strong> — widest part of your upper body</p>
+              <p>• <strong>Waist</strong> — narrowest part of your torso</p>
+              <p>• <strong>Hips</strong> — widest part of your lower body</p>
+              <p className="pt-1 text-[#87736b]">
+                Compare the numbers to find your shape. If you're unsure, pick the closest match.
+              </p>
+            </div>
+          )}
+
+          {/* Body shape grid */}
+          <p className="text-[12px] font-semibold uppercase tracking-wider text-[#87736b] mb-3">
+            Body Shape
+          </p>
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            {BODY_SHAPE_OPTIONS.map(({ label, description }) => {
+              const selected = answers.bodyShape === label;
+              return (
+                <button
+                  key={label}
+                  onClick={() => setAnswers((a) => ({ ...a, bodyShape: label }))}
+                  className={`relative flex flex-col p-3 rounded-xl border-2 text-left transition-all duration-200 active:scale-[0.98] ${
+                    selected
+                      ? 'border-[#8e4925] bg-[#ffeade]'
+                      : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
+                  }`}
+                >
+                  {selected && (
+                    <div className="absolute top-2 right-2">
+                      <Check className="w-3.5 h-3.5 text-[#8e4925]" />
+                    </div>
+                  )}
+                  <span className="text-[13px] font-semibold text-[#28180d] leading-tight mb-1 pr-4">
+                    {label}
+                  </span>
+                  <span className="text-[11px] text-[#87736b] leading-tight">{description}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Height */}
+          <p className="text-[12px] font-semibold uppercase tracking-wider text-[#87736b] mb-3">
+            Height
+          </p>
+          <div className="grid grid-cols-3 gap-3 mb-10">
+            {HEIGHT_OPTIONS.map(({ label, description }) => {
+              const selected = answers.height === label;
+              return (
+                <button
+                  key={label}
+                  onClick={() => setAnswers((a) => ({ ...a, height: label }))}
+                  className={`relative flex flex-col p-4 rounded-xl border-2 text-left transition-all duration-200 active:scale-[0.98] ${
+                    selected
+                      ? 'border-[#8e4925] bg-[#ffeade]'
+                      : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
+                  }`}
+                >
+                  {selected && (
+                    <div className="absolute top-2 right-2">
+                      <Check className="w-3.5 h-3.5 text-[#8e4925]" />
+                    </div>
+                  )}
+                  <span className="text-[14px] font-semibold text-[#28180d] mb-1 pr-4">
+                    {label}
+                  </span>
+                  <span className="text-[11px] text-[#87736b] leading-tight">{description}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleNext}
+            disabled={!canProceed}
+            className="w-full py-4 bg-[#8e4925] text-white text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-[#ac613b] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── STEP 6: Face Shape (optional) ────────────────────────────────── */}
+      {step === 5 && (
+        <div className="w-full max-w-[480px] px-6 py-10">
+          <StepHeader {...headerProps} />
+
+          <div className="flex items-start gap-3 mb-2">
+            <h1 className="font-serif text-[30px] leading-[1.2] text-[#28180d]">
+              Your face shape
+            </h1>
+            <span className="mt-2 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-[#8e4925] bg-[#ffeade] px-2 py-0.5 rounded-full">
+              Optional
+            </span>
+          </div>
+          <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
+            Refines collar, neckline, and accessory recommendations. Tap to select or deselect.
+          </p>
+
+          <div className="grid grid-cols-3 gap-3 mb-10">
+            {FACE_SHAPE_OPTIONS.map(({ label, description }) => {
+              const selected = answers.faceShape === label;
+              return (
+                <button
+                  key={label}
+                  onClick={() =>
+                    setAnswers((a) => ({ ...a, faceShape: a.faceShape === label ? '' : label }))
+                  }
+                  className={`relative flex flex-col p-3 rounded-xl border-2 text-left transition-all duration-200 active:scale-[0.98] ${
+                    selected
+                      ? 'border-[#8e4925] bg-[#ffeade]'
+                      : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
+                  }`}
+                >
+                  {selected && (
+                    <div className="absolute top-2 right-2">
+                      <Check className="w-3.5 h-3.5 text-[#8e4925]" />
+                    </div>
+                  )}
+                  <span className="text-[13px] font-semibold text-[#28180d] leading-tight mb-1 pr-4">
+                    {label}
+                  </span>
+                  <span className="text-[11px] text-[#87736b] leading-tight">{description}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleNext}
+            className="w-full py-4 bg-[#8e4925] text-white text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-[#ac613b] transition-all active:scale-[0.98]"
+          >
+            {answers.faceShape ? 'Next' : 'Skip'} <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── STEP 7: Color Palette ─────────────────────────────────────────── */}
+      {step === 6 && (
+        <div className="w-full max-w-[480px] px-6 py-10 flex flex-col min-h-screen">
+          <StepHeader {...headerProps} />
 
           <h1 className="font-serif text-[30px] leading-[1.2] text-[#28180d] mb-2">
             Your color vibe?
           </h1>
           <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
-            Select the palette that best reflects your personal aesthetic and the moods
-            you want to project.
+            Select the palette that best reflects your personal aesthetic.
           </p>
 
           <div className="flex flex-col gap-4 mb-10">
@@ -317,9 +690,7 @@ export default function OnboardingPage() {
                   }`}
                 >
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-[14px] font-medium text-[#28180d]">
-                      {label}
-                    </span>
+                    <span className="text-[14px] font-medium text-[#28180d]">{label}</span>
                     {selected && <Check className="w-4 h-4 text-[#8e4925]" />}
                   </div>
                   <div className="flex gap-2">
@@ -336,78 +707,74 @@ export default function OnboardingPage() {
             })}
           </div>
 
-          <div className="mt-auto pt-8">
+          <div className="mt-auto">
             <button
               onClick={handleNext}
               disabled={!canProceed}
-              className="w-full py-4 bg-[#8e4925] text-white text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#8e4925]/10 hover:bg-[#ac613b] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-4 bg-[#8e4925] text-white text-[15px] font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-[#ac613b] transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Next <ArrowRight className="w-4 h-4" />
             </button>
-            <p className="text-center mt-6 text-[12px] text-[#54433c]">
-              Step 3 of 4: Refining your aesthetic
-            </p>
           </div>
         </div>
       )}
 
-      {/* ── STEP 4: Climate ── */}
-      {step === 3 && (
+      {/* ── STEP 8: Location & Climate ────────────────────────────────────── */}
+      {step === 7 && (
         <div className="w-full max-w-[480px] px-6 py-10 flex flex-col">
-          <header className="flex justify-center mb-10">
-            <span className="font-serif text-[24px] text-[#8e4925]">TheThinker</span>
-          </header>
+          <StepHeader {...headerProps} />
 
-          <div className="w-full mb-10">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[12px] text-[#54433c]">Step 4 of 4</span>
-              <span className="text-[12px] text-[#8e4925] font-bold">100%</span>
-            </div>
-            <div className="h-1 bg-[#ffeade] w-full overflow-hidden">
-              <div
-                className="h-full bg-[#8e4925] transition-all duration-700 ease-in-out"
-                style={{ width: `${displayProgress}%` }}
+          <h1 className="font-serif text-[30px] leading-[1.2] text-[#28180d] text-center mb-4">
+            Where are you based?
+          </h1>
+          <p className="text-[16px] leading-[1.6] text-[#54433c] text-center mb-8 opacity-80">
+            We'll use this for daily weather-based outfit recommendations tailored to
+            your local forecast.
+          </p>
+
+          {/* Location input */}
+          <div className="mb-8">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-[#87736b] mb-3">
+              City or Region
+            </p>
+            <div className="relative">
+              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#87736b]" />
+              <input
+                type="text"
+                value={answers.location}
+                onChange={(e) => setAnswers((a) => ({ ...a, location: e.target.value }))}
+                placeholder="e.g. New York, London, Tokyo"
+                className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-[#fff1ea] border border-[#d9c2b8] text-[15px] text-[#28180d] placeholder:text-[#b8a49a] focus:outline-none focus:border-[#8e4925] transition-colors"
               />
             </div>
           </div>
 
-          <h1 className="font-serif text-[30px] leading-[1.2] text-[#28180d] text-center mb-4">
-            Where do you live?
-          </h1>
-          <p className="text-[16px] leading-[1.6] text-[#54433c] text-center mb-8 opacity-80">
-            This helps our AI recommend fabrics and layering strategies suited to your
-            local environment.
-          </p>
-
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            {CLIMATE_OPTIONS.map(({ label, icon: Icon }) => {
-              const selected = answers.climate === label;
-              return (
-                <button
-                  key={label}
-                  onClick={() => setAnswers((a) => ({ ...a, climate: label }))}
-                  className={`flex flex-col items-center justify-center p-6 rounded-xl border transition-all duration-200 active:scale-[0.98] ${
-                    selected
-                      ? 'border-[#8e4925] bg-[#fff1ea]'
-                      : 'border-[#d9c2b8] bg-[#fff1ea] hover:shadow-sm'
-                  }`}
-                >
-                  <Icon className="w-8 h-8 text-[#8e4925] mb-3" />
-                  <span className="text-[15px] font-semibold text-[#28180d]">
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-8 shadow-sm">
-            <img
-              src={CLIMATE_IMG}
-              alt="Warm interior"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+          {/* Climate */}
+          <div className="mb-10">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-[#87736b] mb-3">
+              Typical Climate
+            </p>
+            <div className="grid grid-cols-4 gap-3">
+              {CLIMATE_OPTIONS.map(({ label, icon: Icon }) => {
+                const selected = answers.climate === label;
+                return (
+                  <button
+                    key={label}
+                    onClick={() =>
+                      setAnswers((a) => ({ ...a, climate: a.climate === label ? '' : label }))
+                    }
+                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 active:scale-[0.98] ${
+                      selected
+                        ? 'border-[#8e4925] bg-[#ffeade]'
+                        : 'border-[#d9c2b8] bg-[#fff1ea] hover:shadow-sm'
+                    }`}
+                  >
+                    <Icon className="w-6 h-6 text-[#8e4925] mb-2" />
+                    <span className="text-[13px] font-semibold text-[#28180d]">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="pb-8">
@@ -419,7 +786,7 @@ export default function OnboardingPage() {
               Get Started
             </button>
             <p className="mt-4 text-center text-[12px] text-[#54433c]">
-              You can change your location settings anytime in the app.
+              You can update your location anytime in Settings.
             </p>
           </div>
         </div>
