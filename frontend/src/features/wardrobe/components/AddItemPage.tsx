@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Camera, ImagePlus, PenLine, RotateCcw, Scan, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Camera,
+  ImagePlus,
+  PenLine,
+  RotateCcw,
+  Scan,
+  X,
+} from 'lucide-react';
 import { addItem, scanItem, uploadItemImage } from '../api';
 import type {
   AddItemPayload,
@@ -13,14 +21,41 @@ import type {
 type PageState = 'pick' | 'camera' | 'camera-preview' | 'form' | 'busy';
 
 type ClothingSubType =
-  | 'shirt' | 't-shirt' | 'sweater' | 'hoodie' | 'jacket' | 'coat'
-  | 'pants' | 'jeans' | 'shorts' | 'skirt' | 'dress'
-  | 'shoes' | 'sneakers' | 'boots' | 'suit' | 'blazer';
+  | 'shirt'
+  | 't-shirt'
+  | 'sweater'
+  | 'hoodie'
+  | 'jacket'
+  | 'coat'
+  | 'pants'
+  | 'jeans'
+  | 'shorts'
+  | 'skirt'
+  | 'dress'
+  | 'shoes'
+  | 'sneakers'
+  | 'boots'
+  | 'suit'
+  | 'blazer';
 
 type ClothingColor =
-  | 'black' | 'white' | 'grey' | 'navy blue' | 'blue' | 'light blue'
-  | 'red' | 'burgundy' | 'green' | 'olive' | 'beige' | 'brown'
-  | 'yellow' | 'orange' | 'pink' | 'purple' | 'multicolor';
+  | 'black'
+  | 'white'
+  | 'grey'
+  | 'navy blue'
+  | 'blue'
+  | 'light blue'
+  | 'red'
+  | 'burgundy'
+  | 'green'
+  | 'olive'
+  | 'beige'
+  | 'brown'
+  | 'yellow'
+  | 'orange'
+  | 'pink'
+  | 'purple'
+  | 'multicolor';
 
 type FormState = {
   category: ClothingCategory | '';
@@ -368,7 +403,9 @@ export default function AddItemPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <button
-            onClick={() => (pageState === 'pick' ? navigate('/wardrobe') : goBackToPick())}
+            onClick={() =>
+              pageState === 'pick' ? navigate('/wardrobe') : goBackToPick()
+            }
             className="btn-ghost btn-icon"
             aria-label="Go back"
           >
@@ -415,7 +452,9 @@ export default function AddItemPage() {
               </div>
             </button>
 
-            {error && <p className="mt-2 text-center text-sm text-destructive">{error}</p>}
+            {error && (
+              <p className="mt-2 text-center text-sm text-destructive">{error}</p>
+            )}
           </div>
         )}
 
@@ -448,9 +487,14 @@ export default function AddItemPage() {
                 className="h-full w-full object-cover"
               />
             </div>
-            {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}
+            {error && (
+              <p className="mb-4 text-center text-sm text-destructive">{error}</p>
+            )}
             <div className="flex gap-3">
-              <button onClick={goBackToPick} className="btn-outline btn-lg flex-1 gap-2">
+              <button
+                onClick={goBackToPick}
+                className="btn-outline btn-lg flex-1 gap-2"
+              >
                 <RotateCcw className="h-4 w-4" />
                 Retake
               </button>
@@ -482,7 +526,10 @@ export default function AddItemPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => { clearImage(); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                    onClick={() => {
+                      clearImage();
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
                     className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
                     aria-label="Remove photo"
                   >
