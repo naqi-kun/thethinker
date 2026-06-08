@@ -46,6 +46,7 @@ skills-lock.json
 node_modules/
 dist/
 .aspire/
+aspire-output/
 
 # Playwright
 /test-results/
