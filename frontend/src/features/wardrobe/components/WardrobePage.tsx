@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Footprints,
   Plus,
-  Scan,
   Search,
   Shirt,
   ShoppingBag,
@@ -303,22 +302,13 @@ export default function WardrobePage() {
             <h2 className="mb-1">Wardrobe</h2>
             <p className="helper-text">Your scanned closet, always in order.</p>
           </div>
-          <div className="mt-1 flex shrink-0 flex-col gap-2">
-            <button
-              onClick={() => navigate('/wardrobe/scan')}
-              className="btn-primary btn-sm gap-1.5"
-            >
-              <Scan className="h-4 w-4" />
-              Scan item
-            </button>
-            <button
-              onClick={() => navigate('/wardrobe/add')}
-              className="btn-secondary btn-sm gap-1.5"
-            >
-              <Plus className="h-4 w-4" />
-              Add manually
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/wardrobe/add')}
+            className="btn-primary btn-sm mt-1 gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            Add Item
+          </button>
         </div>
 
         {loading ? (
