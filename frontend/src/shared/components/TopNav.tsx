@@ -80,7 +80,10 @@ export default function TopNav() {
               </button>
               <div className="my-1 h-px bg-border" />
               <button
-                onClick={() => { token.clear(); go('/'); }}
+                onClick={() => {
+                  token.clear();
+                  go('/');
+                }}
                 className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm text-foreground hover:bg-secondary"
               >
                 <LogOut className="h-4 w-4 text-muted-foreground" />

@@ -112,9 +112,9 @@ const BODY_SHAPE_OPTIONS = [
 ];
 
 const HEIGHT_OPTIONS = [
-  { label: 'Petite', description: "Under 5'4\" / 163 cm" },
-  { label: 'Average', description: "5'4\"–5'7\" / 163–170 cm" },
-  { label: 'Tall', description: "5'8\"+ / 173 cm+" },
+  { label: 'Petite', description: 'Under 5\'4" / 163 cm' },
+  { label: 'Average', description: '5\'4"–5\'7" / 163–170 cm' },
+  { label: 'Tall', description: '5\'8"+ / 173 cm+' },
 ];
 
 const FACE_SHAPE_OPTIONS = [
@@ -268,7 +268,6 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[#fff8f5] flex flex-col items-center">
-
       {/* ── STEP 1: Style ─────────────────────────────────────────────────── */}
       {step === 0 && (
         <div className="w-full max-w-[480px] px-6 pt-8 pb-10">
@@ -297,7 +296,9 @@ export default function OnboardingPage() {
                   <div className="w-10 h-10 rounded-full bg-[#fbddca] flex items-center justify-center mb-4">
                     <Icon className="w-5 h-5 text-[#8e4925]" />
                   </div>
-                  <span className="text-[16px] font-medium text-[#54433c]">{label}</span>
+                  <span className="text-[16px] font-medium text-[#54433c]">
+                    {label}
+                  </span>
                   {selected && (
                     <div className="absolute top-3 right-3">
                       <Check className="w-5 h-5 text-[#8e4925]" />
@@ -309,7 +310,11 @@ export default function OnboardingPage() {
           </div>
 
           <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden mb-10 shadow-sm">
-            <img src={STYLE_IMG} alt="Fashion editorial" className="w-full h-full object-cover" />
+            <img
+              src={STYLE_IMG}
+              alt="Fashion editorial"
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-[#f2d4c2]/40 to-transparent" />
           </div>
 
@@ -352,7 +357,9 @@ export default function OnboardingPage() {
                     <img src={img} alt={label} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[15px] font-semibold text-[#28180d]">{label}</span>
+                    <span className="text-[15px] font-semibold text-[#28180d]">
+                      {label}
+                    </span>
                     {selected && <Check className="w-4 h-4 text-[#8e4925] shrink-0" />}
                   </div>
                   <span className="text-[12px] text-[#54433c]">{description}</span>
@@ -418,7 +425,9 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[15px] font-semibold text-[#28180d]">{label}</span>
+                    <span className="text-[15px] font-semibold text-[#28180d]">
+                      {label}
+                    </span>
                     {selected && <Check className="w-4 h-4 text-[#8e4925] shrink-0" />}
                   </div>
                   <span className="text-[12px] text-[#54433c]">{description}</span>
@@ -454,7 +463,8 @@ export default function OnboardingPage() {
             Your skin tone
           </h1>
           <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
-            Helps us recommend colors and contrasts that flatter your natural complexion.
+            Helps us recommend colors and contrasts that flatter your natural
+            complexion.
           </p>
 
           <div className="grid grid-cols-3 gap-4 mb-10">
@@ -528,11 +538,18 @@ export default function OnboardingPage() {
           {showBodyGuide && (
             <div className="mb-6 p-4 rounded-xl bg-[#fff1ea] border border-[#ffd4ba] text-[13px] text-[#54433c] space-y-1.5 leading-relaxed">
               <p className="font-semibold text-[#28180d]">Measure three key areas:</p>
-              <p>• <strong>Shoulders</strong> — widest part of your upper body</p>
-              <p>• <strong>Waist</strong> — narrowest part of your torso</p>
-              <p>• <strong>Hips</strong> — widest part of your lower body</p>
+              <p>
+                • <strong>Shoulders</strong> — widest part of your upper body
+              </p>
+              <p>
+                • <strong>Waist</strong> — narrowest part of your torso
+              </p>
+              <p>
+                • <strong>Hips</strong> — widest part of your lower body
+              </p>
               <p className="pt-1 text-[#87736b]">
-                Compare the numbers to find your shape. If you're unsure, pick the closest match.
+                Compare the numbers to find your shape. If you're unsure, pick the
+                closest match.
               </p>
             </div>
           )}
@@ -562,7 +579,9 @@ export default function OnboardingPage() {
                   <span className="text-[13px] font-semibold text-[#28180d] leading-tight mb-1 pr-4">
                     {label}
                   </span>
-                  <span className="text-[11px] text-[#87736b] leading-tight">{description}</span>
+                  <span className="text-[11px] text-[#87736b] leading-tight">
+                    {description}
+                  </span>
                 </button>
               );
             })}
@@ -593,7 +612,9 @@ export default function OnboardingPage() {
                   <span className="text-[14px] font-semibold text-[#28180d] mb-1 pr-4">
                     {label}
                   </span>
-                  <span className="text-[11px] text-[#87736b] leading-tight">{description}</span>
+                  <span className="text-[11px] text-[#87736b] leading-tight">
+                    {description}
+                  </span>
                 </button>
               );
             })}
@@ -623,7 +644,8 @@ export default function OnboardingPage() {
             </span>
           </div>
           <p className="text-[16px] leading-[1.6] text-[#54433c] mb-8">
-            Refines collar, neckline, and accessory recommendations. Tap to select or deselect.
+            Refines collar, neckline, and accessory recommendations. Tap to select or
+            deselect.
           </p>
 
           <div className="grid grid-cols-3 gap-3 mb-10">
@@ -633,7 +655,10 @@ export default function OnboardingPage() {
                 <button
                   key={label}
                   onClick={() =>
-                    setAnswers((a) => ({ ...a, faceShape: a.faceShape === label ? '' : label }))
+                    setAnswers((a) => ({
+                      ...a,
+                      faceShape: a.faceShape === label ? '' : label,
+                    }))
                   }
                   className={`relative flex flex-col p-3 rounded-xl border-2 text-left transition-all duration-200 active:scale-[0.98] ${
                     selected
@@ -649,7 +674,9 @@ export default function OnboardingPage() {
                   <span className="text-[13px] font-semibold text-[#28180d] leading-tight mb-1 pr-4">
                     {label}
                   </span>
-                  <span className="text-[11px] text-[#87736b] leading-tight">{description}</span>
+                  <span className="text-[11px] text-[#87736b] leading-tight">
+                    {description}
+                  </span>
                 </button>
               );
             })}
@@ -690,7 +717,9 @@ export default function OnboardingPage() {
                   }`}
                 >
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-[14px] font-medium text-[#28180d]">{label}</span>
+                    <span className="text-[14px] font-medium text-[#28180d]">
+                      {label}
+                    </span>
                     {selected && <Check className="w-4 h-4 text-[#8e4925]" />}
                   </div>
                   <div className="flex gap-2">
@@ -742,7 +771,9 @@ export default function OnboardingPage() {
               <input
                 type="text"
                 value={answers.location}
-                onChange={(e) => setAnswers((a) => ({ ...a, location: e.target.value }))}
+                onChange={(e) =>
+                  setAnswers((a) => ({ ...a, location: e.target.value }))
+                }
                 placeholder="e.g. New York, London, Tokyo"
                 className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-[#fff1ea] border border-[#d9c2b8] text-[15px] text-[#28180d] placeholder:text-[#b8a49a] focus:outline-none focus:border-[#8e4925] transition-colors"
               />
@@ -761,7 +792,10 @@ export default function OnboardingPage() {
                   <button
                     key={label}
                     onClick={() =>
-                      setAnswers((a) => ({ ...a, climate: a.climate === label ? '' : label }))
+                      setAnswers((a) => ({
+                        ...a,
+                        climate: a.climate === label ? '' : label,
+                      }))
                     }
                     className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 active:scale-[0.98] ${
                       selected
@@ -770,7 +804,9 @@ export default function OnboardingPage() {
                     }`}
                   >
                     <Icon className="w-6 h-6 text-[#8e4925] mb-2" />
-                    <span className="text-[13px] font-semibold text-[#28180d]">{label}</span>
+                    <span className="text-[13px] font-semibold text-[#28180d]">
+                      {label}
+                    </span>
                   </button>
                 );
               })}
