@@ -108,6 +108,16 @@ func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []by
 		Season:    season,
 		CreatedAt: time.Now(),
 	}
+
+	// Best-effort: store the scanned image so it appears in the wardrobe.
+	// Process to JPEG first for consistency; if either step fails, continue without an image URL.
+	if processed, err := processImage(bytes.NewReader(imageBytes)); err == nil {
+		objectName := path.Join("wardrobe", userID, item.ID, "scan-"+uuid.NewString()+".jpg")
+		if imageURL, err := s.imageStore.Upload(ctx, objectName, "image/jpeg", bytes.NewReader(processed), int64(len(processed))); err == nil {
+			item.ImageURL = imageURL
+		}
+	}
+
 	if err := s.repo.Save(ctx, &item); err != nil {
 		return nil, err
 	}
