@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -14,11 +15,18 @@ import (
 
 const maxUploadSize = 10 << 20 // 10 MB
 
-type WardrobeHandler struct {
-	svc *wardrobe.Service
+type wardrobeSvc interface {
+	AddItem(ctx context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error)
+	ListItems(ctx context.Context, userID, category string) ([]*wardrobe.ClothingItem, error)
+	IngestScan(ctx context.Context, userID string, imageBytes []byte, contentType string) (*wardrobe.ClothingItem, error)
+	UploadImage(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
 }
 
-func NewWardrobeHandler(svc *wardrobe.Service) *WardrobeHandler {
+type WardrobeHandler struct {
+	svc wardrobeSvc
+}
+
+func NewWardrobeHandler(svc wardrobeSvc) *WardrobeHandler {
 	return &WardrobeHandler{svc: svc}
 }
 
