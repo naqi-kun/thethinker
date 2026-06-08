@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
-	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
 )
 
 // mockWardrobeAccepter lets each test control what MarkItemsWorn returns.
@@ -19,12 +18,6 @@ type mockWardrobeAccepter struct {
 
 func (m *mockWardrobeAccepter) MarkItemsWorn(_ context.Context, _ string, _ []string) error {
 	return m.err
-}
-
-// withUserID injects a userID into the request context, simulating the auth middleware.
-func withUserID(r *http.Request, userID string) *http.Request {
-	ctx := context.WithValue(r.Context(), middleware.UserIDKey, userID)
-	return r.WithContext(ctx)
 }
 
 func TestAcceptOutfit(t *testing.T) {
