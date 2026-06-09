@@ -92,6 +92,7 @@ func main() {
 	// wardrobe — protected
 	mux.Handle("GET /wardrobe/items",             auth(http.HandlerFunc(wardrobeHandler.ListItems)))
 	mux.Handle("POST /wardrobe/items",            auth(http.HandlerFunc(wardrobeHandler.AddItem)))
+	mux.Handle("DELETE /wardrobe/items/{id}",     auth(http.HandlerFunc(wardrobeHandler.DeleteItem)))
 	mux.Handle("POST /wardrobe/items/{id}/image", auth(http.HandlerFunc(wardrobeHandler.UploadImage)))
 	mux.Handle("POST /wardrobe/scan",             auth(http.HandlerFunc(wardrobeHandler.Scan)))
 

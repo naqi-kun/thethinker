@@ -18,6 +18,7 @@ type mockWardrobeSvc struct {
 	listItems   func(ctx context.Context, userID, category string) ([]*wardrobe.ClothingItem, error)
 	ingestScan  func(ctx context.Context, userID string, imageBytes []byte, contentType string) (*wardrobe.ClothingItem, error)
 	uploadImage func(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
+	deleteItem  func(ctx context.Context, itemID, userID string) error
 }
 
 func (m *mockWardrobeSvc) AddItem(ctx context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error) {
@@ -34,6 +35,13 @@ func (m *mockWardrobeSvc) IngestScan(ctx context.Context, userID string, imageBy
 
 func (m *mockWardrobeSvc) UploadImage(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error) {
 	return m.uploadImage(ctx, itemID, userID, imageData)
+}
+
+func (m *mockWardrobeSvc) DeleteItem(ctx context.Context, itemID, userID string) error {
+	if m.deleteItem != nil {
+		return m.deleteItem(ctx, itemID, userID)
+	}
+	return nil
 }
 
 func savedItem() *wardrobe.ClothingItem {
