@@ -30,8 +30,10 @@
     "tailwind-merge": "^2.6.0",
     "tw-animate-css": "^1.2.5"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.61.1"
+  },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.61.1",
     "@eslint/js": "^9.17.0",
     "@playwright/test": "^1.49.1",
     "@tailwindcss/vite": "^4.1.7",
