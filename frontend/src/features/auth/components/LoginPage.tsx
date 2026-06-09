@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  if (token.get()) return <Navigate to="/onboarding" replace />;
+  if (token.get()) return <Navigate to="/wardrobe" replace />;
 
   async function handleSubmit() {
     setError('');
@@ -21,7 +21,7 @@ export default function LoginPage() {
     try {
       const result = await login({ email, password });
       token.set(result.token);
-      navigate('/onboarding');
+      navigate('/wardrobe');
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         setError('Incorrect email or password.');

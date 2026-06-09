@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  if (token.get()) return <Navigate to="/onboarding" replace />;
+  if (token.get()) return <Navigate to="/wardrobe" replace />;
 
   async function handleSubmit() {
     setError('');
