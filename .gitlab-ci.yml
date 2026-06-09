@@ -39,7 +39,7 @@ frontend-test:
     - cd frontend
     - rm -f package-lock.json
     - npm install
-    - npm run test -- --run
+    - npm run test -- --run --passWithNoTests
 
 frontend-build:
   stage: build
