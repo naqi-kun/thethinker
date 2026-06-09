@@ -260,7 +260,11 @@ export default function ReviewItemPage() {
         {/* Scanned image */}
         {imageUrl && (
           <div className="mb-6 aspect-square overflow-hidden rounded-2xl">
-            <img src={imageUrl} alt="Scanned item" className="h-full w-full object-cover" />
+            <img
+              src={imageUrl}
+              alt="Scanned item"
+              className="h-full w-full object-cover"
+            />
           </div>
         )}
 
