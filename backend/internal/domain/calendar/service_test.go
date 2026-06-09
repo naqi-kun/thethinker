@@ -78,6 +78,18 @@ func (r *fakeRepo) FindEventsByDate(_ context.Context, userID string, day time.T
 	return out, nil
 }
 
+func (r *fakeRepo) SetEventIgnored(_ context.Context, userID, eventID string, ignored bool) (bool, error) {
+	for _, evs := range r.events {
+		for _, e := range evs {
+			if e.ID == eventID && e.UserID == userID {
+				e.Ignored = ignored
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
 func (r *fakeRepo) FindConnection(context.Context, string) (*CalendarConnection, error) { return nil, nil }
 func (r *fakeRepo) SaveConnection(context.Context, *CalendarConnection) error           { return nil }
 func (r *fakeRepo) DeleteConnection(context.Context, string) error                      { return nil }
@@ -165,6 +177,28 @@ func TestRemoveCalendar(t *testing.T) {
 	}
 	if len(repo.calendars) != 0 {
 		t.Errorf("calendars remaining = %d, want 0", len(repo.calendars))
+	}
+}
+
+func TestIgnoreEvent(t *testing.T) {
+	repo := newFakeRepo()
+	repo.events["c1"] = []*Event{{ID: "e1", UserID: "user-1"}}
+	svc := NewService(repo, &fakeFetcher{})
+
+	if err := svc.IgnoreEvent(context.Background(), "user-1", "e1", true); err != nil {
+		t.Fatalf("IgnoreEvent: unexpected error %v", err)
+	}
+	if !repo.events["c1"][0].Ignored {
+		t.Errorf("event was not marked ignored")
+	}
+
+	// Unknown event -> ErrEventNotFound.
+	if err := svc.IgnoreEvent(context.Background(), "user-1", "missing", true); !errors.Is(err, ErrEventNotFound) {
+		t.Errorf("IgnoreEvent(unknown): error = %v, want ErrEventNotFound", err)
+	}
+	// Wrong owner -> ErrEventNotFound.
+	if err := svc.IgnoreEvent(context.Background(), "user-2", "e1", true); !errors.Is(err, ErrEventNotFound) {
+		t.Errorf("IgnoreEvent(wrong owner): error = %v, want ErrEventNotFound", err)
 	}
 }
 

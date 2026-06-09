@@ -28,6 +28,18 @@ export async function getTodayEvents(): Promise<CalendarEvent[]> {
   return data ?? [];
 }
 
+export async function ignoreEvent(id: string): Promise<void> {
+  await apiClient.POST('/calendars/events/{id}/ignore', {
+    params: { path: { id } },
+  });
+}
+
+export async function unignoreEvent(id: string): Promise<void> {
+  await apiClient.DELETE('/calendars/events/{id}/ignore', {
+    params: { path: { id } },
+  });
+}
+
 // Legacy OAuth connect/disconnect — not yet implemented end-to-end.
 export async function connectCalendar(
   provider: 'google' | 'apple',

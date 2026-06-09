@@ -167,6 +167,41 @@ func (h *CalendarHandler) TodayEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// IgnoreEvent hides an event from the home screen and recommendations.
+func (h *CalendarHandler) IgnoreEvent(w http.ResponseWriter, r *http.Request) {
+	h.setIgnored(w, r, true)
+}
+
+// UnignoreEvent restores a previously ignored event.
+func (h *CalendarHandler) UnignoreEvent(w http.ResponseWriter, r *http.Request) {
+	h.setIgnored(w, r, false)
+}
+
+func (h *CalendarHandler) setIgnored(w http.ResponseWriter, r *http.Request, ignored bool) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "event id is required")
+		return
+	}
+
+	if err := h.svc.IgnoreEvent(r.Context(), userID, id, ignored); err != nil {
+		if errors.Is(err, calendar.ErrEventNotFound) {
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "event not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to update event")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // Connect / Disconnect back the legacy OAuth (/calendar/connect) flow, which is
 // out of scope for the ICS slice (KAN-49) and remains unimplemented.
 

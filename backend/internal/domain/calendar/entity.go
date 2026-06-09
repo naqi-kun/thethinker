@@ -39,4 +39,5 @@ type Event struct {
 	EndsAt     time.Time
 	Location   string
 	AllDay     bool
+	Ignored    bool
 }

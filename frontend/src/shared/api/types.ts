@@ -12,5 +12,6 @@ export type CalendarConnection = components['schemas']['CalendarConnection'];
 export type Calendar = components['schemas']['Calendar'];
 export type AddCalendarPayload = components['schemas']['AddCalendarRequest'];
 export type CalendarEvent = components['schemas']['CalendarEvent'];
+export type WorkSchedule = components['schemas']['WorkSchedule'];
 export type WeatherSnapshot = components['schemas']['WeatherSnapshot'];
 export type OutfitRecommendation = components['schemas']['OutfitRecommendation'];

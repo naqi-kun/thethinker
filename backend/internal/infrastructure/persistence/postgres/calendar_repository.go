@@ -186,7 +186,7 @@ func (r *CalendarRepository) FindEventsByDate(ctx context.Context, userID string
 	rows, err := r.db.Query(ctx,
 		`SELECT id, user_id, calendar_id, title, type, starts_at, ends_at, location, all_day
 		 FROM calendar_events
-		 WHERE user_id = $1 AND starts_at >= $2 AND starts_at < $3
+		 WHERE user_id = $1 AND starts_at >= $2 AND starts_at < $3 AND ignored = false
 		 ORDER BY starts_at ASC`,
 		userID, start, end,
 	)
@@ -208,4 +208,17 @@ func (r *CalendarRepository) FindEventsByDate(ctx context.Context, userID string
 		events = append(events, e)
 	}
 	return events, rows.Err()
+}
+
+// SetEventIgnored toggles an event's ignored flag. Returns false if no such
+// event belongs to the user.
+func (r *CalendarRepository) SetEventIgnored(ctx context.Context, userID, eventID string, ignored bool) (bool, error) {
+	tag, err := r.db.Exec(ctx,
+		`UPDATE calendar_events SET ignored = $1 WHERE id = $2 AND user_id = $3`,
+		ignored, eventID, userID,
+	)
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
 }

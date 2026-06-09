@@ -82,9 +82,23 @@ func (s *Service) RemoveCalendar(ctx context.Context, userID, id string) error {
 	return s.repo.DeleteCalendar(ctx, id, userID)
 }
 
-// EventsForDate returns the user's events for a single day across all calendars.
+// EventsForDate returns the user's (non-ignored) events for a single day across
+// all calendars.
 func (s *Service) EventsForDate(ctx context.Context, userID string, day time.Time) ([]*Event, error) {
 	return s.repo.FindEventsByDate(ctx, userID, day)
+}
+
+// IgnoreEvent hides an event (or un-hides it) for the user. Returns
+// ErrEventNotFound if no such event belongs to the user.
+func (s *Service) IgnoreEvent(ctx context.Context, userID, eventID string, ignored bool) error {
+	found, err := s.repo.SetEventIgnored(ctx, userID, eventID, ignored)
+	if err != nil {
+		return fmt.Errorf("calendar: set ignored: %w", err)
+	}
+	if !found {
+		return ErrEventNotFound
+	}
+	return nil
 }
 
 func validICSURL(raw string) bool {

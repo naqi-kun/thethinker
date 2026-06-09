@@ -50,6 +50,15 @@ func (r *stubRepo) ReplaceCalendarEvents(context.Context, string, []*calendar.Ev
 func (r *stubRepo) FindEventsByDate(context.Context, string, time.Time) ([]*calendar.Event, error) {
 	return r.events, nil
 }
+func (r *stubRepo) SetEventIgnored(_ context.Context, userID, eventID string, ignored bool) (bool, error) {
+	for _, e := range r.events {
+		if e.ID == eventID {
+			e.Ignored = ignored
+			return true, nil
+		}
+	}
+	return false, nil
+}
 func (r *stubRepo) FindConnection(context.Context, string) (*calendar.CalendarConnection, error) {
 	return nil, nil
 }
@@ -214,5 +223,34 @@ func TestTodayEvents_BadDate(t *testing.T) {
 
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+}
+
+func TestIgnoreEvent(t *testing.T) {
+	repo := &stubRepo{events: []*calendar.Event{{ID: "e1", Title: "Standup"}}}
+	h := newHandler(repo, &stubFetcher{})
+
+	req := authed(httptest.NewRequest(http.MethodPost, "/calendars/events/e1/ignore", nil), "user-1")
+	req.SetPathValue("id", "e1")
+	rec := httptest.NewRecorder()
+
+	h.IgnoreEvent(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204", rec.Code)
+	}
+	if !repo.events[0].Ignored {
+		t.Errorf("event was not marked ignored")
+	}
+
+	// Unknown event -> 404.
+	req2 := authed(httptest.NewRequest(http.MethodPost, "/calendars/events/missing/ignore", nil), "user-1")
+	req2.SetPathValue("id", "missing")
+	rec2 := httptest.NewRecorder()
+
+	h.IgnoreEvent(rec2, req2)
+
+	if rec2.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rec2.Code)
 	}
 }

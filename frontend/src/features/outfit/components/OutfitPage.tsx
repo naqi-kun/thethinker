@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Briefcase, CalendarClock, Check, MapPin, RefreshCw, Sun } from 'lucide-react';
+import {
+  Briefcase,
+  CalendarClock,
+  Check,
+  MapPin,
+  RefreshCw,
+  Sun,
+  X,
+} from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import type {
   CalendarEvent,
   ClothingItem,
   OutfitRecommendation,
 } from '../../../shared/api/types';
-import { getTodayEvents } from '../../calendar/api';
+import { getTodayEvents, ignoreEvent } from '../../calendar/api';
 import { getOutfit } from '../api';
 
 const today = new Date().toLocaleDateString('en-US', {
@@ -76,6 +84,17 @@ export default function OutfitPage() {
       .catch(() => setEvents([]));
   }, []);
 
+  function handleIgnore(id: string) {
+    // Optimistically drop it; ignored events are hidden server-side too.
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+    ignoreEvent(id).catch(() => {
+      // On failure, reload so the UI matches the server.
+      getTodayEvents()
+        .then(setEvents)
+        .catch(() => undefined);
+    });
+  }
+
   return (
     <div className="min-h-screen-safe bg-background pb-28">
       <TopNav />
@@ -126,6 +145,14 @@ export default function OutfitPage() {
                       </span>
                     )}
                   </span>
+                  <button
+                    onClick={() => handleIgnore(event.id)}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    aria-label={`Ignore ${event.title}`}
+                    title="Ignore this event"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
                 </li>
               ))}
             </ul>

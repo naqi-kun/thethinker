@@ -151,6 +151,69 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/me/work-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the user's working schedule, working time, and holidays */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The user's work schedule (defaults are returned if unset) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkSchedule"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        /** Set the working schedule, working time, and holidays */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["WorkSchedule"];
+                };
+            };
+            responses: {
+                /** @description Work schedule updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkSchedule"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/wardrobe/items": {
         parameters: {
             query?: never;
@@ -565,6 +628,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/calendars/events/{id}/ignore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ignore an event so it is hidden and excluded from recommendations */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Event ignored */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        /** Stop ignoring a previously ignored event */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Event un-ignored */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recommendations/outfit": {
         parameters: {
             query?: never;
@@ -712,6 +835,36 @@ export interface components {
             ends_at?: string | null;
             location?: string;
             all_day: boolean;
+        };
+        WorkSchedule: {
+            /**
+             * @description Weekdays that are working days (0 = Sunday … 6 = Saturday)
+             * @example [
+             *       1,
+             *       2,
+             *       3,
+             *       4,
+             *       5
+             *     ]
+             */
+            working_days: number[];
+            /**
+             * @description Start of the working day (HH:MM, 24-hour)
+             * @example 09:00
+             */
+            work_start: string;
+            /**
+             * @description End of the working day (HH:MM, 24-hour)
+             * @example 17:00
+             */
+            work_end: string;
+            /**
+             * @description Specific dates that are days off even on a working weekday
+             * @example [
+             *       "2026-12-25"
+             *     ]
+             */
+            holidays: string[];
         };
         OutfitRecommendation: {
             /** Format: date */

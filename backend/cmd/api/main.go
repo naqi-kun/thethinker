@@ -10,8 +10,11 @@ import (
 	"time"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/calendar"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/recommendation"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/weather"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/workschedule"
 	calendarext "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
@@ -58,21 +61,26 @@ func main() {
 	defer gcsClient.Close()
 
 	// repositories
-	userRepo     := postgres.NewUserRepository(db)
-	wardrobeRepo := postgres.NewWardrobeRepository(db)
-	calendarRepo := postgres.NewCalendarRepository(db)
+	userRepo         := postgres.NewUserRepository(db)
+	wardrobeRepo     := postgres.NewWardrobeRepository(db)
+	calendarRepo     := postgres.NewCalendarRepository(db)
+	workScheduleRepo := postgres.NewWorkScheduleRepository(db)
 
 	// services
 	userSvc          := user.NewService(userRepo, jwtSecret)
 	classifierClient := classifier.NewClient(aiServiceURL)
 	wardrobeSvc      := wardrobe.NewService(wardrobeRepo, classifierClient, gcsClient)
 	calendarSvc      := calendar.NewService(calendarRepo, calendarext.NewICSFetcher())
+	workScheduleSvc  := workschedule.NewService(workScheduleRepo)
+	weatherSvc       := weather.NewService()
+	recommendSvc     := recommendation.NewService(wardrobeRepo, calendarRepo, weatherSvc, workScheduleSvc)
 
 	// handlers
-	userHandler      := handlers.NewUserHandler(userSvc)
-	wardrobeHandler  := handlers.NewWardrobeHandler(wardrobeSvc)
-	calendarHandler  := handlers.NewCalendarHandler(calendarSvc)
-	recommendHandler := handlers.NewRecommendationHandler()
+	userHandler         := handlers.NewUserHandler(userSvc)
+	wardrobeHandler     := handlers.NewWardrobeHandler(wardrobeSvc)
+	calendarHandler     := handlers.NewCalendarHandler(calendarSvc)
+	workScheduleHandler := handlers.NewWorkScheduleHandler(workScheduleSvc)
+	recommendHandler    := handlers.NewRecommendationHandler(recommendSvc)
 
 	// middleware
 	auth := middleware.Auth(jwtSecret)
@@ -87,6 +95,8 @@ func main() {
 	// user — protected
 	mux.Handle("GET /users/me/preferences", auth(http.HandlerFunc(userHandler.GetPreferences)))
 	mux.Handle("PUT /users/me/preferences", auth(http.HandlerFunc(userHandler.UpdatePreferences)))
+	mux.Handle("GET /users/me/work-schedule", auth(http.HandlerFunc(workScheduleHandler.Get)))
+	mux.Handle("PUT /users/me/work-schedule", auth(http.HandlerFunc(workScheduleHandler.Update)))
 
 	// wardrobe — protected
 	mux.Handle("GET /wardrobe/items",             auth(http.HandlerFunc(wardrobeHandler.ListItems)))
@@ -99,6 +109,8 @@ func main() {
 	mux.Handle("POST /calendars",          auth(http.HandlerFunc(calendarHandler.AddCalendar)))
 	mux.Handle("DELETE /calendars/{id}",   auth(http.HandlerFunc(calendarHandler.RemoveCalendar)))
 	mux.Handle("GET /calendars/events",    auth(http.HandlerFunc(calendarHandler.TodayEvents)))
+	mux.Handle("POST /calendars/events/{id}/ignore",   auth(http.HandlerFunc(calendarHandler.IgnoreEvent)))
+	mux.Handle("DELETE /calendars/events/{id}/ignore", auth(http.HandlerFunc(calendarHandler.UnignoreEvent)))
 
 	// calendar OAuth — protected (legacy, returns 501 until implemented)
 	mux.Handle("POST /calendar/connect",      auth(http.HandlerFunc(calendarHandler.Connect)))

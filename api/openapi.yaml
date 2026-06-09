@@ -109,6 +109,40 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /users/me/work-schedule:
+    get:
+      tags: [users]
+      summary: Get the user's working schedule, working time, and holidays
+      responses:
+        '200':
+          description: The user's work schedule (defaults are returned if unset)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSchedule'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [users]
+      summary: Set the working schedule, working time, and holidays
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkSchedule'
+      responses:
+        '200':
+          description: Work schedule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSchedule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   # ── Wardrobe ────────────────────────────────────────────────────────────────
 
   /wardrobe/items:
@@ -354,6 +388,40 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /calendars/events/{id}/ignore:
+    post:
+      tags: [calendar]
+      summary: Ignore an event so it is hidden and excluded from recommendations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Event ignored
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [calendar]
+      summary: Stop ignoring a previously ignored event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Event un-ignored
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ── Recommendations ─────────────────────────────────────────────────────────
 
   /recommendations/outfit:
@@ -562,6 +630,34 @@ components:
           type: string
         all_day:
           type: boolean
+
+    WorkSchedule:
+      type: object
+      required: [working_days, work_start, work_end, holidays]
+      properties:
+        working_days:
+          type: array
+          description: Weekdays that are working days (0 = Sunday … 6 = Saturday)
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+          example: [1, 2, 3, 4, 5]
+        work_start:
+          type: string
+          description: Start of the working day (HH:MM, 24-hour)
+          example: '09:00'
+        work_end:
+          type: string
+          description: End of the working day (HH:MM, 24-hour)
+          example: '17:00'
+        holidays:
+          type: array
+          description: Specific dates that are days off even on a working weekday
+          items:
+            type: string
+            format: date
+          example: ['2026-12-25']
 
     OutfitRecommendation:
       type: object
