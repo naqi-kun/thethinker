@@ -9,8 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
+	calendarext "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 	gcsclient "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/storage/gcs"
@@ -58,19 +60,18 @@ func main() {
 	// repositories
 	userRepo     := postgres.NewUserRepository(db)
 	wardrobeRepo := postgres.NewWardrobeRepository(db)
-
-	// TODO: wire remaining repos when their handlers are implemented
-	// calendarRepo := postgres.NewCalendarRepository(db)
+	calendarRepo := postgres.NewCalendarRepository(db)
 
 	// services
 	userSvc          := user.NewService(userRepo, jwtSecret)
 	classifierClient := classifier.NewClient(aiServiceURL)
 	wardrobeSvc      := wardrobe.NewService(wardrobeRepo, classifierClient, gcsClient)
+	calendarSvc      := calendar.NewService(calendarRepo, calendarext.NewICSFetcher())
 
 	// handlers
 	userHandler      := handlers.NewUserHandler(userSvc)
 	wardrobeHandler  := handlers.NewWardrobeHandler(wardrobeSvc)
-	calendarHandler  := handlers.NewCalendarHandler()
+	calendarHandler  := handlers.NewCalendarHandler(calendarSvc)
 	recommendHandler := handlers.NewRecommendationHandler()
 
 	// middleware
@@ -93,7 +94,13 @@ func main() {
 	mux.Handle("POST /wardrobe/items/{id}/image", auth(http.HandlerFunc(wardrobeHandler.UploadImage)))
 	mux.Handle("POST /wardrobe/scan",             auth(http.HandlerFunc(wardrobeHandler.Scan)))
 
-	// calendar — protected (KAN-14+: handlers return 501 until service is implemented)
+	// calendar — protected. ICS multi-calendar flow (KAN-49).
+	mux.Handle("GET /calendars",           auth(http.HandlerFunc(calendarHandler.ListCalendars)))
+	mux.Handle("POST /calendars",          auth(http.HandlerFunc(calendarHandler.AddCalendar)))
+	mux.Handle("DELETE /calendars/{id}",   auth(http.HandlerFunc(calendarHandler.RemoveCalendar)))
+	mux.Handle("GET /calendars/events",    auth(http.HandlerFunc(calendarHandler.TodayEvents)))
+
+	// calendar OAuth — protected (legacy, returns 501 until implemented)
 	mux.Handle("POST /calendar/connect",      auth(http.HandlerFunc(calendarHandler.Connect)))
 	mux.Handle("DELETE /calendar/disconnect", auth(http.HandlerFunc(calendarHandler.Disconnect)))
 

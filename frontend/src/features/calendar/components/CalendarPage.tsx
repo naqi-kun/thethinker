@@ -1,54 +1,120 @@
-import { useState } from 'react';
-import { Calendar, Check } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Calendar, Check, ExternalLink, Link2, Plus, Trash2 } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
-import { connectCalendar, disconnectCalendar } from '../api';
+import type { Calendar as CalendarType } from '../../../shared/api/types';
+import { addCalendar, listCalendars, removeCalendar } from '../api';
 
 type Provider = {
   id: 'google' | 'apple';
   name: string;
   subtitle: string;
+  helpUrl: string;
+  steps: string[];
 };
 
 const providers: Provider[] = [
-  { id: 'google', name: 'Google Calendar', subtitle: 'Gmail Synchronization' },
-  { id: 'apple', name: 'Apple Calendar', subtitle: 'iCloud Synchronization' },
+  {
+    id: 'google',
+    name: 'Google Calendar',
+    subtitle: 'Gmail Synchronization',
+    helpUrl: 'https://calendar.google.com/calendar/r/settings',
+    steps: [
+      'Open Google Calendar settings on the web.',
+      "Pick your calendar → 'Integrate calendar'.",
+      "Copy the 'Secret address in iCal format' and paste it below.",
+    ],
+  },
+  {
+    id: 'apple',
+    name: 'Apple Calendar',
+    subtitle: 'iCloud Synchronization',
+    helpUrl: 'https://www.icloud.com/calendar',
+    steps: [
+      'Open Calendar on iCloud.com or your Mac.',
+      'Share the calendar → enable Public Calendar.',
+      'Copy the link and paste it below (webcal links work too).',
+    ],
+  },
 ];
 
+// Apple/iCloud share links use the webcal:// scheme, which is just HTTP(S)
+// underneath. Normalize so the backend (which only accepts http/https) can fetch it.
+function normalizeIcsUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('webcal://')) {
+    return 'https://' + trimmed.slice('webcal://'.length);
+  }
+  return trimmed;
+}
+
 export default function CalendarPage() {
-  const [connected, setConnected] = useState<Record<Provider['id'], boolean>>({
-    google: false,
-    apple: false,
-  });
-  const [loading, setLoading] = useState<Record<Provider['id'], boolean>>({
-    google: false,
-    apple: false,
-  });
+  const [calendars, setCalendars] = useState<CalendarType[]>([]);
+  const [name, setName] = useState('');
+  const [icsUrl, setIcsUrl] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function connect(id: Provider['id']) {
-    setLoading((prev) => ({ ...prev, [id]: true }));
+  // Per-provider connect panel state.
+  const [openProvider, setOpenProvider] = useState<Provider['id'] | null>(null);
+  const [providerUrl, setProviderUrl] = useState('');
+  const [connecting, setConnecting] = useState(false);
+
+  useEffect(() => {
+    listCalendars()
+      .then(setCalendars)
+      .catch(() => setError('Failed to load your calendars.'));
+  }, []);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!icsUrl.trim()) return;
+    setAdding(true);
     setError(null);
     try {
-      // auth_code comes from an OAuth popup in the full implementation
-      await connectCalendar(id, '');
-      setConnected((prev) => ({ ...prev, [id]: true }));
+      const created = await addCalendar(name.trim(), normalizeIcsUrl(icsUrl));
+      setCalendars((prev) => [...prev, created]);
+      setName('');
+      setIcsUrl('');
     } catch {
-      setError(`Failed to connect ${id} calendar. Please try again.`);
+      setError('Could not add that calendar. Check the ICS URL and try again.');
     } finally {
-      setLoading((prev) => ({ ...prev, [id]: false }));
+      setAdding(false);
     }
   }
 
-  async function disconnect(id: Provider['id']) {
-    setLoading((prev) => ({ ...prev, [id]: true }));
+  async function handleConnectProvider(provider: Provider) {
+    if (!providerUrl.trim()) return;
+    setConnecting(true);
     setError(null);
     try {
-      await disconnectCalendar();
-      setConnected((prev) => ({ ...prev, [id]: false }));
+      const created = await addCalendar(provider.name, normalizeIcsUrl(providerUrl));
+      setCalendars((prev) => [...prev, created]);
+      setProviderUrl('');
+      setOpenProvider(null);
     } catch {
-      setError(`Failed to disconnect ${id} calendar. Please try again.`);
+      setError(`Could not connect ${provider.name}. Check the link and try again.`);
     } finally {
-      setLoading((prev) => ({ ...prev, [id]: false }));
+      setConnecting(false);
+    }
+  }
+
+  function toggleProvider(id: Provider['id']) {
+    setError(null);
+    setProviderUrl('');
+    setOpenProvider((prev) => (prev === id ? null : id));
+  }
+
+  async function handleRemove(id: string) {
+    setRemovingId(id);
+    setError(null);
+    try {
+      await removeCalendar(id);
+      setCalendars((prev) => prev.filter((c) => c.id !== id));
+    } catch {
+      setError('Could not remove that calendar. Please try again.');
+    } finally {
+      setRemovingId(null);
     }
   }
 
@@ -60,80 +126,154 @@ export default function CalendarPage() {
         <div className="mb-8 text-center">
           <h2 className="mb-3">Sync Your Life</h2>
           <p className="mx-auto max-w-md text-sm text-muted-foreground">
-            Connect your calendar to let TheThinker suggest outfits based on your
-            upcoming events and local weather.
+            Add a calendar with its ICS link and TheThinker will surface the day's
+            events on your home screen to tailor each outfit.
           </p>
         </div>
 
         {error && <p className="mb-4 text-center text-sm text-destructive">{error}</p>}
 
-        <div className="mb-8 space-y-3">
-          {providers.map((provider) => {
-            const isConnected = connected[provider.id];
-            const isLoading = loading[provider.id];
+        {/* Add via ICS URL */}
+        <form
+          onSubmit={handleAdd}
+          className="mb-8 rounded-xl border border-border bg-card/60 p-5"
+        >
+          <p className="mb-3 flex items-center gap-2 font-sans font-semibold text-foreground">
+            <Link2 className="h-4 w-4 text-terracotta" />
+            Add a calendar via ICS URL
+          </p>
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Name (optional, e.g. Work)"
+              className="input w-full"
+            />
+            <input
+              type="url"
+              value={icsUrl}
+              onChange={(e) => setIcsUrl(e.target.value)}
+              placeholder="https://example.com/calendar.ics"
+              required
+              className="input w-full"
+            />
+            <button
+              type="submit"
+              disabled={adding || !icsUrl.trim()}
+              className="btn-primary btn-sm w-full gap-2 disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" />
+              {adding ? 'Adding…' : 'Add Calendar'}
+            </button>
+          </div>
+        </form>
 
-            return (
+        {/* Added calendars */}
+        {calendars.length > 0 && (
+          <div className="mb-8 space-y-3">
+            {calendars.map((cal) => (
               <div
-                key={provider.id}
+                key={cal.id}
                 className="flex items-center gap-4 rounded-xl border border-border bg-card/60 p-4"
               >
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-terracotta">
                   <Calendar className="h-5 w-5" />
                 </div>
-
                 <div className="min-w-0 flex-1">
-                  <p className="font-sans font-semibold text-foreground">
-                    {provider.name}
+                  <p className="truncate font-sans font-semibold text-foreground">
+                    {cal.name || 'Calendar'}
                   </p>
-                  {isConnected ? (
-                    <p className="flex items-center gap-1 text-xs text-success">
-                      <Check className="h-3 w-3" />
-                      Connected
+                  <p className="flex items-center gap-1 text-xs text-success">
+                    <Check className="h-3 w-3" />
+                    Synced via {cal.source.toUpperCase()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleRemove(cal.id)}
+                  disabled={removingId === cal.id}
+                  className="btn-link shrink-0 text-sm font-medium text-muted-foreground hover:text-destructive disabled:opacity-50"
+                  aria-label={`Remove ${cal.name || 'calendar'}`}
+                >
+                  {removingId === cal.id ? 'Removing…' : <Trash2 className="h-4 w-4" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Provider connectors (Google / Apple via their calendar link) */}
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          More sync options
+        </p>
+        <div className="mb-8 space-y-3">
+          {providers.map((provider) => {
+            const isOpen = openProvider === provider.id;
+            return (
+              <div
+                key={provider.id}
+                className="rounded-xl border border-border bg-card/60 p-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-terracotta">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-sans font-semibold text-foreground">
+                      {provider.name}
                     </p>
-                  ) : (
                     <p className="text-xs text-muted-foreground">{provider.subtitle}</p>
-                  )}
+                  </div>
+                  <button
+                    onClick={() => toggleProvider(provider.id)}
+                    className="btn-primary btn-sm shrink-0"
+                  >
+                    {isOpen ? 'Cancel' : 'Connect'}
+                  </button>
                 </div>
 
-                {isConnected ? (
-                  <button
-                    onClick={() => disconnect(provider.id)}
-                    disabled={isLoading}
-                    className="btn-link shrink-0 text-sm font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
-                  >
-                    {isLoading ? 'Disconnecting…' : 'Disconnect'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => connect(provider.id)}
-                    disabled={isLoading}
-                    className="btn-primary btn-sm shrink-0 disabled:opacity-50"
-                  >
-                    {isLoading ? 'Connecting…' : 'Connect'}
-                  </button>
+                {isOpen && (
+                  <div className="mt-4 border-t border-border pt-4">
+                    <ol className="mb-3 list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                      {provider.steps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
+                    <a
+                      href={provider.helpUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-terracotta hover:underline"
+                    >
+                      Open {provider.name}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={providerUrl}
+                        onChange={(e) => setProviderUrl(e.target.value)}
+                        placeholder="Paste your calendar link here"
+                        className="input w-full"
+                      />
+                      <button
+                        onClick={() => handleConnectProvider(provider)}
+                        disabled={connecting || !providerUrl.trim()}
+                        className="btn-primary btn-sm w-full gap-2 disabled:opacity-50"
+                      >
+                        <Plus className="h-4 w-4" />
+                        {connecting ? 'Connecting…' : `Connect ${provider.name}`}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             );
           })}
         </div>
 
-        <div
-          className="relative mb-8 overflow-hidden rounded-xl bg-gradient-to-br from-sand via-linen to-cream p-6"
-          style={{ minHeight: '140px' }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-espresso/10 to-transparent" />
-          <div className="relative">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Thoughtful Curation
-            </p>
-            <p className="font-serif text-lg italic text-espresso">
-              &ldquo;Style is a way to say who you are without having to speak.&rdquo;
-            </p>
-          </div>
-        </div>
-
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
-          TheThinker values your privacy. We only access event titles and{' '}
+          TheThinker values your privacy. We only read event titles, times, and{' '}
           <span className="text-terracotta underline">locations</span> to provide
           context for your outfit{' '}
           <span className="text-terracotta underline">recommendations</span>. Your

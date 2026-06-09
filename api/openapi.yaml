@@ -266,6 +266,94 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /calendars:
+    get:
+      tags: [calendar]
+      summary: List the user's calendars
+      responses:
+        '200':
+          description: The user's calendars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Calendar'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [calendar]
+      summary: Add a calendar from an ICS URL
+      description: >
+        Fetches the ICS feed at the given URL, parses its events, and stores
+        the calendar. Users may add one or more calendars.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCalendarRequest'
+      responses:
+        '201':
+          description: Calendar added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          description: The ICS feed could not be fetched or parsed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /calendars/{id}:
+    delete:
+      tags: [calendar]
+      summary: Remove a calendar
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Calendar removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /calendars/events:
+    get:
+      tags: [calendar]
+      summary: List calendar events for a given day
+      parameters:
+        - name: date
+          in: query
+          description: Day to list events for (ISO 8601 date, defaults to today)
+          schema:
+            type: string
+            format: date
+            example: '2025-06-01'
+      responses:
+        '200':
+          description: Events for the day
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CalendarEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   # ── Recommendations ─────────────────────────────────────────────────────────
 
   /recommendations/outfit:
@@ -422,6 +510,58 @@ components:
         connected_at:
           type: string
           format: date-time
+
+    Calendar:
+      type: object
+      required: [id, name, source, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Work
+        source:
+          type: string
+          enum: [ics, google, apple]
+        created_at:
+          type: string
+          format: date-time
+
+    AddCalendarRequest:
+      type: object
+      required: [ics_url]
+      properties:
+        name:
+          type: string
+          description: Display name for the calendar
+          example: Work
+        ics_url:
+          type: string
+          format: uri
+          description: Public URL of an ICS (iCalendar) feed
+          example: https://example.com/calendar.ics
+
+    CalendarEvent:
+      type: object
+      required: [id, title, starts_at, all_day]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+          example: Team standup
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        location:
+          type: string
+        all_day:
+          type: boolean
 
     OutfitRecommendation:
       type: object
