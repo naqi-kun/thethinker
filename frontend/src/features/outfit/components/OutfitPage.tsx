@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { Briefcase, Check, RefreshCw, Sun } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import type { ClothingItem, OutfitRecommendation } from '../../../shared/api/types';
-import { getOutfit } from '../api';
+import { acceptOutfit, getOutfit } from '../api';
+import SwapBottomSheet from './SwapBottomSheet';
+
+const MAX_ITEMS = 10;
 
 const today = new Date().toLocaleDateString('en-US', {
   weekday: 'long',
@@ -10,25 +13,34 @@ const today = new Date().toLocaleDateString('en-US', {
   day: 'numeric',
 });
 
-function ItemCard({ item }: { item: ClothingItem }) {
+function ItemCard({ item, onClick }: { item: ClothingItem; onClick: () => void }) {
   return (
-    <div className="relative w-full overflow-hidden rounded-lg">
+    <button
+      onClick={onClick}
+      className="relative w-full overflow-hidden rounded-lg text-left"
+    >
       {item.image_url ? (
         <img
           src={item.image_url}
           alt={item.sub_type}
-          className="h-48 w-full object-cover"
+          className="h-36 w-full object-cover"
           loading="lazy"
         />
       ) : (
-        <div className="flex h-48 w-full items-center justify-center bg-linen/60">
-          <p className="text-sm text-muted-foreground capitalize">{item.category}</p>
+        <div className="flex h-36 w-full flex-col items-center justify-center gap-1 bg-linen/60">
+          <p className="text-xs font-medium capitalize text-espresso">
+            {item.sub_type}
+          </p>
+          <p className="text-xs capitalize text-muted-foreground">{item.color}</p>
         </div>
       )}
-      <span className="absolute bottom-3 left-3 rounded-full bg-cream/90 px-3 py-1 text-xs font-medium text-espresso shadow-sm backdrop-blur-sm">
+      <span className="absolute bottom-2 left-2 rounded-full bg-cream/90 px-2.5 py-0.5 text-xs font-medium text-espresso shadow-sm backdrop-blur-sm">
         {item.sub_type}
       </span>
-    </div>
+      <span className="absolute right-2 top-2 rounded-full bg-black/30 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
+        swap
+      </span>
+    </button>
   );
 }
 
@@ -39,6 +51,8 @@ export default function OutfitPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
+  const [accepting, setAccepting] = useState(false);
+  const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
 
   const fetchOutfit = useCallback(() => {
     setLoading(true);
@@ -53,6 +67,37 @@ export default function OutfitPage() {
   useEffect(() => {
     fetchOutfit();
   }, [fetchOutfit]);
+
+  const handleAccept = useCallback(async () => {
+    if (!recommendation || accepting || accepted) return;
+    const itemIds = recommendation.items.slice(0, MAX_ITEMS).map((i) => i.id);
+    setAccepting(true);
+    try {
+      await acceptOutfit(itemIds);
+      setAccepted(true);
+    } catch {
+      setError('Could not save your outfit. Please try again.');
+    } finally {
+      setAccepting(false);
+    }
+  }, [recommendation, accepting, accepted]);
+
+  const handleSwap = useCallback(
+    (replacement: ClothingItem) => {
+      if (!recommendation || !swappingItem) return;
+      setRecommendation({
+        ...recommendation,
+        items: recommendation.items.map((i) =>
+          i.id === swappingItem.id ? replacement : i,
+        ),
+      });
+      setSwappingItem(null);
+      setAccepted(false);
+    },
+    [recommendation, swappingItem],
+  );
+
+  const displayItems: ClothingItem[] = recommendation?.items.slice(0, MAX_ITEMS) ?? [];
 
   return (
     <div className="min-h-screen-safe bg-background pb-28">
@@ -96,9 +141,13 @@ export default function OutfitPage() {
         ) : recommendation ? (
           <>
             <div className="mb-6 rounded-xl border border-border bg-cream p-4">
-              <div className="space-y-3">
-                {recommendation.items.map((item: ClothingItem) => (
-                  <ItemCard key={item.id} item={item} />
+              <div className="grid grid-cols-2 gap-3">
+                {displayItems.map((item: ClothingItem) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    onClick={() => setSwappingItem(item)}
+                  />
                 ))}
               </div>
             </div>
@@ -117,15 +166,24 @@ export default function OutfitPage() {
         <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-sm">
           <div className="mx-auto max-w-xl px-6 py-4">
             <button
-              onClick={() => setAccepted(true)}
-              disabled={accepted}
+              onClick={handleAccept}
+              disabled={accepted || accepting}
               className="btn-primary btn-lg w-full gap-2"
             >
-              {accepted ? 'Saved for today' : 'Wear This Today'}
+              {accepted ? 'Saved for today' : accepting ? 'Saving…' : 'Wear This Today'}
               <Check className="h-5 w-5" />
             </button>
           </div>
         </div>
+      )}
+
+      {swappingItem && (
+        <SwapBottomSheet
+          item={swappingItem}
+          outfitItemIds={displayItems.map((i) => i.id)}
+          onSwap={handleSwap}
+          onClose={() => setSwappingItem(null)}
+        />
       )}
     </div>
   );

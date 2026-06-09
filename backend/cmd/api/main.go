@@ -71,7 +71,7 @@ func main() {
 	userHandler      := handlers.NewUserHandler(userSvc)
 	wardrobeHandler  := handlers.NewWardrobeHandler(wardrobeSvc)
 	calendarHandler  := handlers.NewCalendarHandler()
-	recommendHandler := handlers.NewRecommendationHandler()
+	recommendHandler := handlers.NewRecommendationHandler(wardrobeSvc)
 
 	// middleware
 	auth := middleware.Auth(jwtSecret)
@@ -97,8 +97,9 @@ func main() {
 	mux.Handle("POST /calendar/connect",      auth(http.HandlerFunc(calendarHandler.Connect)))
 	mux.Handle("DELETE /calendar/disconnect", auth(http.HandlerFunc(calendarHandler.Disconnect)))
 
-	// recommendations — protected (KAN-14+: handler returns 501 until service is implemented)
-	mux.Handle("GET /recommendations/outfit", auth(http.HandlerFunc(recommendHandler.GetOutfit)))
+	// recommendations — protected
+	mux.Handle("GET /recommendations/outfit",        auth(http.HandlerFunc(recommendHandler.GetOutfit)))
+	mux.Handle("POST /recommendations/outfit/accept", auth(http.HandlerFunc(recommendHandler.AcceptOutfit)))
 
 	srv := &http.Server{
 		Addr:         ":" + port(),

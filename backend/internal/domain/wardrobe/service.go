@@ -65,6 +65,10 @@ func (s *Service) ListItems(ctx context.Context, userID, categoryStr string) ([]
 	return filtered, nil
 }
 
+func (s *Service) MarkItemsWorn(ctx context.Context, userID string, itemIDs []string) error {
+	return s.repo.MarkWorn(ctx, userID, itemIDs, time.Now())
+}
+
 // IngestScan classifies the image, converts the AI string output to typed enums,
 // persists the item, and returns it.
 func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []byte, contentType string) (*ClothingItem, error) {
