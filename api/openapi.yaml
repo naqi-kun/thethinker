@@ -230,6 +230,40 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
+  /wardrobe/classify:
+    post:
+      tags: [wardrobe]
+      summary: Classify a clothing image without saving to the wardrobe
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Photo of the clothing item
+      responses:
+        '200':
+          description: AI classification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassifyResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   # ── Calendar ────────────────────────────────────────────────────────────────
 
   /calendar/connect:
@@ -366,6 +400,33 @@ components:
           description: Personalized Q answers keyed by question ID
           additionalProperties:
             type: string
+
+    ClassifyResult:
+      type: object
+      required: [category, sub_type, color, fit, season, confidence_score]
+      properties:
+        category:
+          type: string
+          enum: [formal, casual, sport]
+        sub_type:
+          type: string
+          example: jeans
+        color:
+          type: string
+          example: navy blue
+        fit:
+          type: string
+          enum: [slim, regular, relaxed, oversized]
+        season:
+          type: string
+          enum: [all, spring_summer, autumn_winter, winter]
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Overall AI confidence (0–1). Defaults to 0.85 if the AI service omits it.
+          example: 0.85
 
     AddItemRequest:
       type: object

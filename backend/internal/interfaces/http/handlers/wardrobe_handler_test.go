@@ -14,10 +14,11 @@ import (
 )
 
 type mockWardrobeSvc struct {
-	addItem     func(ctx context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error)
-	listItems   func(ctx context.Context, userID, category string) ([]*wardrobe.ClothingItem, error)
-	ingestScan  func(ctx context.Context, userID string, imageBytes []byte, contentType string) (*wardrobe.ClothingItem, error)
-	uploadImage func(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
+	addItem      func(ctx context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error)
+	listItems    func(ctx context.Context, userID, category string) ([]*wardrobe.ClothingItem, error)
+	ingestScan   func(ctx context.Context, userID string, imageBytes []byte, contentType string) (*wardrobe.ClothingItem, error)
+	uploadImage  func(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
+	classifyOnly func(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error)
 }
 
 func (m *mockWardrobeSvc) AddItem(ctx context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error) {
@@ -34,6 +35,10 @@ func (m *mockWardrobeSvc) IngestScan(ctx context.Context, userID string, imageBy
 
 func (m *mockWardrobeSvc) UploadImage(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error) {
 	return m.uploadImage(ctx, itemID, userID, imageData)
+}
+
+func (m *mockWardrobeSvc) ClassifyOnly(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error) {
+	return m.classifyOnly(ctx, imageBytes, contentType)
 }
 
 func savedItem() *wardrobe.ClothingItem {

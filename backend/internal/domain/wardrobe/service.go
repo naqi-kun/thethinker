@@ -69,6 +69,16 @@ func (s *Service) MarkItemsWorn(ctx context.Context, userID string, itemIDs []st
 	return s.repo.MarkWorn(ctx, userID, itemIDs, time.Now())
 }
 
+// ClassifyOnly runs the AI classifier and returns its raw result without saving anything.
+// Use this for the review step before the user confirms the item.
+func (s *Service) ClassifyOnly(ctx context.Context, imageBytes []byte, contentType string) (*ClassifyResult, error) {
+	result, err := s.classifier.Classify(ctx, imageBytes, contentType)
+	if err != nil {
+		return nil, fmt.Errorf("classify image: %w", err)
+	}
+	return result, nil
+}
+
 // IngestScan classifies the image, converts the AI string output to typed enums,
 // persists the item, and returns it.
 func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []byte, contentType string) (*ClothingItem, error) {

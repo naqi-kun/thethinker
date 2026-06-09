@@ -334,6 +334,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/wardrobe/classify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Classify a clothing image without saving to the wardrobe */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description Photo of the clothing item
+                         */
+                        image: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description AI classification result */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClassifyResult"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description File too large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                422: components["responses"]["UnprocessableEntity"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/calendar/connect": {
         parameters: {
             query?: never;
@@ -522,6 +579,24 @@ export interface components {
             answers?: {
                 [key: string]: string;
             };
+        };
+        ClassifyResult: {
+            /** @enum {string} */
+            category: "formal" | "casual" | "sport";
+            /** @example jeans */
+            sub_type: string;
+            /** @example navy blue */
+            color: string;
+            /** @enum {string} */
+            fit: "slim" | "regular" | "relaxed" | "oversized";
+            /** @enum {string} */
+            season: "all" | "spring_summer" | "autumn_winter" | "winter";
+            /**
+             * Format: float
+             * @description Overall AI confidence (0–1). Defaults to 0.85 if the AI service omits it.
+             * @example 0.85
+             */
+            confidence_score: number;
         };
         AddItemRequest: {
             /** @enum {string} */

@@ -20,6 +20,7 @@ type wardrobeSvc interface {
 	ListItems(ctx context.Context, userID, category string) ([]*wardrobe.ClothingItem, error)
 	IngestScan(ctx context.Context, userID string, imageBytes []byte, contentType string) (*wardrobe.ClothingItem, error)
 	UploadImage(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
+	ClassifyOnly(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error)
 }
 
 type WardrobeHandler struct {
@@ -28,6 +29,15 @@ type WardrobeHandler struct {
 
 func NewWardrobeHandler(svc wardrobeSvc) *WardrobeHandler {
 	return &WardrobeHandler{svc: svc}
+}
+
+type classifyResultResponse struct {
+	Category        string  `json:"category"`
+	SubType         string  `json:"sub_type"`
+	Color           string  `json:"color"`
+	Fit             string  `json:"fit"`
+	Season          string  `json:"season"`
+	ConfidenceScore float64 `json:"confidence_score"`
 }
 
 type addItemRequest struct {
@@ -205,6 +215,57 @@ func (h *WardrobeHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, toItemResponse(item))
+}
+
+func (h *WardrobeHandler) Classify(w http.ResponseWriter, r *http.Request) {
+	_, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "FILE_TOO_LARGE", "max upload size is 10 MB")
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "image field is required")
+		return
+	}
+	defer file.Close()
+
+	imageBytes, err := io.ReadAll(file)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to read image")
+		return
+	}
+
+	contentType := header.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	result, err := h.svc.ClassifyOnly(r.Context(), imageBytes, contentType)
+	if err != nil {
+		if errors.Is(err, wardrobe.ErrInvalidClassification) {
+			writeError(w, http.StatusUnprocessableEntity, "UNPROCESSABLE", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "classify failed")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, classifyResultResponse{
+		Category:        result.Category,
+		SubType:         result.SubType,
+		Color:           result.Color,
+		Fit:             result.Fit,
+		Season:          result.Season,
+		ConfidenceScore: result.ConfidenceScore,
+	})
 }
 
 func (h *WardrobeHandler) Scan(w http.ResponseWriter, r *http.Request) {

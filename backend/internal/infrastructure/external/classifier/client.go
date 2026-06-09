@@ -28,11 +28,12 @@ func NewClient(baseURL string) *Client {
 }
 
 type classifyResponse struct {
-	Category string `json:"category"`
-	SubType  string `json:"sub_type"`
-	Color    string `json:"color"`
-	Fit      string `json:"fit"`
-	Season   string `json:"season"`
+	Category        string  `json:"category"`
+	SubType         string  `json:"sub_type"`
+	Color           string  `json:"color"`
+	Fit             string  `json:"fit"`
+	Season          string  `json:"season"`
+	ConfidenceScore float64 `json:"confidence_score,omitempty"`
 }
 
 func (c *Client) Classify(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error) {
@@ -70,11 +71,17 @@ func (c *Client) Classify(ctx context.Context, imageBytes []byte, contentType st
 		return nil, fmt.Errorf("classifier: decode: %w", err)
 	}
 
+	score := result.ConfidenceScore
+	if score == 0 {
+		score = 0.85
+	}
+
 	return &wardrobe.ClassifyResult{
-		Category: result.Category,
-		SubType:  result.SubType,
-		Color:    result.Color,
-		Fit:      result.Fit,
-		Season:   result.Season,
+		Category:        result.Category,
+		SubType:         result.SubType,
+		Color:           result.Color,
+		Fit:             result.Fit,
+		Season:          result.Season,
+		ConfidenceScore: score,
 	}, nil
 }
