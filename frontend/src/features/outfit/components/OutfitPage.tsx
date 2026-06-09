@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Briefcase, Check, RefreshCw, Sun } from 'lucide-react';
+import { Briefcase, Check, RefreshCw, Shirt, Sun } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import TopNav from '../../../shared/components/TopNav';
+import { ApiError } from '../../../shared/api/client';
 import type { ClothingItem, OutfitRecommendation } from '../../../shared/api/types';
 import { acceptOutfit, getOutfit } from '../api';
 import SwapBottomSheet from './SwapBottomSheet';
@@ -45,10 +47,12 @@ function ItemCard({ item, onClick }: { item: ClothingItem; onClick: () => void }
 }
 
 export default function OutfitPage() {
+  const navigate = useNavigate();
   const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [emptyWardrobe, setEmptyWardrobe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [accepting, setAccepting] = useState(false);
@@ -57,10 +61,17 @@ export default function OutfitPage() {
   const fetchOutfit = useCallback(() => {
     setLoading(true);
     setError(null);
+    setEmptyWardrobe(false);
     setAccepted(false);
     getOutfit()
       .then(setRecommendation)
-      .catch(() => setError('Unable to load outfit recommendation. Please try again.'))
+      .catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 404) {
+          setEmptyWardrobe(true);
+        } else {
+          setError('Unable to load outfit recommendation. Please try again.');
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -130,6 +141,20 @@ export default function OutfitPage() {
           <p className="py-20 text-center text-sm text-muted-foreground">
             Curating your outfit…
           </p>
+        ) : emptyWardrobe ? (
+          <div className="flex flex-col items-center py-20 text-center">
+            <Shirt className="mb-4 h-10 w-10 text-muted-foreground" />
+            <p className="mb-1 font-medium">Your wardrobe is empty</p>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Add some clothes before we can suggest an outfit.
+            </p>
+            <button
+              onClick={() => navigate('/wardrobe')}
+              className="btn-primary btn-sm"
+            >
+              Go to Wardrobe
+            </button>
+          </div>
         ) : error ? (
           <div className="flex flex-col items-center py-20 text-center">
             <p className="mb-4 text-sm text-destructive">{error}</p>
