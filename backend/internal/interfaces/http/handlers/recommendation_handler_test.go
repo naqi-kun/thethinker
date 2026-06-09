@@ -7,9 +7,17 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/recommendation"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
 )
+
+type mockRecommendationSvc struct{}
+
+func (m *mockRecommendationSvc) GetOutfit(_ context.Context, _ string, _ time.Time) (*recommendation.OutfitRecommendation, error) {
+	return nil, nil
+}
 
 // mockWardrobeAccepter lets each test control what MarkItemsWorn returns.
 type mockWardrobeAccepter struct {
@@ -63,7 +71,7 @@ func TestAcceptOutfit(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := handlers.NewRecommendationHandler(&mockWardrobeAccepter{err: tc.svcErr})
+			h := handlers.NewRecommendationHandler(&mockRecommendationSvc{}, &mockWardrobeAccepter{err: tc.svcErr})
 
 			req := httptest.NewRequest(http.MethodPost, "/recommendations/outfit/accept",
 				strings.NewReader(tc.body))
