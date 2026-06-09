@@ -154,6 +154,42 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /wardrobe/items/{id}:
+    put:
+      tags: [wardrobe]
+      summary: Update an existing clothing item's fields
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddItemRequest'
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClothingItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /wardrobe/items/{id}/image:
     post:
       tags: [wardrobe]

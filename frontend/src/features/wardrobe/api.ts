@@ -43,6 +43,17 @@ export async function classifyItem(image: Blob): Promise<ClassifyResult> {
   return data! as ClassifyResult;
 }
 
+export async function updateItem(
+  id: string,
+  payload: AddItemPayload,
+): Promise<ClothingItem> {
+  const { data } = await apiClient.PUT('/wardrobe/items/{id}', {
+    params: { path: { id } },
+    body: payload,
+  });
+  return data! as ClothingItem;
+}
+
 export async function uploadItemImage(
   itemId: string,
   file: File,

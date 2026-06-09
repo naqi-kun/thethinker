@@ -95,6 +95,7 @@ func main() {
 	mux.Handle("POST /wardrobe/items/{id}/image", auth(http.HandlerFunc(wardrobeHandler.UploadImage)))
 	mux.Handle("POST /wardrobe/scan",             auth(http.HandlerFunc(wardrobeHandler.Scan)))
 	mux.Handle("POST /wardrobe/classify",         auth(http.HandlerFunc(wardrobeHandler.Classify)))
+	mux.Handle("PUT /wardrobe/items/{id}",        auth(http.HandlerFunc(wardrobeHandler.UpdateItem)))
 
 	// calendar — protected (KAN-14+: handlers return 501 until service is implemented)
 	mux.Handle("POST /calendar/connect",      auth(http.HandlerFunc(calendarHandler.Connect)))

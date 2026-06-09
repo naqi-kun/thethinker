@@ -8,10 +8,17 @@ import {
   ShoppingBag,
   Upload,
   Watch,
+  X,
 } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
-import { listItems, uploadItemImage } from '../api';
-import type { ClothingItem, ClothingSeason } from '../../../shared/api/types';
+import { listItems, updateItem, uploadItemImage } from '../api';
+import type {
+  AddItemPayload,
+  ClothingCategory,
+  ClothingFit,
+  ClothingItem,
+  ClothingSeason,
+} from '../../../shared/api/types';
 
 type WardrobeCategory = 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
 type FilterTab = 'All' | WardrobeCategory;
@@ -24,6 +31,177 @@ const CATEGORY_TABS: FilterTab[] = [
   'Outerwear',
   'Accessories',
 ];
+
+// ── Form types & constants ────────────────────────────────────────────────────
+
+type ClothingSubType =
+  | 'shirt'
+  | 't-shirt'
+  | 'sweater'
+  | 'hoodie'
+  | 'jacket'
+  | 'coat'
+  | 'blazer'
+  | 'suit'
+  | 'pants'
+  | 'jeans'
+  | 'shorts'
+  | 'skirt'
+  | 'dress'
+  | 'shoes'
+  | 'sneakers'
+  | 'boots';
+
+type ClothingColor =
+  | 'black'
+  | 'white'
+  | 'grey'
+  | 'navy blue'
+  | 'blue'
+  | 'light blue'
+  | 'red'
+  | 'burgundy'
+  | 'green'
+  | 'olive'
+  | 'beige'
+  | 'brown'
+  | 'yellow'
+  | 'orange'
+  | 'pink'
+  | 'purple'
+  | 'multicolor';
+
+type FormState = {
+  category: ClothingCategory | '';
+  sub_type: ClothingSubType | '';
+  color: ClothingColor | '';
+  fit: ClothingFit | '';
+  season: ClothingSeason | '';
+};
+
+type PillOption<T extends string> = { value: T; label: string };
+
+const CATEGORIES: PillOption<ClothingCategory>[] = [
+  { value: 'formal', label: 'Formal' },
+  { value: 'casual', label: 'Casual' },
+  { value: 'sport', label: 'Sport' },
+];
+
+const SUB_TYPES: PillOption<ClothingSubType>[] = [
+  { value: 'shirt', label: 'Shirt' },
+  { value: 't-shirt', label: 'T-Shirt' },
+  { value: 'sweater', label: 'Sweater' },
+  { value: 'hoodie', label: 'Hoodie' },
+  { value: 'jacket', label: 'Jacket' },
+  { value: 'coat', label: 'Coat' },
+  { value: 'blazer', label: 'Blazer' },
+  { value: 'suit', label: 'Suit' },
+  { value: 'pants', label: 'Pants' },
+  { value: 'jeans', label: 'Jeans' },
+  { value: 'shorts', label: 'Shorts' },
+  { value: 'skirt', label: 'Skirt' },
+  { value: 'dress', label: 'Dress' },
+  { value: 'shoes', label: 'Shoes' },
+  { value: 'sneakers', label: 'Sneakers' },
+  { value: 'boots', label: 'Boots' },
+];
+
+const FITS: PillOption<ClothingFit>[] = [
+  { value: 'slim', label: 'Slim' },
+  { value: 'regular', label: 'Regular' },
+  { value: 'relaxed', label: 'Relaxed' },
+  { value: 'oversized', label: 'Oversized' },
+];
+
+const SEASONS: PillOption<ClothingSeason>[] = [
+  { value: 'all', label: 'All Seasons' },
+  { value: 'spring_summer', label: 'Spring / Summer' },
+  { value: 'autumn_winter', label: 'Autumn / Winter' },
+  { value: 'winter', label: 'Winter Only' },
+];
+
+const COLOR_SWATCHES: Record<ClothingColor, string> = {
+  black: '#1a1a1a',
+  white: '#f0f0f0',
+  grey: '#888888',
+  'navy blue': '#1f3a5f',
+  blue: '#4a6fa5',
+  'light blue': '#6fa3c7',
+  red: '#c0392b',
+  burgundy: '#800020',
+  green: '#27ae60',
+  olive: '#6b7c39',
+  beige: '#d4bda8',
+  brown: '#795548',
+  yellow: '#f1c40f',
+  orange: '#e67e22',
+  pink: '#e91e8c',
+  purple: '#9b59b6',
+  multicolor: 'linear-gradient(135deg, #e74c3c, #3498db, #2ecc71)',
+};
+
+const COLORS: PillOption<ClothingColor>[] = (
+  Object.keys(COLOR_SWATCHES) as ClothingColor[]
+).map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1) }));
+
+// ── Pill components ───────────────────────────────────────────────────────────
+
+function ColorPill({
+  color,
+  selected,
+  onSelect,
+}: {
+  color: ClothingColor;
+  selected: ClothingColor | '';
+  onSelect: (c: ClothingColor) => void;
+}) {
+  const swatch = COLOR_SWATCHES[color];
+  const isGradient = swatch.startsWith('linear');
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(color)}
+      className={`flex cursor-pointer items-center gap-1.5 transition-all ${
+        selected === color ? 'badge-primary' : 'badge-outline'
+      }`}
+    >
+      <span
+        className="inline-block h-3 w-3 shrink-0 rounded-full border border-black/10"
+        style={isGradient ? { backgroundImage: swatch } : { backgroundColor: swatch }}
+      />
+      {color.charAt(0).toUpperCase() + color.slice(1)}
+    </button>
+  );
+}
+
+function PillGroup<T extends string>({
+  options,
+  selected,
+  onSelect,
+}: {
+  options: PillOption<T>[];
+  selected: T | '';
+  onSelect: (value: T) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onSelect(opt.value)}
+          className={`cursor-pointer transition-all ${
+            selected === opt.value ? 'badge-primary' : 'badge-outline'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function subTypeToCategory(subType: string): WardrobeCategory {
   const s = subType.toLowerCase();
@@ -97,40 +275,197 @@ function colorSwatch(color: string) {
   return map[color.toLowerCase()] ?? '#d4bda8';
 }
 
-function ReadinessHint({ items }: { items: ClothingItem[] }) {
-  const cats = items.map((item) => subTypeToCategory(item.sub_type));
-  const hasTops = cats.includes('Tops');
-  const hasBottoms = cats.includes('Bottoms');
-  const hasShoes = cats.includes('Shoes');
-  const ready = hasTops && hasBottoms && hasShoes;
-  const missing: string[] = [];
-  if (!hasTops) missing.push('tops');
-  if (!hasBottoms) missing.push('bottoms');
-  if (!hasShoes) missing.push('shoes');
+function itemToFormState(item: ClothingItem): FormState {
+  return {
+    category: (item.category as ClothingCategory) ?? '',
+    sub_type: (item.sub_type as ClothingSubType) ?? '',
+    color: (item.color as ClothingColor) ?? '',
+    fit: (item.fit as ClothingFit) ?? '',
+    season: (item.season as ClothingSeason) ?? '',
+  };
+}
+
+// ── ItemDetailModal ───────────────────────────────────────────────────────────
+
+function ItemDetailModal({
+  item,
+  onClose,
+  onSaved,
+}: {
+  item: ClothingItem;
+  onClose: () => void;
+  onSaved: (updated: ClothingItem) => void;
+}) {
+  const [form, setForm] = useState<FormState>(itemToFormState(item));
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const category = subTypeToCategory(item.sub_type);
+  const displayName = `${capitalize(item.color)} ${item.sub_type}`;
+
+  const isFormValid =
+    form.category !== '' &&
+    form.sub_type !== '' &&
+    form.color !== '' &&
+    form.fit !== '' &&
+    form.season !== '';
+
+  async function handleSave() {
+    if (!isFormValid) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await updateItem(item.id, form as AddItemPayload);
+      onSaved(updated);
+      onClose();
+    } catch {
+      setSaveError('Failed to save changes. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div
-      className={`mb-6 rounded-xl border p-4 ${
-        ready ? 'border-success/30 bg-success/10' : 'border-warning/30 bg-warning/10'
-      }`}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
     >
-      <p className="text-sm font-semibold text-foreground">
-        {ready ? 'Ready for outfit recommendations' : 'Almost ready'}
-      </p>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        {ready
-          ? 'You have enough items for daily outfit suggestions.'
-          : `Add ${missing.join(', ')} to unlock outfit recommendations.`}
-      </p>
+      <div
+        className="w-full max-w-lg rounded-t-2xl bg-background pb-safe max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h3 className="text-base font-semibold text-foreground">{displayName}</h3>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-secondary transition-colors"
+          >
+            <X className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-5">
+          {/* Image preview */}
+          <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-linen/60">
+            {item.image_url ? (
+              <img
+                src={item.image_url}
+                alt={displayName}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+                  {categoryIcon(category)}
+                </div>
+                <div
+                  className="h-5 w-5 rounded-full border border-border"
+                  style={{ backgroundColor: colorSwatch(item.color) }}
+                  title={item.color}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Edit form */}
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Category
+              </p>
+              <PillGroup
+                options={CATEGORIES}
+                selected={form.category}
+                onSelect={(v) => setForm((f) => ({ ...f, category: v }))}
+              />
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Type
+              </p>
+              <PillGroup
+                options={SUB_TYPES}
+                selected={form.sub_type}
+                onSelect={(v) => setForm((f) => ({ ...f, sub_type: v }))}
+              />
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Color
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {COLORS.map((c) => (
+                  <ColorPill
+                    key={c.value}
+                    color={c.value}
+                    selected={form.color}
+                    onSelect={(v) => setForm((f) => ({ ...f, color: v }))}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Fit
+              </p>
+              <PillGroup
+                options={FITS}
+                selected={form.fit}
+                onSelect={(v) => setForm((f) => ({ ...f, fit: v }))}
+              />
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Season
+              </p>
+              <PillGroup
+                options={SEASONS}
+                selected={form.season}
+                onSelect={(v) => setForm((f) => ({ ...f, season: v }))}
+              />
+            </div>
+          </div>
+
+          {saveError && <p className="text-sm text-destructive">{saveError}</p>}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-1 pb-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-outline btn-md flex-1"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!isFormValid || saving}
+              className="btn-primary btn-md flex-1"
+            >
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
+// ── ItemCard ──────────────────────────────────────────────────────────────────
+
 function ItemCard({
   item,
+  onCardClick,
   onImageUploaded,
 }: {
   item: ClothingItem;
+  onCardClick: (item: ClothingItem) => void;
   onImageUploaded?: (id: string, imageUrl: string) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -159,7 +494,10 @@ function ItemCard({
   }
 
   return (
-    <div className="card-interactive flex flex-col overflow-hidden">
+    <div
+      className="card-interactive flex flex-col overflow-hidden cursor-pointer"
+      onClick={() => onCardClick(item)}
+    >
       <div className="relative flex aspect-square items-center justify-center bg-linen/60">
         {item.image_url ? (
           <img
@@ -180,9 +518,12 @@ function ItemCard({
           </div>
         )}
 
-        {/* Upload button overlay */}
+        {/* Upload button — stops propagation so it doesn't open the modal */}
         <button
-          onClick={() => fileInputRef.current?.click()}
+          onClick={(e) => {
+            e.stopPropagation();
+            fileInputRef.current?.click();
+          }}
           disabled={uploading}
           className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-sm border border-border hover:bg-background transition-colors disabled:opacity-50"
           title="Upload image"
@@ -229,6 +570,37 @@ function ItemCard({
   );
 }
 
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function ReadinessHint({ items }: { items: ClothingItem[] }) {
+  const cats = items.map((item) => subTypeToCategory(item.sub_type));
+  const hasTops = cats.includes('Tops');
+  const hasBottoms = cats.includes('Bottoms');
+  const hasShoes = cats.includes('Shoes');
+  const ready = hasTops && hasBottoms && hasShoes;
+  const missing: string[] = [];
+  if (!hasTops) missing.push('tops');
+  if (!hasBottoms) missing.push('bottoms');
+  if (!hasShoes) missing.push('shoes');
+
+  return (
+    <div
+      className={`mb-6 rounded-xl border p-4 ${
+        ready ? 'border-success/30 bg-success/10' : 'border-warning/30 bg-warning/10'
+      }`}
+    >
+      <p className="text-sm font-semibold text-foreground">
+        {ready ? 'Ready for outfit recommendations' : 'Almost ready'}
+      </p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {ready
+          ? 'You have enough items for daily outfit suggestions.'
+          : `Add ${missing.join(', ')} to unlock outfit recommendations.`}
+      </p>
+    </div>
+  );
+}
+
 function StatsBar({ items }: { items: ClothingItem[] }) {
   const cats = items.map((item) => subTypeToCategory(item.sub_type));
   const stats: { label: string; count: number }[] = [
@@ -256,6 +628,8 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
   );
 }
 
+// ── WardrobePage ──────────────────────────────────────────────────────────────
+
 export default function WardrobePage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<ClothingItem[]>([]);
@@ -263,6 +637,7 @@ export default function WardrobePage() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [error, setError] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
 
   useEffect(() => {
     listItems()
@@ -275,6 +650,10 @@ export default function WardrobePage() {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, image_url: imageUrl } : item)),
     );
+  }
+
+  function handleItemUpdated(updated: ClothingItem) {
+    setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   }
 
   const filtered = items.filter((item) => {
@@ -351,6 +730,7 @@ export default function WardrobePage() {
                   <ItemCard
                     key={item.id}
                     item={item}
+                    onCardClick={setSelectedItem}
                     onImageUploaded={handleImageUploaded}
                   />
                 ))}
@@ -392,6 +772,14 @@ export default function WardrobePage() {
             </button>
           </div>
         </div>
+      )}
+
+      {selectedItem && (
+        <ItemDetailModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onSaved={handleItemUpdated}
+        />
       )}
     </div>
   );

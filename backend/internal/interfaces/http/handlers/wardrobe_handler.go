@@ -21,6 +21,7 @@ type wardrobeSvc interface {
 	IngestScan(ctx context.Context, userID string, imageBytes []byte, contentType string) (*wardrobe.ClothingItem, error)
 	UploadImage(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
 	ClassifyOnly(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error)
+	UpdateItem(ctx context.Context, itemID, userID string, fields wardrobe.ClothingItem) (*wardrobe.ClothingItem, error)
 }
 
 type WardrobeHandler struct {
@@ -210,6 +211,73 @@ func (h *WardrobeHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "uploaded file is not a valid JPEG or PNG image")
 		default:
 			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to upload image")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toItemResponse(item))
+}
+
+func (h *WardrobeHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	itemID := r.PathValue("id")
+	if itemID == "" {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "item ID is required")
+		return
+	}
+
+	var req addItemRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
+		return
+	}
+
+	category, err := wardrobe.ParseCategory(req.Category)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+	subType, err := wardrobe.ParseSubType(req.SubType)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+	color, err := wardrobe.ParseColor(req.Color)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+	fit, err := wardrobe.ParseFit(req.Fit)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+	season, err := wardrobe.ParseSeason(req.Season)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
+	item, err := h.svc.UpdateItem(r.Context(), itemID, userID, wardrobe.ClothingItem{
+		Category: category,
+		SubType:  subType,
+		Color:    color,
+		Fit:      fit,
+		Season:   season,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, wardrobe.ErrNotFound):
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "clothing item not found")
+		case errors.Is(err, wardrobe.ErrForbidden):
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "access denied")
+		default:
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to update item")
 		}
 		return
 	}
