@@ -32,6 +32,15 @@ frontend-lint:
     - npm run lint
     - npm run format:check
 
+frontend-test:
+  stage: test
+  image: node:${NODE_VERSION}-alpine
+  script:
+    - cd frontend
+    - rm -f package-lock.json
+    - npm install
+    - npm run test -- --run
+
 frontend-build:
   stage: build
   image: node:${NODE_VERSION}-alpine
