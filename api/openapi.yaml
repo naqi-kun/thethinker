@@ -154,6 +154,26 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /wardrobe/items/{id}:
+    delete:
+      tags: [wardrobe]
+      summary: Delete a clothing item from the wardrobe
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Item deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /wardrobe/items/{id}/image:
     post:
       tags: [wardrobe]
@@ -506,6 +526,12 @@ components:
             $ref: '#/components/schemas/Error'
     Conflict:
       description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Access denied
       content:
         application/json:
           schema:

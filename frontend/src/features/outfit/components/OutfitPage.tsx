@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Briefcase, Check, RefreshCw, Shirt, Sun } from 'lucide-react';
+import { Briefcase, Check, RefreshCw, Shirt, Sun, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TopNav from '../../../shared/components/TopNav';
 import { ApiError } from '../../../shared/api/client';
@@ -15,35 +15,28 @@ const today = new Date().toLocaleDateString('en-US', {
   day: 'numeric',
 });
 
-function ItemCard({ item, onClick }: { item: ClothingItem; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="relative w-full overflow-hidden rounded-lg text-left"
-    >
-      {item.image_url ? (
-        <img
-          src={item.image_url}
-          alt={item.sub_type}
-          className="h-36 w-full object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <div className="flex h-36 w-full flex-col items-center justify-center gap-1 bg-linen/60">
-          <p className="text-xs font-medium capitalize text-espresso">
-            {item.sub_type}
-          </p>
-          <p className="text-xs capitalize text-muted-foreground">{item.color}</p>
-        </div>
-      )}
-      <span className="absolute bottom-2 left-2 rounded-full bg-cream/90 px-2.5 py-0.5 text-xs font-medium text-espresso shadow-sm backdrop-blur-sm">
-        {item.sub_type}
-      </span>
-      <span className="absolute right-2 top-2 rounded-full bg-black/30 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
-        swap
-      </span>
-    </button>
-  );
+// Editorial flat-lay slot positions — top/left as % of canvas, rotate in degrees
+const FLAT_LAY_SLOTS = [
+  { top: '4%', left: '4%', rotate: -8 },
+  { top: '6%', left: '53%', rotate: 6 },
+  { top: '44%', left: '22%', rotate: -5 },
+  { top: '40%', left: '56%', rotate: 9 },
+  { top: '66%', left: '5%', rotate: 4 },
+  { top: '63%', left: '51%', rotate: -7 },
+  { top: '22%', left: '29%', rotate: -3 },
+  { top: '76%', left: '30%', rotate: 5 },
+];
+
+function deriveHashtags(rec: OutfitRecommendation): string[] {
+  const tags: string[] = [];
+  if (rec.occasion) tags.push(rec.occasion);
+  const seasons = [
+    ...new Set(rec.items.flatMap((i) => (i.season ? [i.season] : []))),
+  ].filter((s) => s !== 'all');
+  seasons.forEach((s) => tags.push(s.replace(/_/g, '-')));
+  const categories = [...new Set(rec.items.map((i) => i.category))];
+  categories.forEach((c) => tags.push(c));
+  return [...new Set(tags)].slice(0, 5);
 }
 
 export default function OutfitPage() {
@@ -56,13 +49,16 @@ export default function OutfitPage() {
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   const fetchOutfit = useCallback(() => {
     setLoading(true);
     setError(null);
     setEmptyWardrobe(false);
     setAccepted(false);
+    setSelectedItem(null);
     getOutfit()
       .then(setRecommendation)
       .catch((err: unknown) => {
@@ -79,6 +75,12 @@ export default function OutfitPage() {
     fetchOutfit();
   }, [fetchOutfit]);
 
+  useEffect(() => {
+    if (!showToast) return;
+    const t = setTimeout(() => setShowToast(false), 3000);
+    return () => clearTimeout(t);
+  }, [showToast]);
+
   const handleAccept = useCallback(async () => {
     if (!recommendation || accepting || accepted) return;
     const itemIds = recommendation.items.slice(0, MAX_ITEMS).map((i) => i.id);
@@ -86,6 +88,8 @@ export default function OutfitPage() {
     try {
       await acceptOutfit(itemIds);
       setAccepted(true);
+      setShowToast(true);
+      setSelectedItem(null);
     } catch {
       setError('Could not save your outfit. Please try again.');
     } finally {
@@ -103,16 +107,25 @@ export default function OutfitPage() {
         ),
       });
       setSwappingItem(null);
+      setSelectedItem(null);
       setAccepted(false);
     },
     [recommendation, swappingItem],
   );
 
   const displayItems: ClothingItem[] = recommendation?.items.slice(0, MAX_ITEMS) ?? [];
+  const hashtags = recommendation ? deriveHashtags(recommendation) : [];
 
   return (
     <div className="min-h-screen-safe bg-background pb-28">
       <TopNav />
+
+      {/* Save toast */}
+      {showToast && (
+        <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-espresso px-5 py-2.5 text-sm font-medium text-cream shadow-lg">
+          Outfit saved for today ✓
+        </div>
+      )}
 
       <main className="mx-auto max-w-xl px-6 py-10">
         <div className="mb-6 text-center">
@@ -165,17 +178,127 @@ export default function OutfitPage() {
           </div>
         ) : recommendation ? (
           <>
-            <div className="mb-6 rounded-xl border border-border bg-cream p-4">
-              <div className="grid grid-cols-2 gap-3">
-                {displayItems.map((item: ClothingItem) => (
-                  <ItemCard
+            {/* Editorial flat-lay canvas */}
+            <div
+              className="relative mb-4 w-full overflow-hidden rounded-2xl bg-cream"
+              style={{ aspectRatio: '3/4' }}
+              onClick={() => setSelectedItem(null)}
+            >
+              {displayItems.map((item, i) => {
+                const slot = FLAT_LAY_SLOTS[i % FLAT_LAY_SLOTS.length];
+                const isSelected = selectedItem?.id === item.id;
+                const hasSelection = selectedItem !== null;
+                return (
+                  <button
                     key={item.id}
-                    item={item}
-                    onClick={() => setSwappingItem(item)}
+                    className="absolute overflow-hidden rounded-xl transition-all duration-200"
+                    style={{
+                      top: slot.top,
+                      left: slot.left,
+                      width: '42%',
+                      transform: `rotate(${slot.rotate}deg)`,
+                      opacity: hasSelection && !isSelected ? 0.35 : 1,
+                      outline: isSelected ? '2.5px solid #c1714a' : 'none',
+                      outlineOffset: '2px',
+                      zIndex: isSelected ? 10 : i + 1,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedItem(isSelected ? null : item);
+                    }}
+                  >
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.sub_type}
+                        className="h-36 w-full object-cover"
+                        style={{ mixBlendMode: 'multiply' }}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-36 w-full flex-col items-center justify-center gap-1 bg-linen/60">
+                        <p className="text-xs font-medium capitalize text-espresso">
+                          {item.sub_type}
+                        </p>
+                        <p className="text-xs capitalize text-muted-foreground">
+                          {item.color}
+                        </p>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Item metadata card — shown when an item is selected */}
+            {selectedItem && (
+              <div className="mb-4 flex items-start gap-3 rounded-2xl border border-border bg-cream p-4 shadow-sm">
+                {selectedItem.image_url ? (
+                  <img
+                    src={selectedItem.image_url}
+                    alt={selectedItem.sub_type}
+                    className="h-16 w-16 shrink-0 rounded-xl object-cover"
                   />
+                ) : (
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-linen/80">
+                    <span className="text-xs capitalize text-muted-foreground">
+                      {selectedItem.sub_type[0]}
+                    </span>
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="mb-1.5 font-medium capitalize text-espresso">
+                    {selectedItem.sub_type}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-linen px-2.5 py-0.5 text-xs capitalize text-espresso">
+                      {selectedItem.color}
+                    </span>
+                    <span className="rounded-full bg-linen px-2.5 py-0.5 text-xs capitalize text-espresso">
+                      {selectedItem.category}
+                    </span>
+                    {selectedItem.season && selectedItem.season !== 'all' && (
+                      <span className="rounded-full bg-linen px-2.5 py-0.5 text-xs capitalize text-espresso">
+                        {selectedItem.season.replace(/_/g, ' ')}
+                      </span>
+                    )}
+                    {selectedItem.fit && (
+                      <span className="rounded-full bg-linen px-2.5 py-0.5 text-xs capitalize text-espresso">
+                        {selectedItem.fit}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <button
+                    onClick={() => setSelectedItem(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSwappingItem(selectedItem);
+                      setSelectedItem(null);
+                    }}
+                    className="rounded-full bg-terracotta px-3 py-1 text-xs font-medium text-cream"
+                  >
+                    Swap
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Style hashtags */}
+            {hashtags.length > 0 && (
+              <div className="mb-6 flex flex-wrap gap-2">
+                {hashtags.map((tag) => (
+                  <span key={tag} className="text-sm text-muted-foreground">
+                    #{tag}
+                  </span>
                 ))}
               </div>
-            </div>
+            )}
 
             <div className="mb-8 flex justify-center">
               <button onClick={fetchOutfit} className="btn-outline btn-sm gap-2">

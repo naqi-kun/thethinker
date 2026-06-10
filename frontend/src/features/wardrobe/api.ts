@@ -30,6 +30,10 @@ export async function scanItem(image: Blob): Promise<ClothingItem> {
   return data! as ClothingItem;
 }
 
+export async function deleteItem(id: string): Promise<void> {
+  await apiClient.DELETE('/wardrobe/items/{id}', { params: { path: { id } } });
+}
+
 export async function uploadItemImage(
   itemId: string,
   file: File,
