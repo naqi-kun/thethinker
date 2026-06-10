@@ -300,6 +300,7 @@ function ItemDetailModal({
   const [form, setForm] = useState<FormState>(itemToFormState(item));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   const category = subTypeToCategory(item.sub_type);
   const displayName = `${capitalize(item.color)} ${item.sub_type}`;
@@ -349,11 +350,12 @@ function ItemDetailModal({
         <div className="px-5 py-4 space-y-5">
           {/* Image preview */}
           <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-linen/60">
-            {item.image_url ? (
+            {item.image_url && !imgError ? (
               <img
                 src={item.image_url}
                 alt={displayName}
                 className="h-full w-full object-contain"
+                onError={() => setImgError(true)}
               />
             ) : (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -476,6 +478,7 @@ function ItemCard({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const category = subTypeToCategory(item.sub_type);
   const displayName = `${capitalize(item.color)} ${item.sub_type}`;
@@ -516,11 +519,12 @@ function ItemCard({
       onClick={() => onCardClick(item)}
     >
       <div className="relative flex aspect-square items-center justify-center bg-linen/60">
-        {item.image_url ? (
+        {item.image_url && !imgError ? (
           <img
             src={item.image_url}
             alt={displayName}
             className="h-full w-full object-cover"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
