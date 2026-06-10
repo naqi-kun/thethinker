@@ -20,7 +20,8 @@ const jwtSecret = builder.addParameter('jwtSecret', { secret: true });
 // Published on a fixed host port so both the backend process and the browser
 // (which loads image URLs directly) can reach it at localhost:4443.
 const gcs = await builder.addContainer('gcs', 'fsouza/fake-gcs-server:1.49');
-await gcs.withArgs(['-scheme', 'http', '-port', '4443', '-backend', 'memory']);
+await gcs.withArgs(['-scheme', 'http', '-port', '4443', '-backend', 'filesystem']);
+await gcs.withVolume('/storage', { name: 'thethinker-gcsdata' });
 // Bind directly to the host port (no DCP proxy) so the fixed localhost:4443
 // works for both the backend process and the browser loading image URLs.
 await gcs.withHttpEndpoint({ port: 4443, targetPort: 4443, isProxied: false });

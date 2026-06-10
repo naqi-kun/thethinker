@@ -22,6 +22,7 @@ type wardrobeSvc interface {
 	UploadImage(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
 	ClassifyOnly(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error)
 	UpdateItem(ctx context.Context, itemID, userID string, fields wardrobe.ClothingItem) (*wardrobe.ClothingItem, error)
+	DeleteItem(ctx context.Context, itemID, userID string) error
 }
 
 type WardrobeHandler struct {
@@ -283,6 +284,34 @@ func (h *WardrobeHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, toItemResponse(item))
+}
+
+func (h *WardrobeHandler) DeleteItem(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	itemID := r.PathValue("id")
+	if itemID == "" {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "item ID is required")
+		return
+	}
+
+	if err := h.svc.DeleteItem(r.Context(), itemID, userID); err != nil {
+		switch {
+		case errors.Is(err, wardrobe.ErrNotFound):
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "clothing item not found")
+		case errors.Is(err, wardrobe.ErrForbidden):
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "access denied")
+		default:
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to delete item")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *WardrobeHandler) Classify(w http.ResponseWriter, r *http.Request) {

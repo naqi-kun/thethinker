@@ -65,6 +65,20 @@ func (s *Service) ListItems(ctx context.Context, userID, categoryStr string) ([]
 	return filtered, nil
 }
 
+func (s *Service) DeleteItem(ctx context.Context, itemID, userID string) error {
+	item, err := s.repo.FindByID(ctx, itemID)
+	if err != nil {
+		return fmt.Errorf("wardrobe: find item: %w", err)
+	}
+	if item == nil {
+		return ErrNotFound
+	}
+	if item.UserID != userID {
+		return ErrForbidden
+	}
+	return s.repo.Delete(ctx, itemID)
+}
+
 func (s *Service) MarkItemsWorn(ctx context.Context, userID string, itemIDs []string) error {
 	return s.repo.MarkWorn(ctx, userID, itemIDs, time.Now())
 }

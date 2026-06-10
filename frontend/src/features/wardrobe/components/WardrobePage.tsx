@@ -6,12 +6,13 @@ import {
   Search,
   Shirt,
   ShoppingBag,
+  Trash2,
   Upload,
   Watch,
   X,
 } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
-import { listItems, updateItem, uploadItemImage } from '../api';
+import { deleteItem, listItems, updateItem, uploadItemImage } from '../api';
 import type {
   AddItemPayload,
   ClothingCategory,
@@ -463,14 +464,18 @@ function ItemCard({
   item,
   onCardClick,
   onImageUploaded,
+  onDeleted,
 }: {
   item: ClothingItem;
   onCardClick: (item: ClothingItem) => void;
   onImageUploaded?: (id: string, imageUrl: string) => void;
+  onDeleted?: (id: string) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const category = subTypeToCategory(item.sub_type);
   const displayName = `${capitalize(item.color)} ${item.sub_type}`;
@@ -490,6 +495,18 @@ function ItemCard({
     } finally {
       setUploading(false);
       e.target.value = '';
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteItem(item.id);
+      onDeleted?.(item.id);
+    } catch {
+      setConfirming(false);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -517,6 +534,40 @@ function ItemCard({
             />
           </div>
         )}
+
+        {/* Delete confirmation overlay */}
+        {confirming && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/90 backdrop-blur-sm">
+            <p className="text-xs font-medium text-foreground">Remove item?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded-full bg-destructive px-3 py-1 text-xs font-medium text-white disabled:opacity-50"
+              >
+                {deleting ? 'Removing…' : 'Remove'}
+              </button>
+              <button
+                onClick={() => setConfirming(false)}
+                className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Delete button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setConfirming(true);
+          }}
+          className="absolute left-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-sm border border-border hover:bg-background transition-colors"
+          title="Remove item"
+        >
+          <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
 
         {/* Upload button — stops propagation so it doesn't open the modal */}
         <button
@@ -656,6 +707,10 @@ export default function WardrobePage() {
     setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   }
 
+  function handleDeleted(id: string) {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  }
+
   const filtered = items.filter((item) => {
     const category = subTypeToCategory(item.sub_type);
     const normalizedSearch = search.trim().toLowerCase();
@@ -732,6 +787,7 @@ export default function WardrobePage() {
                     item={item}
                     onCardClick={setSelectedItem}
                     onImageUploaded={handleImageUploaded}
+                    onDeleted={handleDeleted}
                   />
                 ))}
               </div>
