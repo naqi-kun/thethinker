@@ -14,6 +14,7 @@ import (
 )
 
 var _ wardrobe.Classifier = (*Client)(nil)
+var _ wardrobe.BgRemover = (*Client)(nil)
 
 type Client struct {
 	baseURL    string
@@ -84,4 +85,44 @@ func (c *Client) Classify(ctx context.Context, imageBytes []byte, contentType st
 		Season:          result.Season,
 		ConfidenceScore: score,
 	}, nil
+}
+
+// RemoveBackground sends the image to the /remove-bg endpoint and returns a
+// PNG with a transparent background. The caller is responsible for fallback
+// if this returns an error.
+func (c *Client) RemoveBackground(ctx context.Context, imageBytes []byte) ([]byte, error) {
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+
+	part, err := w.CreateFormFile("image", "image")
+	if err != nil {
+		return nil, fmt.Errorf("bgremover: create form file: %w", err)
+	}
+	if _, err := io.Copy(part, bytes.NewReader(imageBytes)); err != nil {
+		return nil, fmt.Errorf("bgremover: copy image: %w", err)
+	}
+	w.Close()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/remove-bg", &body)
+	if err != nil {
+		return nil, fmt.Errorf("bgremover: build request: %w", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("bgremover: http: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		raw, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("bgremover: status %d: %s", resp.StatusCode, raw)
+	}
+
+	result, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("bgremover: read response: %w", err)
+	}
+	return result, nil
 }

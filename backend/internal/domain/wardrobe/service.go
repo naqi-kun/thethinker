@@ -24,10 +24,25 @@ type Service struct {
 	repo       Repository
 	classifier Classifier
 	imageStore ImageStore
+	bgRemover  BgRemover // optional; nil disables background removal
 }
 
-func NewService(repo Repository, classifier Classifier, imageStore ImageStore) *Service {
-	return &Service{repo: repo, classifier: classifier, imageStore: imageStore}
+func NewService(repo Repository, classifier Classifier, imageStore ImageStore, bgRemover BgRemover) *Service {
+	return &Service{repo: repo, classifier: classifier, imageStore: imageStore, bgRemover: bgRemover}
+}
+
+// removeBackground is a best-effort helper. It calls the AI service to strip
+// the background and returns PNG bytes. On any failure it returns nil so the
+// caller falls back to the original image without failing the upload.
+func (s *Service) removeBackground(ctx context.Context, imageBytes []byte) []byte {
+	if s.bgRemover == nil {
+		return nil
+	}
+	result, err := s.bgRemover.RemoveBackground(ctx, imageBytes)
+	if err != nil {
+		return nil
+	}
+	return result
 }
 
 // AddItem persists a new clothing item for the given user.
@@ -157,8 +172,13 @@ func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []by
 	}
 
 	// Best-effort: store the scanned image so it appears in the wardrobe.
-	// Process to JPEG first for consistency; if either step fails, continue without an image URL.
-	if processed, err := processImage(bytes.NewReader(imageBytes)); err == nil {
+	// Try background removal first; fall back to JPEG if the AI service is unavailable.
+	if pngBytes := s.removeBackground(ctx, imageBytes); pngBytes != nil {
+		objectName := path.Join("wardrobe", userID, item.ID, "scan-"+uuid.NewString()+".png")
+		if imageURL, err := s.imageStore.Upload(ctx, objectName, "image/png", bytes.NewReader(pngBytes), int64(len(pngBytes))); err == nil {
+			item.ImageURL = imageURL
+		}
+	} else if processed, err := processImage(bytes.NewReader(imageBytes)); err == nil {
 		objectName := path.Join("wardrobe", userID, item.ID, "scan-"+uuid.NewString()+".jpg")
 		if imageURL, err := s.imageStore.Upload(ctx, objectName, "image/jpeg", bytes.NewReader(processed), int64(len(processed))); err == nil {
 			item.ImageURL = imageURL
@@ -185,17 +205,30 @@ func (s *Service) UploadImage(ctx context.Context, itemID, userID string, imageD
 		return nil, ErrForbidden
 	}
 
-	// Optimize: resize + compress to JPEG. A decode/encode failure means the
-	// upload wasn't a usable image, so surface it as an invalid-input error.
-	processed, err := processImage(bytes.NewReader(imageData))
-	if err != nil {
+	// Validate the upload is a real image by attempting a JPEG decode/encode.
+	// This surfaces invalid uploads as a user-facing error before we hit the AI service.
+	if _, err := processImage(bytes.NewReader(imageData)); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalidImage, err)
 	}
 
-	objectName := path.Join("wardrobe", userID, itemID, time.Now().UTC().Format("20060102T150405")+"-"+uuid.NewString()+".jpg")
-	imageURL, err := s.imageStore.Upload(ctx, objectName, "image/jpeg", bytes.NewReader(processed), int64(len(processed)))
-	if err != nil {
-		return nil, fmt.Errorf("wardrobe: upload image: %w", err)
+	// Try background removal — returns a transparent PNG. Fall back to JPEG on failure.
+	var (
+		imageURL    string
+		uploadErr   error
+		objectName  string
+	)
+	if pngBytes := s.removeBackground(ctx, imageData); pngBytes != nil {
+		objectName = path.Join("wardrobe", userID, itemID, time.Now().UTC().Format("20060102T150405")+"-"+uuid.NewString()+".png")
+		imageURL, uploadErr = s.imageStore.Upload(ctx, objectName, "image/png", bytes.NewReader(pngBytes), int64(len(pngBytes)))
+	}
+	if imageURL == "" {
+		// bg removal unavailable or upload failed — store original as JPEG
+		processed, _ := processImage(bytes.NewReader(imageData))
+		objectName = path.Join("wardrobe", userID, itemID, time.Now().UTC().Format("20060102T150405")+"-"+uuid.NewString()+".jpg")
+		imageURL, uploadErr = s.imageStore.Upload(ctx, objectName, "image/jpeg", bytes.NewReader(processed), int64(len(processed)))
+	}
+	if uploadErr != nil {
+		return nil, fmt.Errorf("wardrobe: upload image: %w", uploadErr)
 	}
 
 	if err := s.repo.UpdateImageURL(ctx, itemID, imageURL); err != nil {

@@ -69,7 +69,7 @@ func main() {
 	// services
 	userSvc := user.NewService(userRepo, jwtSecret)
 	classifierClient := classifier.NewClient(aiServiceURL)
-	wardrobeSvc := wardrobe.NewService(wardrobeRepo, classifierClient, gcsClient)
+	wardrobeSvc := wardrobe.NewService(wardrobeRepo, classifierClient, gcsClient, classifierClient)
 	calendarSvc := calendar.NewService(calendarRepo, calendarext.NewICSFetcher())
 	workScheduleSvc := workschedule.NewService(workScheduleRepo)
 	weatherSvc := weather.NewService()
