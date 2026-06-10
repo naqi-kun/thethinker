@@ -708,6 +708,82 @@ components:
           type: string
           format: date-time
 
+    AddCalendarRequest:
+      type: object
+      required: [name, ics_url]
+      properties:
+        name:
+          type: string
+          example: Work
+        ics_url:
+          type: string
+          format: uri
+          description: Public ICS feed URL for the calendar
+
+    Calendar:
+      type: object
+      required: [id, name, source, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        source:
+          type: string
+          description: Where the calendar was imported from (e.g. the ICS URL)
+        created_at:
+          type: string
+          format: date-time
+
+    CalendarEvent:
+      type: object
+      required: [id, title, starts_at, all_day]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        location:
+          type: string
+        all_day:
+          type: boolean
+
+    WorkSchedule:
+      type: object
+      required: [working_days, work_start, work_end, holidays]
+      properties:
+        working_days:
+          type: array
+          description: Working weekdays as integers, 0 = Sunday … 6 = Saturday
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+          example: [1, 2, 3, 4, 5]
+        work_start:
+          type: string
+          description: Start of the working day, "HH:MM" 24-hour
+          example: '09:00'
+        work_end:
+          type: string
+          description: End of the working day, "HH:MM" 24-hour
+          example: '17:00'
+        holidays:
+          type: array
+          description: Days off as ISO 8601 dates, even on a working weekday
+          items:
+            type: string
+            format: date
+          example: ['2025-12-25']
+
     AcceptOutfitRequest:
       type: object
       required: [item_ids]

@@ -986,6 +986,64 @@ export interface components {
             /** Format: date-time */
             connected_at: string;
         };
+        AddCalendarRequest: {
+            /** @example Work */
+            name: string;
+            /**
+             * Format: uri
+             * @description Public ICS feed URL for the calendar
+             */
+            ics_url: string;
+        };
+        Calendar: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** @description Where the calendar was imported from (e.g. the ICS URL) */
+            source: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        CalendarEvent: {
+            id: string;
+            title: string;
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            ends_at?: string | null;
+            location?: string;
+            all_day: boolean;
+        };
+        WorkSchedule: {
+            /**
+             * @description Working weekdays as integers, 0 = Sunday … 6 = Saturday
+             * @example [
+             *       1,
+             *       2,
+             *       3,
+             *       4,
+             *       5
+             *     ]
+             */
+            working_days: number[];
+            /**
+             * @description Start of the working day, "HH:MM" 24-hour
+             * @example 09:00
+             */
+            work_start: string;
+            /**
+             * @description End of the working day, "HH:MM" 24-hour
+             * @example 17:00
+             */
+            work_end: string;
+            /**
+             * @description Days off as ISO 8601 dates, even on a working weekday
+             * @example [
+             *       "2025-12-25"
+             *     ]
+             */
+            holidays: string[];
+        };
         AcceptOutfitRequest: {
             item_ids: string[];
         };

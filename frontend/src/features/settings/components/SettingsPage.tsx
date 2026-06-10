@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Download, Trash2, AlertTriangle, Plus, X } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import { token } from '../../../shared/api/token';
+import { getWorkSchedule, updateWorkSchedule } from '../api';
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 // ─── Toggle ──────────────────────────────────────────────────────────────────
 
