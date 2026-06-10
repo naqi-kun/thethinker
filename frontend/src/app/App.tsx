@@ -3,6 +3,7 @@ import { LandingPage } from '../features/landing';
 import { LoginPage, RegisterPage, ProtectedRoute } from '../features/auth';
 import { OnboardingPage } from '../features/onboarding';
 import { WardrobePage, AddItemPage } from '../features/wardrobe';
+import ReviewItemPage from '../features/wardrobe/components/ReviewItemPage';
 import { OutfitPage } from '../features/outfit';
 import { CalendarPage } from '../features/calendar';
 import { SettingsPage } from '../features/settings';
@@ -34,6 +35,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <AddItemPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wardrobe/add/review"
+        element={
+          <ProtectedRoute>
+            <ReviewItemPage />
           </ProtectedRoute>
         }
       />

@@ -8,6 +8,7 @@ export type ClothingCategory = ClothingItem['category'];
 export type ClothingFit = NonNullable<ClothingItem['fit']>;
 export type ClothingSeason = NonNullable<ClothingItem['season']>;
 export type AddItemPayload = components['schemas']['AddItemRequest'];
+export type ClassifyResult = components['schemas']['ClassifyResult'];
 export type CalendarConnection = components['schemas']['CalendarConnection'];
 export type WeatherSnapshot = components['schemas']['WeatherSnapshot'];
 export type OutfitRecommendation = components['schemas']['OutfitRecommendation'];

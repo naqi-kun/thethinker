@@ -10,7 +10,7 @@ import {
   Scan,
   X,
 } from 'lucide-react';
-import { addItem, scanItem, uploadItemImage } from '../api';
+import { addItem, classifyItem, uploadItemImage } from '../api';
 import type {
   AddItemPayload,
   ClothingCategory,
@@ -369,9 +369,10 @@ export default function AddItemPage() {
     if (!capturedBlob) return;
     setPageState('busy');
     try {
-      await scanItem(capturedBlob);
-      clearImage();
-      navigate('/wardrobe');
+      const result = await classifyItem(capturedBlob);
+      navigate('/wardrobe/add/review', {
+        state: { classifyResult: result, imageBlob: capturedBlob },
+      });
     } catch {
       setError('Scan failed. Please try again.');
       setPageState('camera-preview');
@@ -564,7 +565,7 @@ export default function AddItemPage() {
         {pageState === 'busy' && (
           <div className="flex flex-col items-center gap-4 py-20">
             <span className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            <p className="text-sm text-muted-foreground">Scanning your item…</p>
+            <p className="text-sm text-muted-foreground">Classifying your item…</p>
           </div>
         )}
 

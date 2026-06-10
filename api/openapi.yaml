@@ -155,6 +155,36 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
   /wardrobe/items/{id}:
+    put:
+      tags: [wardrobe]
+      summary: Update an existing clothing item's fields
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddItemRequest'
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClothingItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
     delete:
       tags: [wardrobe]
       summary: Delete a clothing item from the wardrobe
@@ -239,6 +269,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClothingItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /wardrobe/classify:
+    post:
+      tags: [wardrobe]
+      summary: Classify a clothing image without saving to the wardrobe
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Photo of the clothing item
+      responses:
+        '200':
+          description: AI classification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassifyResult'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '413':
@@ -386,6 +450,33 @@ components:
           description: Personalized Q answers keyed by question ID
           additionalProperties:
             type: string
+
+    ClassifyResult:
+      type: object
+      required: [category, sub_type, color, fit, season, confidence_score]
+      properties:
+        category:
+          type: string
+          enum: [formal, casual, sport]
+        sub_type:
+          type: string
+          example: jeans
+        color:
+          type: string
+          example: navy blue
+        fit:
+          type: string
+          enum: [slim, regular, relaxed, oversized]
+        season:
+          type: string
+          enum: [all, spring_summer, autumn_winter, winter]
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Overall AI confidence (0–1). Defaults to 0.85 if the AI service omits it.
+          example: 0.85
 
     AddItemRequest:
       type: object

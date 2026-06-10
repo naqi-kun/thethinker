@@ -83,6 +83,39 @@ func (s *Service) MarkItemsWorn(ctx context.Context, userID string, itemIDs []st
 	return s.repo.MarkWorn(ctx, userID, itemIDs, time.Now())
 }
 
+// UpdateItem replaces the editable fields of an existing item owned by userID.
+func (s *Service) UpdateItem(ctx context.Context, itemID, userID string, fields ClothingItem) (*ClothingItem, error) {
+	existing, err := s.repo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, fmt.Errorf("wardrobe: find item: %w", err)
+	}
+	if existing == nil {
+		return nil, ErrNotFound
+	}
+	if existing.UserID != userID {
+		return nil, ErrForbidden
+	}
+	existing.Category = fields.Category
+	existing.SubType = fields.SubType
+	existing.Color = fields.Color
+	existing.Fit = fields.Fit
+	existing.Season = fields.Season
+	if err := s.repo.Save(ctx, existing); err != nil {
+		return nil, err
+	}
+	return existing, nil
+}
+
+// ClassifyOnly runs the AI classifier and returns its raw result without saving anything.
+// Use this for the review step before the user confirms the item.
+func (s *Service) ClassifyOnly(ctx context.Context, imageBytes []byte, contentType string) (*ClassifyResult, error) {
+	result, err := s.classifier.Classify(ctx, imageBytes, contentType)
+	if err != nil {
+		return nil, fmt.Errorf("classify image: %w", err)
+	}
+	return result, nil
+}
+
 // IngestScan classifies the image, converts the AI string output to typed enums,
 // persists the item, and returns it.
 func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []byte, contentType string) (*ClothingItem, error) {
