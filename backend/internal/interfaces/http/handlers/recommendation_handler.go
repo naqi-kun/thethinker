@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -8,25 +11,27 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
 )
 
+type recommendationSvc interface {
+	GetOutfit(ctx context.Context, userID string, date time.Time) (*recommendation.OutfitRecommendation, error)
+}
+
+type wardrobeAccepter interface {
+	MarkItemsWorn(ctx context.Context, userID string, itemIDs []string) error
+}
+
 type RecommendationHandler struct {
-	svc *recommendation.Service
+	svc         recommendationSvc
+	wardrobeSvc wardrobeAccepter
 }
 
-func NewRecommendationHandler(svc *recommendation.Service) *RecommendationHandler {
-	return &RecommendationHandler{svc: svc}
-}
-
-type weatherSnapshotResponse struct {
-	Temperature float64 `json:"temperature"`
-	FeelsLike   float64 `json:"feels_like"`
-	Description string  `json:"description"`
+func NewRecommendationHandler(svc recommendationSvc, wardrobeSvc wardrobeAccepter) *RecommendationHandler {
+	return &RecommendationHandler{svc: svc, wardrobeSvc: wardrobeSvc}
 }
 
 type outfitResponse struct {
-	Date     string                   `json:"date"`
-	Occasion string                   `json:"occasion"`
-	Weather  *weatherSnapshotResponse `json:"weather,omitempty"`
-	Items    []clothingItemResponse   `json:"items"`
+	Date     string                 `json:"date"`
+	Occasion string                 `json:"occasion,omitempty"`
+	Items    []clothingItemResponse `json:"items"`
 }
 
 func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request) {
@@ -37,36 +42,58 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 	}
 
 	date := time.Now()
-	if dateStr := r.URL.Query().Get("date"); dateStr != "" {
-		parsed, err := time.Parse("2006-01-02", dateStr)
+	if d := r.URL.Query().Get("date"); d != "" {
+		parsed, err := time.Parse("2006-01-02", d)
 		if err != nil {
-			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "date must be in YYYY-MM-DD format")
+			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid date format, use YYYY-MM-DD")
 			return
 		}
 		date = parsed
 	}
 
-	outfit, err := h.svc.GetOutfit(r.Context(), userID, date)
+	rec, err := h.svc.GetOutfit(r.Context(), userID, date)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to build recommendation")
+		if errors.Is(err, recommendation.ErrEmptyWardrobe) {
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "no items in wardrobe")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to get recommendation")
 		return
 	}
 
-	resp := outfitResponse{
-		Date:     outfit.Date.Format("2006-01-02"),
-		Occasion: outfit.Occasion,
-		Items:    make([]clothingItemResponse, len(outfit.Items)),
-	}
-	if outfit.Weather != nil {
-		resp.Weather = &weatherSnapshotResponse{
-			Temperature: outfit.Weather.Temperature,
-			FeelsLike:   outfit.Weather.FeelsLike,
-			Description: outfit.Weather.Description,
-		}
-	}
-	for i, item := range outfit.Items {
-		resp.Items[i] = toItemResponse(item)
+	items := make([]clothingItemResponse, len(rec.Items))
+	for i, item := range rec.Items {
+		items[i] = toItemResponse(item)
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(w, http.StatusOK, outfitResponse{
+		Date:     rec.Date.Format("2006-01-02"),
+		Occasion: rec.Occasion,
+		Items:    items,
+	})
+}
+
+type acceptOutfitRequest struct {
+	ItemIDs []string `json:"item_ids"`
+}
+
+func (h *RecommendationHandler) AcceptOutfit(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	var req acceptOutfitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.ItemIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "item_ids is required")
+		return
+	}
+
+	if err := h.wardrobeSvc.MarkItemsWorn(r.Context(), userID, req.ItemIDs); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to mark items as worn")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

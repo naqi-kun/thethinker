@@ -2,6 +2,7 @@ import { apiClient } from '../../shared/api/client';
 import { token } from '../../shared/api/token';
 import type {
   AddItemPayload,
+  ClassifyResult,
   ClothingCategory,
   ClothingItem,
 } from '../../shared/api/types';
@@ -28,6 +29,33 @@ export async function scanItem(image: Blob): Promise<ClothingItem> {
     },
   });
   return data! as ClothingItem;
+}
+
+export async function classifyItem(image: Blob): Promise<ClassifyResult> {
+  const { data } = await apiClient.POST('/wardrobe/classify', {
+    body: { image: image as unknown as string },
+    bodySerializer() {
+      const form = new FormData();
+      form.append('image', image, 'scan.jpg');
+      return form;
+    },
+  });
+  return data! as ClassifyResult;
+}
+
+export async function updateItem(
+  id: string,
+  payload: AddItemPayload,
+): Promise<ClothingItem> {
+  const { data } = await apiClient.PUT('/wardrobe/items/{id}', {
+    params: { path: { id } },
+    body: payload,
+  });
+  return data! as ClothingItem;
+}
+
+export async function deleteItem(id: string): Promise<void> {
+  await apiClient.DELETE('/wardrobe/items/{id}', { params: { path: { id } } });
 }
 
 export async function uploadItemImage(

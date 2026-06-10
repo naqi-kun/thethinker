@@ -2,7 +2,7 @@ package recommendation
 
 import (
 	"context"
-	"fmt"
+	"sort"
 	"time"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/calendar"
@@ -42,127 +42,71 @@ func NewService(
 	}
 }
 
-// GetOutfit produces a work-aware outfit recommendation for the given date.
-// The occasion is driven by the user's working schedule and holidays
-// (KAN-49 criterion 8): a working day yields a "Work" (formal) outfit, a
-// holiday or non-working day yields a relaxed "Day off" / "Holiday" outfit.
-func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time) (*Outfit, error) {
-	sched, err := s.scheduleSvc.Get(ctx, userID)
+func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time) (*OutfitRecommendation, error) {
+	items, err := s.wardrobeRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-
-	working := sched.IsWorkingDay(date)
-	occasion := "Day off"
-	switch {
-	case sched.IsHoliday(date):
-		occasion = "Holiday"
-	case working:
-		occasion = "Work"
+	if len(items) == 0 {
+		return nil, ErrEmptyWardrobe
 	}
 
-	items, err := s.wardrobeRepo.FindByUserID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("recommendation: load wardrobe: %w", err)
-	}
+	selected := pickOutfit(items)
 
-	conditions, err := s.weatherSvc.GetConditions(ctx, "")
-	if err != nil {
-		return nil, fmt.Errorf("recommendation: weather: %w", err)
-	}
-
-	return &Outfit{
+	return &OutfitRecommendation{
+		UserID:    userID,
 		Date:      date,
-		Occasion:  occasion,
-		IsWorkday: working,
-		Weather:   conditions,
-		Items:     selectOutfit(items, working),
+		Items:     selected,
+		Occasion:  "casual",
+		CreatedAt: time.Now(),
 	}, nil
 }
 
-// selectOutfit picks a coherent set of items for the day. On a working day it
-// prefers formal pieces; otherwise casual. It assembles one top, one bottom, and
-// footwear (or a dress + footwear), falling back to the whole wardrobe if the
-// preferred style has nothing.
-func selectOutfit(items []*wardrobe.ClothingItem, working bool) []*wardrobe.ClothingItem {
-	target := wardrobe.CategoryCasual
-	if working {
-		target = wardrobe.CategoryFormal
-	}
-
-	pool := make([]*wardrobe.ClothingItem, 0, len(items))
-	for _, it := range items {
-		if it.Category == target {
-			pool = append(pool, it)
-		}
-	}
-	if len(pool) == 0 {
-		pool = items // fall back so we still suggest something
-	}
-
-	var top, bottom, footwear, dress *wardrobe.ClothingItem
-	for _, it := range pool {
-		switch slotOf(it.SubType) {
-		case slotTop:
-			if top == nil {
-				top = it
-			}
-		case slotBottom:
-			if bottom == nil {
-				bottom = it
-			}
-		case slotFootwear:
-			if footwear == nil {
-				footwear = it
-			}
-		case slotDress:
-			if dress == nil {
-				dress = it
-			}
+func pickOutfit(items []*wardrobe.ClothingItem) []*wardrobe.ClothingItem {
+	var tops, bottoms, footwear []*wardrobe.ClothingItem
+	for _, item := range items {
+		switch item.SubType {
+		case wardrobe.SubTypeShirt, wardrobe.SubTypeTShirt, wardrobe.SubTypeSweater,
+			wardrobe.SubTypeHoodie, wardrobe.SubTypeJacket, wardrobe.SubTypeCoat,
+			wardrobe.SubTypeBlazer, wardrobe.SubTypeSuit:
+			tops = append(tops, item)
+		case wardrobe.SubTypePants, wardrobe.SubTypeJeans, wardrobe.SubTypeShorts,
+			wardrobe.SubTypeSkirt, wardrobe.SubTypeDress:
+			bottoms = append(bottoms, item)
+		case wardrobe.SubTypeShoes, wardrobe.SubTypeSneakers, wardrobe.SubTypeBoots:
+			footwear = append(footwear, item)
 		}
 	}
 
-	var chosen []*wardrobe.ClothingItem
-	if dress != nil {
-		chosen = append(chosen, dress)
-	} else {
-		if top != nil {
-			chosen = append(chosen, top)
-		}
-		if bottom != nil {
-			chosen = append(chosen, bottom)
-		}
+	var result []*wardrobe.ClothingItem
+	if top := leastRecentlyWorn(tops); top != nil {
+		result = append(result, top)
 	}
-	if footwear != nil {
-		chosen = append(chosen, footwear)
+	if bottom := leastRecentlyWorn(bottoms); bottom != nil {
+		result = append(result, bottom)
 	}
-	return chosen
+	if shoe := leastRecentlyWorn(footwear); shoe != nil {
+		result = append(result, shoe)
+	}
+
+	if len(result) == 0 {
+		return items[:1]
+	}
+	return result
 }
 
-type slot int
-
-const (
-	slotOther slot = iota
-	slotTop
-	slotBottom
-	slotFootwear
-	slotDress
-)
-
-func slotOf(st wardrobe.SubType) slot {
-	switch st {
-	case wardrobe.SubTypeShirt, wardrobe.SubTypeTShirt, wardrobe.SubTypeSweater,
-		wardrobe.SubTypeHoodie, wardrobe.SubTypeJacket, wardrobe.SubTypeCoat,
-		wardrobe.SubTypeSuit, wardrobe.SubTypeBlazer:
-		return slotTop
-	case wardrobe.SubTypePants, wardrobe.SubTypeJeans, wardrobe.SubTypeShorts,
-		wardrobe.SubTypeSkirt:
-		return slotBottom
-	case wardrobe.SubTypeShoes, wardrobe.SubTypeSneakers, wardrobe.SubTypeBoots:
-		return slotFootwear
-	case wardrobe.SubTypeDress:
-		return slotDress
-	default:
-		return slotOther
+func leastRecentlyWorn(items []*wardrobe.ClothingItem) *wardrobe.ClothingItem {
+	if len(items) == 0 {
+		return nil
 	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].LastWorn == nil {
+			return true
+		}
+		if items[j].LastWorn == nil {
+			return false
+		}
+		return items[i].LastWorn.Before(*items[j].LastWorn)
+	})
+	return items[0]
 }

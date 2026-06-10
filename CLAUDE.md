@@ -11,7 +11,7 @@ backend/       ← Go API server (DDD)
 frontend/      ← React SPA (Vite + Tailwind v4)
 api/           ← OpenAPI spec (shared contract)
 k8s/           ← Kubernetes manifests
-docker-compose.yml  ← local Postgres for development
+apphost.mts    ← Aspire AppHost (all services wired here)
 ```
 
 ## AI Workflow & Skills
@@ -49,8 +49,20 @@ aspire dashboard    # open telemetry dashboard in browser
 
 The AppHost wires:
 - Postgres with a persistent named volume (`thethinker-pgdata`)
-- Go backend with `DATABASE_URL`, `JWT_SECRET`, and OTel gRPC export to the Aspire dashboard
+- Jaeger for distributed tracing (UI on 16686, OTLP HTTP on 4318)
+- Python AI classification service built from `./ai/Dockerfile`
+- Go backend with `DATABASE_URL`, `JWT_SECRET`, `AI_SERVICE_URL`, and OTel export to the Aspire dashboard
 - React/Vite frontend with `VITE_BACKEND_URL` pointed at the backend
+
+### Docker Compose Publishing
+
+Run `aspire publish` to generate a deployment-ready Docker Compose file:
+
+```bash
+aspire publish --output-path ./aspire-output
+```
+
+This writes `aspire-output/docker-compose.yaml` and `aspire-output/.env` (fill in image tags and secrets before deploying). The `aspire-output/` folder is gitignored — re-generate it when deploying.
 
 ### Aspire Rules
 

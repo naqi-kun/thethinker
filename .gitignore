@@ -14,9 +14,11 @@ frontend/dist
 frontend/.vite
 frontend/coverage
 
-# Playwright artifacts (generated)
-frontend/playwright-report
+# Playwright (e2e)
 frontend/test-results
+frontend/playwright-report
+frontend/blob-report
+frontend/playwright/.cache
 
 # Go build output
 server
@@ -44,3 +46,11 @@ skills-lock.json
 node_modules/
 dist/
 .aspire/
+aspire-output/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

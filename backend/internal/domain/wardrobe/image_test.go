@@ -1,0 +1,66 @@
+package wardrobe
+
+import (
+	"bytes"
+	"image"
+	"image/png"
+	"testing"
+)
+
+func TestProcessImageResizesAndReencodesToJPEG(t *testing.T) {
+	// A 2000x1000 source should be scaled down to fit within the max bounds
+	// while preserving aspect ratio (-> 1024x512) and re-encoded as JPEG.
+	src := image.NewRGBA(image.Rect(0, 0, 2000, 1000))
+	var in bytes.Buffer
+	if err := png.Encode(&in, src); err != nil {
+		t.Fatalf("encode source png: %v", err)
+	}
+
+	out, err := processImage(&in)
+	if err != nil {
+		t.Fatalf("processImage returned error: %v", err)
+	}
+
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(out))
+	if err != nil {
+		t.Fatalf("decode processed image: %v", err)
+	}
+	if format != "jpeg" {
+		t.Errorf("processed format = %q, want jpeg", format)
+	}
+	if cfg.Width > maxImageWidth || cfg.Height > maxImageHeight {
+		t.Errorf("processed dimensions %dx%d exceed max %dx%d",
+			cfg.Width, cfg.Height, maxImageWidth, maxImageHeight)
+	}
+	if cfg.Width != 1024 || cfg.Height != 512 {
+		t.Errorf("processed dimensions = %dx%d, want 1024x512 (aspect ratio preserved)",
+			cfg.Width, cfg.Height)
+	}
+}
+
+func TestProcessImageKeepsSmallImageWithinBounds(t *testing.T) {
+	src := image.NewRGBA(image.Rect(0, 0, 200, 300))
+	var in bytes.Buffer
+	if err := png.Encode(&in, src); err != nil {
+		t.Fatalf("encode source png: %v", err)
+	}
+
+	out, err := processImage(&in)
+	if err != nil {
+		t.Fatalf("processImage returned error: %v", err)
+	}
+
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(out))
+	if err != nil {
+		t.Fatalf("decode processed image: %v", err)
+	}
+	if cfg.Width != 200 || cfg.Height != 300 {
+		t.Errorf("small image resized to %dx%d, want unchanged 200x300", cfg.Width, cfg.Height)
+	}
+}
+
+func TestProcessImageRejectsNonImage(t *testing.T) {
+	if _, err := processImage(bytes.NewReader([]byte("definitely not an image"))); err == nil {
+		t.Error("processImage on non-image bytes: expected error, got nil")
+	}
+}

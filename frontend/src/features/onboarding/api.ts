@@ -8,10 +8,16 @@ const STYLE_MAP: Record<string, StylePreference> = {
   Sporty: 'sport',
 };
 
-type OnboardingAnswers = {
+export type OnboardingAnswers = {
   style: string;
   occasions: string[];
+  inspiration: string[];
+  skinTone: string;
+  bodyShape: string;
+  height: string;
+  faceShape: string;
   palette: string;
+  location: string;
   climate: string;
 };
 
@@ -20,7 +26,13 @@ export function buildPreferences(answers: OnboardingAnswers): Preferences {
     styles: STYLE_MAP[answers.style] ? [STYLE_MAP[answers.style]] : [],
     answers: {
       occasions: answers.occasions.join(','),
+      inspiration: answers.inspiration.join(','),
+      skin_tone: answers.skinTone,
+      body_shape: answers.bodyShape,
+      height: answers.height,
+      face_shape: answers.faceShape,
       palette: answers.palette,
+      location: answers.location,
       climate: answers.climate,
     },
   };

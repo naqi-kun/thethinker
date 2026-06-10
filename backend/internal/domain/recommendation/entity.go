@@ -1,12 +1,15 @@
 package recommendation
 
-import "time"
+import (
+	"time"
+
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
+)
 
 type OutfitRecommendation struct {
 	UserID    string
 	Date      time.Time
-	ItemIDs   []string // clothing item IDs from wardrobe
+	Items     []*wardrobe.ClothingItem
 	Occasion  string
-	Weather   string
 	CreatedAt time.Time
 }

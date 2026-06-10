@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -8,11 +9,16 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 )
 
-type UserHandler struct {
-	svc *user.Service
+type userSvc interface {
+	Register(ctx context.Context, email, password string) (*user.AuthResult, error)
+	Login(ctx context.Context, email, password string) (*user.AuthResult, error)
 }
 
-func NewUserHandler(svc *user.Service) *UserHandler {
+type UserHandler struct {
+	svc userSvc
+}
+
+func NewUserHandler(svc userSvc) *UserHandler {
 	return &UserHandler{svc: svc}
 }
 

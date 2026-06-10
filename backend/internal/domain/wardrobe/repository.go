@@ -1,6 +1,9 @@
 package wardrobe
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type Repository interface {
 	FindByUserID(ctx context.Context, userID string) ([]*ClothingItem, error)
@@ -8,4 +11,5 @@ type Repository interface {
 	Save(ctx context.Context, item *ClothingItem) error
 	UpdateImageURL(ctx context.Context, id, imageURL string) error
 	Delete(ctx context.Context, id string) error
+	MarkWorn(ctx context.Context, userID string, itemIDs []string, wornAt time.Time) error
 }

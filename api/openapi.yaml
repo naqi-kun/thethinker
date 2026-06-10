@@ -188,6 +188,56 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /wardrobe/items/{id}:
+    put:
+      tags: [wardrobe]
+      summary: Update an existing clothing item's fields
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddItemRequest'
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClothingItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [wardrobe]
+      summary: Delete a clothing item from the wardrobe
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Item deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /wardrobe/items/{id}/image:
     post:
       tags: [wardrobe]
@@ -253,6 +303,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClothingItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: File too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /wardrobe/classify:
+    post:
+      tags: [wardrobe]
+      summary: Classify a clothing image without saving to the wardrobe
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Photo of the clothing item
+      responses:
+        '200':
+          description: AI classification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassifyResult'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '413':
@@ -448,6 +532,24 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /recommendations/outfit/accept:
+    post:
+      tags: [recommendations]
+      summary: Accept today's outfit and mark all items as worn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptOutfitRequest'
+      responses:
+        '204':
+          description: Items marked as worn
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
 components:
 
   securitySchemes:
@@ -504,6 +606,33 @@ components:
           description: Personalized Q answers keyed by question ID
           additionalProperties:
             type: string
+
+    ClassifyResult:
+      type: object
+      required: [category, sub_type, color, fit, season, confidence_score]
+      properties:
+        category:
+          type: string
+          enum: [formal, casual, sport]
+        sub_type:
+          type: string
+          example: jeans
+        color:
+          type: string
+          example: navy blue
+        fit:
+          type: string
+          enum: [slim, regular, relaxed, oversized]
+        season:
+          type: string
+          enum: [all, spring_summer, autumn_winter, winter]
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Overall AI confidence (0–1). Defaults to 0.85 if the AI service omits it.
+          example: 0.85
 
     AddItemRequest:
       type: object
@@ -579,85 +708,16 @@ components:
           type: string
           format: date-time
 
-    Calendar:
+    AcceptOutfitRequest:
       type: object
-      required: [id, name, source, created_at]
+      required: [item_ids]
       properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-          example: Work
-        source:
-          type: string
-          enum: [ics, google, apple]
-        created_at:
-          type: string
-          format: date-time
-
-    AddCalendarRequest:
-      type: object
-      required: [ics_url]
-      properties:
-        name:
-          type: string
-          description: Display name for the calendar
-          example: Work
-        ics_url:
-          type: string
-          format: uri
-          description: Public URL of an ICS (iCalendar) feed
-          example: https://example.com/calendar.ics
-
-    CalendarEvent:
-      type: object
-      required: [id, title, starts_at, all_day]
-      properties:
-        id:
-          type: string
-        title:
-          type: string
-          example: Team standup
-        starts_at:
-          type: string
-          format: date-time
-        ends_at:
-          type: string
-          format: date-time
-          nullable: true
-        location:
-          type: string
-        all_day:
-          type: boolean
-
-    WorkSchedule:
-      type: object
-      required: [working_days, work_start, work_end, holidays]
-      properties:
-        working_days:
+        item_ids:
           type: array
-          description: Weekdays that are working days (0 = Sunday … 6 = Saturday)
-          items:
-            type: integer
-            minimum: 0
-            maximum: 6
-          example: [1, 2, 3, 4, 5]
-        work_start:
-          type: string
-          description: Start of the working day (HH:MM, 24-hour)
-          example: '09:00'
-        work_end:
-          type: string
-          description: End of the working day (HH:MM, 24-hour)
-          example: '17:00'
-        holidays:
-          type: array
-          description: Specific dates that are days off even on a working weekday
           items:
             type: string
-            format: date
-          example: ['2026-12-25']
+          minItems: 1
+          maxItems: 10
 
     OutfitRecommendation:
       type: object
@@ -713,6 +773,12 @@ components:
             $ref: '#/components/schemas/Error'
     Conflict:
       description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Access denied
       content:
         application/json:
           schema:

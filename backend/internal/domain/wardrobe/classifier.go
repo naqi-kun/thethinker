@@ -5,11 +5,12 @@ import "context"
 // ClassifyResult holds the AI model's output for a single clothing image.
 // All fields map directly to ClothingItem fields.
 type ClassifyResult struct {
-	Category string
-	SubType  string
-	Color    string
-	Fit      string
-	Season   string
+	Category        string
+	SubType         string
+	Color           string
+	Fit             string
+	Season          string
+	ConfidenceScore float64
 }
 
 // Classifier is the domain port for the AI image classification service.

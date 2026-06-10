@@ -280,6 +280,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/wardrobe/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update an existing clothing item's fields */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddItemRequest"];
+                };
+            };
+            responses: {
+                /** @description Item updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClothingItem"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        post?: never;
+        /** Delete a clothing item from the wardrobe */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Item deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/wardrobe/items/{id}/image": {
         parameters: {
             query?: never;
@@ -376,6 +445,63 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ClothingItem"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description File too large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                422: components["responses"]["UnprocessableEntity"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/wardrobe/classify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Classify a clothing image without saving to the wardrobe */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        /**
+                         * Format: binary
+                         * @description Photo of the clothing item
+                         */
+                        image: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description AI classification result */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClassifyResult"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -729,6 +855,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recommendations/outfit/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept today's outfit and mark all items as worn */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AcceptOutfitRequest"];
+                };
+            };
+            responses: {
+                /** @description Items marked as worn */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -758,6 +924,24 @@ export interface components {
             answers?: {
                 [key: string]: string;
             };
+        };
+        ClassifyResult: {
+            /** @enum {string} */
+            category: "formal" | "casual" | "sport";
+            /** @example jeans */
+            sub_type: string;
+            /** @example navy blue */
+            color: string;
+            /** @enum {string} */
+            fit: "slim" | "regular" | "relaxed" | "oversized";
+            /** @enum {string} */
+            season: "all" | "spring_summer" | "autumn_winter" | "winter";
+            /**
+             * Format: float
+             * @description Overall AI confidence (0–1). Defaults to 0.85 if the AI service omits it.
+             * @example 0.85
+             */
+            confidence_score: number;
         };
         AddItemRequest: {
             /** @enum {string} */
@@ -802,69 +986,8 @@ export interface components {
             /** Format: date-time */
             connected_at: string;
         };
-        Calendar: {
-            /** Format: uuid */
-            id: string;
-            /** @example Work */
-            name: string;
-            /** @enum {string} */
-            source: "ics" | "google" | "apple";
-            /** Format: date-time */
-            created_at: string;
-        };
-        AddCalendarRequest: {
-            /**
-             * @description Display name for the calendar
-             * @example Work
-             */
-            name?: string;
-            /**
-             * Format: uri
-             * @description Public URL of an ICS (iCalendar) feed
-             * @example https://example.com/calendar.ics
-             */
-            ics_url: string;
-        };
-        CalendarEvent: {
-            id: string;
-            /** @example Team standup */
-            title: string;
-            /** Format: date-time */
-            starts_at: string;
-            /** Format: date-time */
-            ends_at?: string | null;
-            location?: string;
-            all_day: boolean;
-        };
-        WorkSchedule: {
-            /**
-             * @description Weekdays that are working days (0 = Sunday … 6 = Saturday)
-             * @example [
-             *       1,
-             *       2,
-             *       3,
-             *       4,
-             *       5
-             *     ]
-             */
-            working_days: number[];
-            /**
-             * @description Start of the working day (HH:MM, 24-hour)
-             * @example 09:00
-             */
-            work_start: string;
-            /**
-             * @description End of the working day (HH:MM, 24-hour)
-             * @example 17:00
-             */
-            work_end: string;
-            /**
-             * @description Specific dates that are days off even on a working weekday
-             * @example [
-             *       "2026-12-25"
-             *     ]
-             */
-            holidays: string[];
+        AcceptOutfitRequest: {
+            item_ids: string[];
         };
         OutfitRecommendation: {
             /** Format: date */
@@ -907,6 +1030,15 @@ export interface components {
         };
         /** @description Resource already exists */
         Conflict: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description Access denied */
+        Forbidden: {
             headers: {
                 [name: string]: unknown;
             };
