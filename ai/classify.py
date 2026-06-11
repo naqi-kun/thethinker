@@ -4,8 +4,10 @@ import clip
 import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from PIL import Image
 from pydantic import BaseModel
+from rembg import new_session, remove
 
 app = FastAPI(title="Clothing Classifier", version="0.1.0")
 
@@ -18,6 +20,9 @@ app.add_middleware(
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
+
+# Load u2net session once at startup — reused across all /remove-bg requests.
+rembg_session = new_session("u2net")
 
 CATEGORY_PROMPTS: dict[str, str] = {
     "formal": "a formal dress shirt, blazer, suit jacket, or tailored trousers",
@@ -130,6 +135,16 @@ async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
         fit=fit,
         season=season,
     )
+
+
+@app.post("/remove-bg")
+async def remove_bg(image: UploadFile = File(...)) -> Response:
+    data = await image.read()
+    try:
+        output = remove(data, session=rembg_session)
+    except Exception:
+        raise HTTPException(status_code=422, detail="cannot process image")
+    return Response(content=output, media_type="image/png")
 
 
 @app.get("/healthz")

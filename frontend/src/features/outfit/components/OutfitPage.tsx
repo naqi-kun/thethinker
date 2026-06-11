@@ -291,7 +291,6 @@ export default function OutfitPage() {
                         src={item.image_url}
                         alt={item.sub_type}
                         className="h-36 w-full object-cover"
-                        style={{ mixBlendMode: 'multiply' }}
                         loading="lazy"
                       />
                     ) : (
