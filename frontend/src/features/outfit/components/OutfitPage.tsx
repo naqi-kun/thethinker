@@ -250,7 +250,7 @@ export default function OutfitPage() {
         ) : error ? (
           <div className="flex flex-col items-center py-20 text-center">
             <p className="mb-4 text-sm text-destructive">{error}</p>
-            <button onClick={fetchOutfit} className="btn-outline btn-sm gap-2">
+            <button onClick={() => fetchOutfit()} className="btn-outline btn-sm gap-2">
               <RefreshCw className="h-4 w-4" />
               Try Again
             </button>
