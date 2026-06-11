@@ -154,7 +154,9 @@ async def stylist_engine(state: RecommendationState) -> dict:
         messages=[{"role": "user", "content": _build_prompt(state)}],
     )
 
-    tool_block = next(b for b in response.content if b.type == "tool_use")
+    tool_block = next((b for b in response.content if b.type == "tool_use"), None)
+    if tool_block is None:
+        raise ValueError("Claude did not call the select_outfit tool")
     outfit: dict = tool_block.input
     return {"current_recommendation": outfit, "user_action": None}
 

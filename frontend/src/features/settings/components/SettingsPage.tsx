@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Download, Trash2, AlertTriangle, Plus, X } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import { token } from '../../../shared/api/token';
-import { getWorkSchedule, updateWorkSchedule } from '../api';
+import {
+  getPreferences,
+  getWorkSchedule,
+  updatePreferences,
+  updateWorkSchedule,
+} from '../api';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -125,6 +130,9 @@ export default function SettingsPage() {
   // Preferences
   const [tempUnit, setTempUnit] = useState<TempUnit>('Celsius');
   const [location, setLocation] = useState('');
+  const [savedLocation, setSavedLocation] = useState('');
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const [style, setStyle] = useState<StylePref>('Classic');
   const [fit, setFit] = useState<FitPref>('Regular');
 
@@ -138,6 +146,18 @@ export default function SettingsPage() {
   const [scheduleStatus, setScheduleStatus] = useState<string | null>(null);
 
   useEffect(() => {
+    getPreferences()
+      .then((p) => {
+        const loc = p.answers?.['location'] ?? '';
+        setLocation(loc);
+        setSavedLocation(loc);
+      })
+      .catch(() => {
+        /* best-effort; location stays empty */
+      });
+  }, []);
+
+  useEffect(() => {
     getWorkSchedule()
       .then((s) => {
         setWorkingDays(s.working_days ?? []);
@@ -147,6 +167,26 @@ export default function SettingsPage() {
       })
       .catch(() => setScheduleStatus('Failed to load work schedule.'));
   }, []);
+
+  async function saveLocation() {
+    if (!location.trim()) return;
+    setSavingLocation(true);
+    setLocationStatus(null);
+    try {
+      const current = await getPreferences();
+      await updatePreferences({
+        styles: current.styles ?? [],
+        answers: { ...(current.answers ?? {}), location: location.trim() },
+      });
+      setSavedLocation(location.trim());
+      setLocationStatus('Saved!');
+    } catch {
+      setLocationStatus('Could not save. Please try again.');
+    } finally {
+      setSavingLocation(false);
+      setTimeout(() => setLocationStatus(null), 3000);
+    }
+  }
 
   function toggleWorkingDay(day: number) {
     setWorkingDays((prev) =>
@@ -238,21 +278,42 @@ export default function SettingsPage() {
               onChange={setTempUnit}
             />
           </Row>
-          <Row>
-            <RowLabel
-              label="Default location"
-              description="Used for weather context."
-              htmlFor="location-input"
-            />
-            <input
-              id="location-input"
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="City or ZIP"
-              className="input w-36 text-sm"
-            />
-          </Row>
+          <div className="border-b border-border px-4 py-3.5 last:border-b-0">
+            <div className="flex items-center justify-between gap-4">
+              <RowLabel
+                label="Default location"
+                description="City or postcode used for weather."
+                htmlFor="location-input"
+              />
+              <input
+                id="location-input"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && saveLocation()}
+                placeholder="e.g. London"
+                className="input w-36 text-sm"
+              />
+            </div>
+            {(location !== savedLocation || locationStatus) && (
+              <div className="mt-2.5 flex items-center justify-end gap-3">
+                {locationStatus && (
+                  <span className="text-xs text-muted-foreground">
+                    {locationStatus}
+                  </span>
+                )}
+                {location !== savedLocation && (
+                  <button
+                    onClick={saveLocation}
+                    disabled={savingLocation || !location.trim()}
+                    className="btn-primary btn-sm shrink-0 disabled:opacity-50"
+                  >
+                    {savingLocation ? 'Saving…' : 'Save location'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <div className="border-b border-border px-4 py-3.5 last:border-b-0">
             <p className="mb-2.5 text-sm font-medium text-foreground">
               Style preference

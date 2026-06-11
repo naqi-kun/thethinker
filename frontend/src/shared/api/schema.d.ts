@@ -1077,6 +1077,8 @@ export interface components {
             feels_like: number;
             /** @example partly cloudy */
             description: string;
+            /** @example London */
+            location?: string;
         };
         Error: {
             code: string;

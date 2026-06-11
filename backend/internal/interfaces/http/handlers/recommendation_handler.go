@@ -29,10 +29,18 @@ func NewRecommendationHandler(svc recommendationSvc, wardrobeSvc wardrobeAccepte
 	return &RecommendationHandler{svc: svc, wardrobeSvc: wardrobeSvc}
 }
 
+type weatherResponse struct {
+	Temperature float64 `json:"temperature"`
+	FeelsLike   float64 `json:"feels_like"`
+	Description string  `json:"description"`
+	Location    string  `json:"location,omitempty"`
+}
+
 type outfitResponse struct {
 	SessionID string                 `json:"session_id"`
 	Date      string                 `json:"date"`
 	Occasion  string                 `json:"occasion,omitempty"`
+	Weather   *weatherResponse       `json:"weather,omitempty"`
 	Items     []clothingItemResponse `json:"items"`
 }
 
@@ -74,10 +82,21 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 		items[i] = toItemResponse(item)
 	}
 
+	var wr *weatherResponse
+	if rec.Weather != nil {
+		wr = &weatherResponse{
+			Temperature: rec.Weather.Temperature,
+			FeelsLike:   rec.Weather.FeelsLike,
+			Description: rec.Weather.Description,
+			Location:    rec.Weather.Location,
+		}
+	}
+
 	writeJSON(w, http.StatusOK, outfitResponse{
 		SessionID: rec.SessionID,
 		Date:      rec.Date.Format("2006-01-02"),
 		Occasion:  rec.Occasion,
+		Weather:   wr,
 		Items:     items,
 	})
 }

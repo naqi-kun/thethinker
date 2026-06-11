@@ -78,3 +78,24 @@ func (s *Service) Login(ctx context.Context, email, password string) (*AuthResul
 	}
 	return &AuthResult{Token: tok, UserID: u.ID}, nil
 }
+
+// GetPreferences returns the user's style preferences, or an empty struct if
+// none have been saved yet (e.g. a new user who skipped onboarding).
+func (s *Service) GetPreferences(ctx context.Context, userID string) (*Preferences, error) {
+	p, err := s.repo.FindPreferences(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if p == nil {
+		return &Preferences{UserID: userID, Styles: []string{}, Answers: map[string]string{}}, nil
+	}
+	return p, nil
+}
+
+// SavePreferences upserts the user's style preferences.
+func (s *Service) SavePreferences(ctx context.Context, p *Preferences) error {
+	if p.Answers == nil {
+		p.Answers = map[string]string{}
+	}
+	return s.repo.SavePreferences(ctx, p)
+}

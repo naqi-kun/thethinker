@@ -18,6 +18,7 @@ import (
 	aiinfra "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/ai"
 	calendarext "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
+	weatherinfra "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/weather"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 	gcsclient "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/storage/gcs"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
@@ -43,6 +44,7 @@ func main() {
 	jwtSecret := requireEnv("JWT_SECRET")
 	aiServiceURL := requireEnv("AI_SERVICE_URL")
 	gcsBucket := getEnvOrDefault("GCS_BUCKET", "wardrobe-images")
+	weatherAPIKey := os.Getenv("WEATHER_API_KEY") // optional; falls back to stub when empty
 
 	if err := postgres.RunMigrations(databaseURL); err != nil {
 		log.Fatalf("migrations: %v", err)
@@ -73,9 +75,13 @@ func main() {
 	wardrobeSvc := wardrobe.NewService(wardrobeRepo, classifierClient, gcsClient, classifierClient)
 	calendarSvc := calendar.NewService(calendarRepo, calendarext.NewICSFetcher())
 	workScheduleSvc := workschedule.NewService(workScheduleRepo)
-	weatherSvc := weather.NewService()
+	var weatherClient weather.Client
+	if weatherAPIKey != "" {
+		weatherClient = weatherinfra.NewClient(weatherAPIKey)
+	}
+	weatherSvc := weather.NewService(weatherClient)
 	aiRecommendClient := aiinfra.NewRecommendClient(aiServiceURL)
-	recommendSvc := recommendation.NewService(wardrobeRepo, calendarRepo, weatherSvc, aiRecommendClient)
+	recommendSvc := recommendation.NewService(wardrobeRepo, calendarRepo, userRepo, weatherSvc, aiRecommendClient)
 
 	// handlers
 	userHandler := handlers.NewUserHandler(userSvc)
@@ -126,10 +132,12 @@ func main() {
 	mux.Handle("POST /recommendations/outfit/accept", auth(http.HandlerFunc(recommendHandler.AcceptOutfit)))
 
 	srv := &http.Server{
-		Addr:         ":" + port(),
-		Handler:      middleware.Tracing(mux),
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		Addr:        ":" + port(),
+		Handler:     middleware.Tracing(mux),
+		ReadTimeout: 30 * time.Second,
+		// 120s > max AI client timeout (90s classifier, 60s recommender).
+		// Gemini and Claude calls are network-bound; 10s was too short post-migration.
+		WriteTimeout: 120 * time.Second,
 	}
 
 	go func() {

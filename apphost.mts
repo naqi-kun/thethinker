@@ -34,10 +34,14 @@ const jaeger = await builder.addContainer('jaeger', { image: 'jaegertracing/all-
 await jaeger.withHttpEndpoint({ port: 16686, targetPort: 16686, name: 'ui' });
 await jaeger.withHttpEndpoint({ port: 4318, targetPort: 4318, name: 'otlp' });
 
+// Google API key for Gemini 2.5 Flash — Aspire prompts once on first start
+const googleApiKey = builder.addParameter('googleApiKey', { secret: true });
+
 // Python AI classification service — built from ./ai/Dockerfile
 const ai = await builder.addDockerfile('ai', './ai');
 await ai.withHttpEndpoint({ port: 8001, targetPort: 8001, name: 'http' });
 await ai.withEnvironment('ANTHROPIC_API_KEY', anthropicApiKey);
+await ai.withEnvironment('GOOGLE_API_KEY', googleApiKey);
 
 // Go backend — runs `go run ./cmd/api` from ./backend
 const backend = await builder.addGoApp('backend', './backend', { packagePath: './cmd/api' });

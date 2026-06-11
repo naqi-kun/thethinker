@@ -2,22 +2,33 @@ package weather
 
 import "context"
 
-type Service struct {
-	// TODO: inject external weather client (internal/infrastructure/external/weather)
+// Client is the port for the external weather data provider.
+// The implementation lives in internal/infrastructure/external/weather.
+type Client interface {
+	GetConditions(ctx context.Context, location string) (*Conditions, error)
 }
 
-func NewService() *Service {
-	return &Service{}
+type Service struct {
+	client Client // nil → stub fallback
+}
+
+func NewService(client Client) *Service {
+	return &Service{client: client}
 }
 
 // GetConditions returns the current conditions for a location.
-//
-// The real third-party weather integration is not wired yet, so this returns a
-// stable placeholder snapshot. It exists so the recommendation flow (KAN-49) can
-// surface a weather badge today; swap the body for a real client later.
-func (s *Service) GetConditions(_ context.Context, location string) (*Conditions, error) {
+// If no client is wired (nil) or the call fails, it returns a stable stub so
+// the recommendation flow always has weather data to work with.
+func (s *Service) GetConditions(ctx context.Context, location string) (*Conditions, error) {
 	if location == "" {
 		location = "your area"
+	}
+	if s.client != nil {
+		cond, err := s.client.GetConditions(ctx, location)
+		if err == nil {
+			return cond, nil
+		}
+		// fall through to stub on any error (bad API key, network, unknown city…)
 	}
 	return &Conditions{
 		Temperature: 22,
