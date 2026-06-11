@@ -3,6 +3,31 @@ import { X } from 'lucide-react';
 import { listItems } from '../../wardrobe/api';
 import type { ClothingItem } from '../../../shared/api/types';
 
+type Slot = 'top' | 'bottom' | 'footwear' | 'other';
+
+const SLOT_MAP: Record<string, Slot> = {
+  shirt: 'top',
+  't-shirt': 'top',
+  sweater: 'top',
+  hoodie: 'top',
+  jacket: 'top',
+  coat: 'top',
+  blazer: 'top',
+  suit: 'top',
+  pants: 'bottom',
+  jeans: 'bottom',
+  shorts: 'bottom',
+  skirt: 'bottom',
+  dress: 'bottom',
+  shoes: 'footwear',
+  sneakers: 'footwear',
+  boots: 'footwear',
+};
+
+function slotOf(subType: string): Slot {
+  return SLOT_MAP[subType.toLowerCase()] ?? 'other';
+}
+
 interface Props {
   item: ClothingItem;
   outfitItemIds: string[];
@@ -20,6 +45,7 @@ export default function SwapBottomSheet({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const itemSlot = slotOf(item.sub_type);
     listItems(item.category)
       .then((items) =>
         setAlternatives(
@@ -27,6 +53,7 @@ export default function SwapBottomSheet({
             (i) =>
               i.id !== item.id &&
               !outfitItemIds.includes(i.id) &&
+              slotOf(i.sub_type) === itemSlot &&
               (i.season === item.season || i.season === 'all' || item.season === 'all'),
           ),
         ),

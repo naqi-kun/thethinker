@@ -520,6 +520,11 @@ paths:
             type: string
             format: date
             example: '2025-06-01'
+        - name: session_id
+          in: query
+          description: Resume an existing AI recommendation session (regenerate). Omit to start a new session.
+          schema:
+            type: string
       responses:
         '200':
           description: Outfit recommendation
@@ -786,7 +791,7 @@ components:
 
     AcceptOutfitRequest:
       type: object
-      required: [item_ids]
+      required: [item_ids, session_id]
       properties:
         item_ids:
           type: array
@@ -794,11 +799,17 @@ components:
             type: string
           minItems: 1
           maxItems: 10
+        session_id:
+          type: string
+          description: AI session ID returned by GET /recommendations/outfit
 
     OutfitRecommendation:
       type: object
-      required: [date, items]
+      required: [session_id, date, items]
       properties:
+        session_id:
+          type: string
+          description: AI session ID — pass back as ?session_id= on refresh or in accept body
         date:
           type: string
           format: date

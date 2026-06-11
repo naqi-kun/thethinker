@@ -2,47 +2,48 @@ package recommendation
 
 import (
 	"context"
+	"errors"
+	"math/rand"
 	"sort"
 	"time"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/weather"
-	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/workschedule"
 )
 
-// Outfit is a recommendation for a given day: the occasion derived from the
-// user's work schedule, a weather snapshot, and the chosen wardrobe items.
-type Outfit struct {
-	Date      time.Time
-	Occasion  string
-	IsWorkday bool
-	Weather   *weather.Conditions
-	Items     []*wardrobe.ClothingItem
+// AIRecommender is implemented by the infrastructure AI client.
+type AIRecommender interface {
+	StartSession(ctx context.Context, items []*wardrobe.ClothingItem) (sessionID string, rec AIRec, err error)
+	Regenerate(ctx context.Context, sessionID string) (AIRec, error)
+	Accept(ctx context.Context, sessionID string) error
 }
 
 type Service struct {
-	wardrobeRepo wardrobe.Repository
-	calendarRepo calendar.Repository
-	weatherSvc   *weather.Service
-	scheduleSvc  *workschedule.Service
+	wardrobeRepo  wardrobe.Repository
+	calendarRepo  calendar.Repository
+	weatherSvc    *weather.Service
+	aiRecommender AIRecommender
 }
 
 func NewService(
 	wardrobeRepo wardrobe.Repository,
 	calendarRepo calendar.Repository,
 	weatherSvc *weather.Service,
-	scheduleSvc *workschedule.Service,
+	aiRecommender AIRecommender,
 ) *Service {
 	return &Service{
-		wardrobeRepo: wardrobeRepo,
-		calendarRepo: calendarRepo,
-		weatherSvc:   weatherSvc,
-		scheduleSvc:  scheduleSvc,
+		wardrobeRepo:  wardrobeRepo,
+		calendarRepo:  calendarRepo,
+		weatherSvc:    weatherSvc,
+		aiRecommender: aiRecommender,
 	}
 }
 
-func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time) (*OutfitRecommendation, error) {
+// GetOutfit returns an outfit recommendation.
+// Pass sessionID="" to start a new AI session; pass an existing sessionID to
+// regenerate (the AI will avoid the previously rejected combination).
+func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, sessionID string) (*OutfitRecommendation, error) {
 	items, err := s.wardrobeRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -51,9 +52,29 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time) 
 		return nil, ErrEmptyWardrobe
 	}
 
-	selected := pickOutfit(items)
+	var rec AIRec
+	if sessionID == "" {
+		sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
+	} else {
+		rec, err = s.aiRecommender.Regenerate(ctx, sessionID)
+		if err != nil {
+			// Session expired (AI service restarted) — start a new one instead.
+			if isSessionNotFound(err) {
+				sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
+			}
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	selected := pickItemsByID(items, rec)
+	if len(selected) == 0 {
+		selected = pickOutfit(items)
+	}
 
 	return &OutfitRecommendation{
+		SessionID: sessionID,
 		UserID:    userID,
 		Date:      date,
 		Items:     selected,
@@ -62,6 +83,43 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time) 
 	}, nil
 }
 
+// AcceptSession signals to the AI service that the user accepted the current
+// outfit, ending the rejection-tracking loop for this session.
+func (s *Service) AcceptSession(ctx context.Context, sessionID string) error {
+	if sessionID == "" {
+		return nil
+	}
+	if err := s.aiRecommender.Accept(ctx, sessionID); err != nil && !isSessionNotFound(err) {
+		return err
+	}
+	return nil
+}
+
+func isSessionNotFound(err error) bool {
+	return errors.Is(err, ErrSessionNotFound)
+}
+
+// ── item selection helpers ─────────────────────────────────────────────────────
+
+// pickItemsByID maps the AI-returned IDs back to full ClothingItem objects.
+func pickItemsByID(items []*wardrobe.ClothingItem, rec AIRec) []*wardrobe.ClothingItem {
+	index := make(map[string]*wardrobe.ClothingItem, len(items))
+	for _, item := range items {
+		index[item.ID] = item
+	}
+	var result []*wardrobe.ClothingItem
+	for _, id := range []string{rec.TopID, rec.BottomID, rec.ShoesID} {
+		if id == "" {
+			continue
+		}
+		if item, ok := index[id]; ok {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// pickOutfit is the deterministic fallback used when AI selection yields nothing.
 func pickOutfit(items []*wardrobe.ClothingItem) []*wardrobe.ClothingItem {
 	var tops, bottoms, footwear []*wardrobe.ClothingItem
 	for _, item := range items {
@@ -108,5 +166,20 @@ func leastRecentlyWorn(items []*wardrobe.ClothingItem) *wardrobe.ClothingItem {
 		}
 		return items[i].LastWorn.Before(*items[j].LastWorn)
 	})
-	return items[0]
+	first := items[0]
+	tied := []*wardrobe.ClothingItem{first}
+	for _, item := range items[1:] {
+		if first.LastWorn == nil {
+			if item.LastWorn == nil {
+				tied = append(tied, item)
+			} else {
+				break
+			}
+		} else if item.LastWorn != nil && !item.LastWorn.After(*first.LastWorn) {
+			tied = append(tied, item)
+		} else {
+			break
+		}
+	}
+	return tied[rand.Intn(len(tied))]
 }

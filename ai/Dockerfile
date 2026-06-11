@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY classify.py .
+COPY *.py .
 
 # Pre-download CLIP model so container starts instantly (avoids 338MB download on every restart)
 RUN python -c "import clip; clip.load('ViT-B/32', device='cpu')"
@@ -16,4 +16,4 @@ RUN python -c "import clip; clip.load('ViT-B/32', device='cpu')"
 RUN python -c "from rembg import new_session; new_session('u2net')"
 
 EXPOSE 8001
-CMD ["uvicorn", "classify:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

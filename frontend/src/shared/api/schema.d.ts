@@ -827,6 +827,8 @@ export interface paths {
                 query?: {
                     /** @description Date to recommend for (ISO 8601, defaults to today) */
                     date?: string;
+                    /** @description Resume an existing AI recommendation session (regenerate). Omit to start a new session. */
+                    session_id?: string;
                 };
                 header?: never;
                 path?: never;
@@ -1046,8 +1048,12 @@ export interface components {
         };
         AcceptOutfitRequest: {
             item_ids: string[];
+            /** @description AI session ID returned by GET /recommendations/outfit */
+            session_id: string;
         };
         OutfitRecommendation: {
+            /** @description AI session ID — pass back as ?session_id= on refresh or in accept body */
+            session_id: string;
             /** Format: date */
             date: string;
             /** @example business meeting */

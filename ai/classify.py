@@ -2,21 +2,13 @@ import io
 
 import clip
 import torch
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from PIL import Image
 from pydantic import BaseModel
 from rembg import new_session, remove
 
-app = FastAPI(title="Clothing Classifier", version="0.1.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+router = APIRouter(tags=["classify"])
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
@@ -107,7 +99,7 @@ def top_label(
     return keys[idx], float(similarity[0][idx].item())
 
 
-@app.post("/classify", response_model=ClassifyResponse)
+@router.post("/classify", response_model=ClassifyResponse)
 async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
     data = await image.read()
     try:
@@ -137,7 +129,8 @@ async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
     )
 
 
-@app.post("/remove-bg")
+
+@router.post("/remove-bg")
 async def remove_bg(image: UploadFile = File(...)) -> Response:
     data = await image.read()
     try:
@@ -145,8 +138,3 @@ async def remove_bg(image: UploadFile = File(...)) -> Response:
     except Exception:
         raise HTTPException(status_code=422, detail="cannot process image")
     return Response(content=output, media_type="image/png")
-
-
-@app.get("/healthz")
-async def healthz() -> dict[str, str]:
-    return {"status": "ok"}
