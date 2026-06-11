@@ -50,7 +50,16 @@ func (h *DevSeedHandler) Seed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msg, err := h.runSeed(r.Context())
+	// The paced run takes ~4 min; extend this connection's write deadline past
+	// the server-wide WriteTimeout (120s), which would otherwise drop the
+	// connection mid-seed. Best-effort: not all writers support it.
+	rc := http.NewResponseController(w)
+	_ = rc.SetWriteDeadline(time.Now().Add(12 * time.Minute))
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
+	defer cancel()
+
+	msg, err := h.runSeed(ctx)
 	if err != nil {
 		log.Printf("seed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -132,10 +132,11 @@ func main() {
 	mux.Handle("POST /recommendations/outfit/accept", auth(http.HandlerFunc(recommendHandler.AcceptOutfit)))
 
 	// dev-only seed endpoint (guarded inside handler by GCS_EMULATOR_HOST).
-	// 10-minute timeout: the seed paces Gemini calls at ~10 RPM (free-tier rate
-	// limit), so a full run takes ~4 minutes plus retry headroom.
+	// The handler manages its own 10-min deadline and extends the connection's
+	// write deadline past the server WriteTimeout — no TimeoutHandler wrapper,
+	// which would block http.ResponseController from reaching the real writer.
 	devSeedHandler := handlers.NewDevSeedHandler(db, wardrobeSvc)
-	mux.Handle("POST /dev/seed", http.TimeoutHandler(http.HandlerFunc(devSeedHandler.Seed), 10*time.Minute, "seed timed out"))
+	mux.HandleFunc("POST /dev/seed", devSeedHandler.Seed)
 
 	srv := &http.Server{
 		Addr:        ":" + port(),
