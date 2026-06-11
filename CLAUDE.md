@@ -45,7 +45,12 @@ aspire ps           # list resources and their live ports
 aspire logs backend # stream backend logs
 aspire logs frontend
 aspire dashboard    # open telemetry dashboard in browser
+
+aspire resource backend restart   # recompile + restart one resource (e.g. after Go changes)
+aspire wait backend               # block until a resource is healthy
 ```
+
+Prefer `aspire resource <name> restart` over a full `aspire stop`/`aspire run` cycle when only one service changed — restarting a Go app resource recompiles it.
 
 The AppHost wires:
 - Postgres with a persistent named volume (`thethinker-pgdata`)
