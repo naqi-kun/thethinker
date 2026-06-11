@@ -541,7 +541,10 @@ function ItemCard({
 
         {/* Delete confirmation overlay */}
         {confirming && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/90 backdrop-blur-sm">
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/90 backdrop-blur-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <p className="text-xs font-medium text-foreground">Remove item?</p>
             <div className="flex gap-2">
               <button
