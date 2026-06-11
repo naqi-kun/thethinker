@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/calendar"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/weather"
 )
@@ -19,9 +20,16 @@ type AIRecommender interface {
 	Accept(ctx context.Context, sessionID string) error
 }
 
+// userPrefsReader is a minimal interface for reading a user's saved preferences.
+// Only FindPreferences is needed here; the full user.Repository satisfies it.
+type userPrefsReader interface {
+	FindPreferences(ctx context.Context, userID string) (*user.Preferences, error)
+}
+
 type Service struct {
 	wardrobeRepo  wardrobe.Repository
 	calendarRepo  calendar.Repository
+	userPrefsRepo userPrefsReader
 	weatherSvc    *weather.Service
 	aiRecommender AIRecommender
 }
@@ -29,12 +37,14 @@ type Service struct {
 func NewService(
 	wardrobeRepo wardrobe.Repository,
 	calendarRepo calendar.Repository,
+	userPrefsRepo userPrefsReader,
 	weatherSvc *weather.Service,
 	aiRecommender AIRecommender,
 ) *Service {
 	return &Service{
 		wardrobeRepo:  wardrobeRepo,
 		calendarRepo:  calendarRepo,
+		userPrefsRepo: userPrefsRepo,
 		weatherSvc:    weatherSvc,
 		aiRecommender: aiRecommender,
 	}
@@ -73,12 +83,23 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		selected = pickOutfit(items)
 	}
 
+	// Best-effort weather lookup — never blocks the recommendation.
+	var conditions *weather.Conditions
+	if prefs, err := s.userPrefsRepo.FindPreferences(ctx, userID); err == nil && prefs != nil {
+		if loc := prefs.Answers["location"]; loc != "" {
+			if cond, err := s.weatherSvc.GetConditions(ctx, loc); err == nil {
+				conditions = cond
+			}
+		}
+	}
+
 	return &OutfitRecommendation{
 		SessionID: sessionID,
 		UserID:    userID,
 		Date:      date,
 		Items:     selected,
 		Occasion:  "casual",
+		Weather:   conditions,
 		CreatedAt: time.Now(),
 	}, nil
 }
