@@ -946,6 +946,11 @@ export interface components {
             confidence_score: number;
         };
         AddItemRequest: {
+            /**
+             * @description User-editable display name for the item. Auto-suggested from colour + type on the client.
+             * @example Black T-Shirt
+             */
+            name?: string;
             /** @enum {string} */
             category: "formal" | "casual" | "sport";
             /** @example jeans */
@@ -961,6 +966,11 @@ export interface components {
         };
         ClothingItem: {
             id: string;
+            /**
+             * @description User-editable display name. May be empty for legacy items.
+             * @example Black T-Shirt
+             */
+            name?: string;
             /** @enum {string} */
             category: "formal" | "casual" | "sport";
             /** @example shirt */

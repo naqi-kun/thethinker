@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { HexColorPicker } from 'react-colorful';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { addItem, uploadItemImage } from '../api';
 import type {
@@ -9,45 +10,21 @@ import type {
   ClothingFit,
   ClothingSeason,
 } from '../../../shared/api/types';
-
-type ClothingSubType =
-  | 'shirt'
-  | 't-shirt'
-  | 'sweater'
-  | 'hoodie'
-  | 'jacket'
-  | 'coat'
-  | 'pants'
-  | 'jeans'
-  | 'shorts'
-  | 'skirt'
-  | 'dress'
-  | 'shoes'
-  | 'sneakers'
-  | 'boots'
-  | 'suit'
-  | 'blazer';
-
-type ClothingColor =
-  | 'black'
-  | 'white'
-  | 'grey'
-  | 'navy blue'
-  | 'blue'
-  | 'light blue'
-  | 'red'
-  | 'burgundy'
-  | 'green'
-  | 'olive'
-  | 'beige'
-  | 'brown'
-  | 'yellow'
-  | 'orange'
-  | 'pink'
-  | 'purple'
-  | 'multicolor';
+import Select from '../../../shared/components/Select';
+import {
+  CATEGORIES,
+  COLOR_SWATCHES,
+  FITS,
+  SEASONS,
+  SUB_TYPES,
+  colorLabel,
+  type ClothingColor,
+  type ClothingSubType,
+} from '../options';
+import { nearestNamedColor, suggestName } from '../colorMatch';
 
 type FormState = {
+  name: string;
   category: ClothingCategory | '';
   sub_type: ClothingSubType | '';
   color: ClothingColor | '';
@@ -55,127 +32,13 @@ type FormState = {
   season: ClothingSeason | '';
 };
 
-type PillOption<T extends string> = { value: T; label: string };
-
-const CATEGORIES: PillOption<ClothingCategory>[] = [
-  { value: 'formal', label: 'Formal' },
-  { value: 'casual', label: 'Casual' },
-  { value: 'sport', label: 'Sport' },
-];
-
-const FITS: PillOption<ClothingFit>[] = [
-  { value: 'slim', label: 'Slim' },
-  { value: 'regular', label: 'Regular' },
-  { value: 'relaxed', label: 'Relaxed' },
-  { value: 'oversized', label: 'Oversized' },
-];
-
-const SEASONS: PillOption<ClothingSeason>[] = [
-  { value: 'all', label: 'All Seasons' },
-  { value: 'spring_summer', label: 'Spring / Summer' },
-  { value: 'autumn_winter', label: 'Autumn / Winter' },
-  { value: 'winter', label: 'Winter Only' },
-];
-
-const SUB_TYPES: PillOption<ClothingSubType>[] = [
-  { value: 'shirt', label: 'Shirt' },
-  { value: 't-shirt', label: 'T-Shirt' },
-  { value: 'sweater', label: 'Sweater' },
-  { value: 'hoodie', label: 'Hoodie' },
-  { value: 'jacket', label: 'Jacket' },
-  { value: 'coat', label: 'Coat' },
-  { value: 'blazer', label: 'Blazer' },
-  { value: 'suit', label: 'Suit' },
-  { value: 'pants', label: 'Pants' },
-  { value: 'jeans', label: 'Jeans' },
-  { value: 'shorts', label: 'Shorts' },
-  { value: 'skirt', label: 'Skirt' },
-  { value: 'dress', label: 'Dress' },
-  { value: 'shoes', label: 'Shoes' },
-  { value: 'sneakers', label: 'Sneakers' },
-  { value: 'boots', label: 'Boots' },
-];
-
-const COLOR_SWATCHES: Record<ClothingColor, string> = {
-  black: '#1a1a1a',
-  white: '#f0f0f0',
-  grey: '#888888',
-  'navy blue': '#1f3a5f',
-  blue: '#4a6fa5',
-  'light blue': '#6fa3c7',
-  red: '#c0392b',
-  burgundy: '#800020',
-  green: '#27ae60',
-  olive: '#6b7c39',
-  beige: '#d4bda8',
-  brown: '#795548',
-  yellow: '#f1c40f',
-  orange: '#e67e22',
-  pink: '#e91e8c',
-  purple: '#9b59b6',
-  multicolor: 'linear-gradient(135deg, #e74c3c, #3498db, #2ecc71)',
-};
-
-const COLORS: PillOption<ClothingColor>[] = (
-  Object.keys(COLOR_SWATCHES) as ClothingColor[]
-).map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1) }));
-
-function ColorPill({
-  color,
-  selected,
-  onSelect,
-}: {
-  color: ClothingColor;
-  selected: ClothingColor | '';
-  onSelect: (c: ClothingColor) => void;
-}) {
-  const swatch = COLOR_SWATCHES[color];
-  const isGradient = swatch.startsWith('linear');
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(color)}
-      className={`flex cursor-pointer items-center gap-1.5 transition-all ${
-        selected === color ? 'badge-primary' : 'badge-outline'
-      }`}
-    >
-      <span
-        className="inline-block h-3 w-3 shrink-0 rounded-full border border-black/10"
-        style={isGradient ? { backgroundImage: swatch } : { backgroundColor: swatch }}
-      />
-      {color.charAt(0).toUpperCase() + color.slice(1)}
-    </button>
-  );
-}
-
-function PillGroup<T extends string>({
-  options,
-  selected,
-  onSelect,
-}: {
-  options: PillOption<T>[];
-  selected: T | '';
-  onSelect: (value: T) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onSelect(opt.value)}
-          className={`cursor-pointer transition-all ${
-            selected === opt.value ? 'badge-primary' : 'badge-outline'
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 type ReviewState = { classifyResult: ClassifyResult; imageBlob: Blob };
+
+/** A hex to seed the colour wheel from a named colour (neutral for multicolor). */
+function hexForColor(color: string): string {
+  const swatch = COLOR_SWATCHES[color as ClothingColor];
+  return swatch && swatch.startsWith('#') ? swatch : '#888888';
+}
 
 export default function ReviewItemPage() {
   const navigate = useNavigate();
@@ -199,12 +62,20 @@ export default function ReviewItemPage() {
   }, [imageBlob]);
 
   const [form, setForm] = useState<FormState>({
+    name: suggestName(classifyResult?.color ?? '', classifyResult?.sub_type ?? ''),
     category: (classifyResult?.category as ClothingCategory) ?? '',
     sub_type: (classifyResult?.sub_type as ClothingSubType) ?? '',
     color: (classifyResult?.color as ClothingColor) ?? '',
     fit: (classifyResult?.fit as ClothingFit) ?? '',
     season: (classifyResult?.season as ClothingSeason) ?? '',
   });
+
+  // The hex shown in the wheel; the saved value is always the snapped named colour.
+  const [pickedHex, setPickedHex] = useState<string>(
+    hexForColor(classifyResult?.color ?? ''),
+  );
+  // Once the user edits the name we stop auto-suggesting from colour + type.
+  const [nameTouched, setNameTouched] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -220,13 +91,35 @@ export default function ReviewItemPage() {
     ? Math.round(classifyResult.confidence_score * 100)
     : 0;
 
+  // Re-derive the suggested name when colour/type change, until the user edits it.
+  function reSuggestName(next: FormState): FormState {
+    if (nameTouched) return next;
+    return { ...next, name: suggestName(next.color, next.sub_type) };
+  }
+
+  function handleColorPick(hex: string) {
+    setPickedHex(hex);
+    setForm((f) => reSuggestName({ ...f, color: nearestNamedColor(hex) }));
+  }
+
+  function pickMulticolor() {
+    setForm((f) => reSuggestName({ ...f, color: 'multicolor' }));
+  }
+
   async function handleConfirm(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
     try {
-      const newItem = await addItem(form as AddItemPayload);
+      const newItem = await addItem({
+        name: form.name.trim(),
+        category: form.category,
+        sub_type: form.sub_type,
+        color: form.color,
+        fit: form.fit,
+        season: form.season,
+      } as AddItemPayload);
       if (imageBlob) {
         const file = new File([imageBlob], 'scan.jpg', { type: 'image/jpeg' });
         await uploadItemImage(newItem.id, file);
@@ -240,6 +133,9 @@ export default function ReviewItemPage() {
   }
 
   if (!state?.classifyResult) return null;
+
+  const colorIsMulticolor = form.color === 'multicolor';
+  const snappedSwatch = form.color ? COLOR_SWATCHES[form.color] : '';
 
   return (
     <div className="min-h-screen-safe bg-background pb-24">
@@ -281,13 +177,34 @@ export default function ReviewItemPage() {
         {/* Editable form */}
         <form onSubmit={handleConfirm} className="flex flex-col gap-6">
           <fieldset className="flex flex-col gap-2">
+            <label
+              htmlFor="item-name"
+              className="block text-xs font-medium uppercase tracking-widest text-espresso"
+            >
+              Name
+            </label>
+            <input
+              id="item-name"
+              type="text"
+              className="input"
+              value={form.name}
+              placeholder="e.g. Black T-Shirt"
+              onChange={(e) => {
+                setNameTouched(true);
+                setForm((f) => ({ ...f, name: e.target.value }));
+              }}
+            />
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-2">
             <label className="block text-xs font-medium uppercase tracking-widest text-espresso">
               Occasion
             </label>
-            <PillGroup
+            <Select
               options={CATEGORIES}
-              selected={form.category}
-              onSelect={(value) => setForm((f) => ({ ...f, category: value }))}
+              value={form.category}
+              placeholder="Select occasion…"
+              onChange={(value) => setForm((f) => ({ ...f, category: value }))}
             />
           </fieldset>
 
@@ -295,10 +212,13 @@ export default function ReviewItemPage() {
             <label className="block text-xs font-medium uppercase tracking-widest text-espresso">
               Type
             </label>
-            <PillGroup
+            <Select
               options={SUB_TYPES}
-              selected={form.sub_type}
-              onSelect={(value) => setForm((f) => ({ ...f, sub_type: value }))}
+              value={form.sub_type}
+              placeholder="Select type…"
+              onChange={(value) =>
+                setForm((f) => reSuggestName({ ...f, sub_type: value }))
+              }
             />
           </fieldset>
 
@@ -306,15 +226,39 @@ export default function ReviewItemPage() {
             <label className="block text-xs font-medium uppercase tracking-widest text-espresso">
               Color
             </label>
-            <div className="flex flex-wrap gap-2">
-              {COLORS.map((opt) => (
-                <ColorPill
-                  key={opt.value}
-                  color={opt.value}
-                  selected={form.color}
-                  onSelect={(value) => setForm((f) => ({ ...f, color: value }))}
-                />
-              ))}
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+              <HexColorPicker color={pickedHex} onChange={handleColorPick} />
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-6 w-6 shrink-0 rounded-full border border-black/10"
+                    style={
+                      snappedSwatch.startsWith('linear')
+                        ? { backgroundImage: snappedSwatch }
+                        : { backgroundColor: snappedSwatch }
+                    }
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    Snaps to:{' '}
+                    <span className="font-medium text-foreground">
+                      {form.color ? colorLabel(form.color) : '—'}
+                    </span>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={pickMulticolor}
+                  className={`flex w-fit cursor-pointer items-center gap-1.5 transition-all ${
+                    colorIsMulticolor ? 'badge-primary' : 'badge-outline'
+                  }`}
+                >
+                  <span
+                    className="inline-block h-3 w-3 shrink-0 rounded-full border border-black/10"
+                    style={{ backgroundImage: COLOR_SWATCHES.multicolor }}
+                  />
+                  Multicolor
+                </button>
+              </div>
             </div>
           </fieldset>
 
@@ -322,10 +266,11 @@ export default function ReviewItemPage() {
             <label className="block text-xs font-medium uppercase tracking-widest text-espresso">
               Fit
             </label>
-            <PillGroup
+            <Select
               options={FITS}
-              selected={form.fit}
-              onSelect={(value) => setForm((f) => ({ ...f, fit: value }))}
+              value={form.fit}
+              placeholder="Select fit…"
+              onChange={(value) => setForm((f) => ({ ...f, fit: value }))}
             />
           </fieldset>
 
@@ -333,10 +278,11 @@ export default function ReviewItemPage() {
             <label className="block text-xs font-medium uppercase tracking-widest text-espresso">
               Season
             </label>
-            <PillGroup
+            <Select
               options={SEASONS}
-              selected={form.season}
-              onSelect={(value) => setForm((f) => ({ ...f, season: value }))}
+              value={form.season}
+              placeholder="Select season…"
+              onChange={(value) => setForm((f) => ({ ...f, season: value }))}
             />
           </fieldset>
 

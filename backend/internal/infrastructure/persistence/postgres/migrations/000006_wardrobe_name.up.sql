@@ -1,0 +1,2 @@
+ALTER TABLE wardrobe_items
+  ADD COLUMN name TEXT NOT NULL DEFAULT '';

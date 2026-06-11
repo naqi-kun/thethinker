@@ -25,6 +25,7 @@
     "lucide-react": "^0.511.0",
     "openapi-fetch": "^0.17.0",
     "react": "^19.0.0",
+    "react-colorful": "^5.7.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.30.0",
     "tailwind-merge": "^2.6.0",

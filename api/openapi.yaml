@@ -643,6 +643,10 @@ components:
       type: object
       required: [category, sub_type, color, fit, season]
       properties:
+        name:
+          type: string
+          description: User-editable display name for the item. Auto-suggested from colour + type on the client.
+          example: Black T-Shirt
         category:
           type: string
           enum: [formal, casual, sport]
@@ -668,6 +672,10 @@ components:
       properties:
         id:
           type: string
+        name:
+          type: string
+          description: User-editable display name. May be empty for legacy items.
+          example: Black T-Shirt
         category:
           type: string
           enum: [formal, casual, sport]
