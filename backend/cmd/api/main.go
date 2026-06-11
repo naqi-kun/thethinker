@@ -131,6 +131,12 @@ func main() {
 	mux.Handle("GET /recommendations/outfit", auth(http.HandlerFunc(recommendHandler.GetOutfit)))
 	mux.Handle("POST /recommendations/outfit/accept", auth(http.HandlerFunc(recommendHandler.AcceptOutfit)))
 
+	// dev-only seed endpoint (guarded inside handler by GCS_EMULATOR_HOST).
+	// Wraps with a 5-minute timeout because IngestScan calls the AI service for
+	// each image; the default 10s WriteTimeout would kill it mid-seed.
+	devSeedHandler := handlers.NewDevSeedHandler(db, wardrobeSvc)
+	mux.Handle("POST /dev/seed", http.TimeoutHandler(http.HandlerFunc(devSeedHandler.Seed), 5*time.Minute, "seed timed out"))
+
 	srv := &http.Server{
 		Addr:        ":" + port(),
 		Handler:     middleware.Tracing(mux),

@@ -54,6 +54,10 @@ The AppHost wires:
 - Go backend with `DATABASE_URL`, `JWT_SECRET`, `AI_SERVICE_URL`, and OTel export to the Aspire dashboard
 - React/Vite frontend with `VITE_BACKEND_URL` pointed at the backend
 
+### Dev Seed
+
+Click **Seed Dev Data** on the **db** resource in the Aspire dashboard to reset the database and load 2 test users with a full image wardrobe (test accounts: `dev@thethinker.com` / `jane@thethinker.com`, both `password123`). Idempotent — safe to click repeatedly. See [docs/dev-seed.md](docs/dev-seed.md) for details.
+
 ### Docker Compose Publishing
 
 Run `aspire publish` to generate a deployment-ready Docker Compose file:

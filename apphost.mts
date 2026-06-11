@@ -44,8 +44,9 @@ await ai.withEnvironment('ANTHROPIC_API_KEY', anthropicApiKey);
 await ai.withEnvironment('GOOGLE_API_KEY', googleApiKey);
 
 // Go backend — runs `go run ./cmd/api` from ./backend
+// Port is pinned to 8080 so the Seed Dev Data dashboard command can reach it at a known address.
 const backend = await builder.addGoApp('backend', './backend', { packagePath: './cmd/api' });
-await backend.withHttpEndpoint({ env: 'PORT' });
+await backend.withHttpEndpoint({ env: 'PORT', port: 8080 });
 await backend.withEnvironment('DATABASE_URL', dbUri);
 await backend.withEnvironment('JWT_SECRET', jwtSecret);
 await backend.withEnvironment('AI_SERVICE_URL', ai.getEndpoint('http'));
@@ -60,6 +61,33 @@ await backend.waitFor(db);
 await backend.waitFor(gcs);
 await backend.waitFor(ai);
 await backend.waitFor(jaeger);
+
+// Dashboard button on the db resource: click "Seed Dev Data" to reset the DB
+// and preload GCS with real clothing images.
+await pgServer.withCommand(
+  'seed',
+  'Seed Dev Data',
+  async (_ctx) => {
+    try {
+      const res = await fetch('http://localhost:8080/dev/seed', { method: 'POST' });
+      const text = await res.text();
+      if (!res.ok) {
+        return { success: false, errorMessage: text };
+      }
+      return { success: true, message: text.trim() };
+    } catch (err) {
+      return { success: false, errorMessage: String(err) };
+    }
+  },
+  {
+    commandOptions: {
+      description: 'Truncate and re-populate the DB with test users and wardrobe items (dev only).',
+      confirmationMessage: 'This will DELETE all existing wardrobe data and re-seed from scratch.\n\nTwo test accounts will be created:\n  dev@thethinker.com  /  password123\n  jane@thethinker.com /  password123\n\nContinue?',
+      isHighlighted: true,
+      iconName: 'DatabaseArrowRight',
+    },
+  },
+);
 
 // React + Vite frontend — VITE_BACKEND_URL drives the dev-server proxy target
 const frontend = await builder.addViteApp('frontend', './frontend');
