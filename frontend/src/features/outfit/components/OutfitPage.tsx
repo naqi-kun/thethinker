@@ -76,13 +76,13 @@ export default function OutfitPage() {
   const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
   const [showToast, setShowToast] = useState(false);
 
-  const fetchOutfit = useCallback(() => {
+  const fetchOutfit = useCallback((sessionId?: string) => {
     setLoading(true);
     setError(null);
     setEmptyWardrobe(false);
     setAccepted(false);
     setSelectedItem(null);
-    getOutfit()
+    getOutfit(sessionId)
       .then(setRecommendation)
       .catch((err: unknown) => {
         if (err instanceof ApiError && err.status === 404) {
@@ -128,7 +128,7 @@ export default function OutfitPage() {
     const itemIds = recommendation.items.slice(0, MAX_ITEMS).map((i) => i.id);
     setAccepting(true);
     try {
-      await acceptOutfit(itemIds);
+      await acceptOutfit(itemIds, recommendation.session_id);
       setAccepted(true);
       setShowToast(true);
       setSelectedItem(null);
@@ -379,7 +379,10 @@ export default function OutfitPage() {
             )}
 
             <div className="mb-8 flex justify-center">
-              <button onClick={fetchOutfit} className="btn-outline btn-sm gap-2">
+              <button
+                onClick={() => fetchOutfit(recommendation?.session_id)}
+                className="btn-outline btn-sm gap-2"
+              >
                 <RefreshCw className="h-4 w-4" />
                 Refresh Suggestion
               </button>

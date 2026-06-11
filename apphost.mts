@@ -15,6 +15,9 @@ const dbUri = await db.uriExpression();
 // JWT signing secret — Aspire prompts once on first start
 const jwtSecret = builder.addParameter('jwtSecret', { secret: true });
 
+// Anthropic API key for the AI stylist engine — Aspire prompts once on first start
+const anthropicApiKey = builder.addParameter('anthropicApiKey', { secret: true });
+
 // Local Google Cloud Storage emulator (fake-gcs-server) — gives the wardrobe
 // image-upload feature a closed loop under `aspire run`, with no cloud creds.
 // Published on a fixed host port so both the backend process and the browser
@@ -34,6 +37,7 @@ await jaeger.withHttpEndpoint({ port: 4318, targetPort: 4318, name: 'otlp' });
 // Python AI classification service — built from ./ai/Dockerfile
 const ai = await builder.addDockerfile('ai', './ai');
 await ai.withHttpEndpoint({ port: 8001, targetPort: 8001, name: 'http' });
+await ai.withEnvironment('ANTHROPIC_API_KEY', anthropicApiKey);
 
 // Go backend — runs `go run ./cmd/api` from ./backend
 const backend = await builder.addGoApp('backend', './backend', { packagePath: './cmd/api' });

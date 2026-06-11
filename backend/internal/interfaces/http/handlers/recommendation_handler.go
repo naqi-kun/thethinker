@@ -12,7 +12,8 @@ import (
 )
 
 type recommendationSvc interface {
-	GetOutfit(ctx context.Context, userID string, date time.Time) (*recommendation.OutfitRecommendation, error)
+	GetOutfit(ctx context.Context, userID string, date time.Time, sessionID string) (*recommendation.OutfitRecommendation, error)
+	AcceptSession(ctx context.Context, sessionID string) error
 }
 
 type wardrobeAccepter interface {
@@ -29,9 +30,10 @@ func NewRecommendationHandler(svc recommendationSvc, wardrobeSvc wardrobeAccepte
 }
 
 type outfitResponse struct {
-	Date     string                 `json:"date"`
-	Occasion string                 `json:"occasion,omitempty"`
-	Items    []clothingItemResponse `json:"items"`
+	SessionID string                 `json:"session_id"`
+	Date      string                 `json:"date"`
+	Occasion  string                 `json:"occasion,omitempty"`
+	Items     []clothingItemResponse `json:"items"`
 }
 
 func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request) {
@@ -51,13 +53,19 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 		date = parsed
 	}
 
-	rec, err := h.svc.GetOutfit(r.Context(), userID, date)
+	sessionID := r.URL.Query().Get("session_id")
+
+	rec, err := h.svc.GetOutfit(r.Context(), userID, date, sessionID)
 	if err != nil {
 		if errors.Is(err, recommendation.ErrEmptyWardrobe) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "no items in wardrobe")
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to get recommendation")
+		return
+	}
+	if rec == nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "no recommendation returned")
 		return
 	}
 
@@ -67,14 +75,16 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusOK, outfitResponse{
-		Date:     rec.Date.Format("2006-01-02"),
-		Occasion: rec.Occasion,
-		Items:    items,
+		SessionID: rec.SessionID,
+		Date:      rec.Date.Format("2006-01-02"),
+		Occasion:  rec.Occasion,
+		Items:     items,
 	})
 }
 
 type acceptOutfitRequest struct {
-	ItemIDs []string `json:"item_ids"`
+	ItemIDs   []string `json:"item_ids"`
+	SessionID string   `json:"session_id"`
 }
 
 func (h *RecommendationHandler) AcceptOutfit(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +104,9 @@ func (h *RecommendationHandler) AcceptOutfit(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to mark items as worn")
 		return
 	}
+
+	// Close the AI session; non-fatal if it has already expired.
+	_ = h.svc.AcceptSession(r.Context(), req.SessionID)
 
 	w.WriteHeader(http.StatusNoContent)
 }

@@ -6,3 +6,5 @@ git+https://github.com/openai/CLIP.git
 Pillow==10.4.0
 python-multipart==0.0.9
 rembg[cpu]
+langgraph>=0.2.50
+anthropic>=0.92.0

@@ -15,6 +15,7 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/weather"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/workschedule"
+	aiinfra "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/ai"
 	calendarext "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
@@ -73,7 +74,8 @@ func main() {
 	calendarSvc := calendar.NewService(calendarRepo, calendarext.NewICSFetcher())
 	workScheduleSvc := workschedule.NewService(workScheduleRepo)
 	weatherSvc := weather.NewService()
-	recommendSvc := recommendation.NewService(wardrobeRepo, calendarRepo, weatherSvc, workScheduleSvc)
+	aiRecommendClient := aiinfra.NewRecommendClient(aiServiceURL)
+	recommendSvc := recommendation.NewService(wardrobeRepo, calendarRepo, weatherSvc, aiRecommendClient)
 
 	// handlers
 	userHandler := handlers.NewUserHandler(userSvc)
