@@ -8,7 +8,10 @@ export async function getOutfit(sessionId?: string): Promise<OutfitRecommendatio
   return data!;
 }
 
-export async function acceptOutfit(itemIds: string[], sessionId: string): Promise<void> {
+export async function acceptOutfit(
+  itemIds: string[],
+  sessionId: string,
+): Promise<void> {
   await apiClient.POST('/recommendations/outfit/accept', {
     body: { item_ids: itemIds, session_id: sessionId },
   });
