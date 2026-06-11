@@ -61,6 +61,11 @@ func healthyAIServer(t *testing.T) *httptest.Server {
 	return srv
 }
 
+// newSeedHandler builds a handler with zero AI-call spacing so tests run fast.
+func newSeedHandler(db *fakeSeedDB, svc *mockWardrobeSvc) *handlers.DevSeedHandler {
+	return handlers.NewDevSeedHandler(db, svc).WithClassifyInterval(0)
+}
+
 func runSeedRequest(h *handlers.DevSeedHandler) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodPost, "/dev/seed", nil)
 	rec := httptest.NewRecorder()
@@ -73,9 +78,7 @@ func TestSeed_RejectedOutsideDevEnvironment(t *testing.T) {
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	h := handlers.NewDevSeedHandler(db, &mockWardrobeSvc{})
-
-	rec := runSeedRequest(h)
+	rec := runSeedRequest(newSeedHandler(db, &mockWardrobeSvc{}))
 
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
@@ -95,9 +98,7 @@ func TestSeed_FailsFastWhenAIServiceDown(t *testing.T) {
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	h := handlers.NewDevSeedHandler(db, &mockWardrobeSvc{})
-
-	rec := runSeedRequest(h)
+	rec := runSeedRequest(newSeedHandler(db, &mockWardrobeSvc{}))
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
@@ -121,9 +122,7 @@ func TestSeed_FailsWhenAIHealthzUnhealthy(t *testing.T) {
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	h := handlers.NewDevSeedHandler(db, &mockWardrobeSvc{})
-
-	rec := runSeedRequest(h)
+	rec := runSeedRequest(newSeedHandler(db, &mockWardrobeSvc{}))
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
@@ -137,20 +136,17 @@ func TestSeed_IdempotentAcrossRuns(t *testing.T) {
 	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
 	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
 
-	var mu sync.Mutex
 	items := 0
 	db := &fakeSeedDB{items: &items}
 	svc := &mockWardrobeSvc{
 		ingestScan: func(_ context.Context, userID string, _ []byte, _ string) (*wardrobe.ClothingItem, error) {
-			mu.Lock()
 			items++
-			mu.Unlock()
 			it := *savedItem()
 			it.UserID = userID
 			return &it, nil
 		},
 	}
-	h := handlers.NewDevSeedHandler(db, svc)
+	h := newSeedHandler(db, svc)
 
 	wantItems := seedImageCount(t) * 2 // every image seeded for both test users
 
@@ -159,11 +155,8 @@ func TestSeed_IdempotentAcrossRuns(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("run %d: status = %d, body = %s", run, rec.Code, rec.Body.String())
 		}
-		mu.Lock()
-		got := items
-		mu.Unlock()
-		if got != wantItems {
-			t.Fatalf("run %d: items = %d, want %d (no duplicates across runs)", run, got, wantItems)
+		if items != wantItems {
+			t.Fatalf("run %d: items = %d, want %d (no duplicates across runs)", run, items, wantItems)
 		}
 		if !strings.Contains(rec.Body.String(), "dev@thethinker.com") {
 			t.Fatalf("run %d: response must surface test credentials, got: %s", run, rec.Body.String())
@@ -186,26 +179,20 @@ func TestSeed_SendsCorrectContentTypes(t *testing.T) {
 	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
 	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
 
-	var mu sync.Mutex
 	contentTypes := map[string]int{}
 	items := 0
 	db := &fakeSeedDB{items: &items}
 	svc := &mockWardrobeSvc{
 		ingestScan: func(_ context.Context, _ string, _ []byte, contentType string) (*wardrobe.ClothingItem, error) {
-			mu.Lock()
 			contentTypes[contentType]++
-			mu.Unlock()
 			return savedItem(), nil
 		},
 	}
-	h := handlers.NewDevSeedHandler(db, svc)
 
-	if rec := runSeedRequest(h); rec.Code != http.StatusOK {
+	if rec := runSeedRequest(newSeedHandler(db, svc)); rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
 	// Committed seed set: avif + webp only. Anything else means a file was
 	// added without a content-type mapping.
 	for ct := range contentTypes {
@@ -230,14 +217,72 @@ func TestSeed_ReportsIngestFailures(t *testing.T) {
 			return nil, errors.New("gcs: bucket not found")
 		},
 	}
-	h := handlers.NewDevSeedHandler(db, svc)
 
-	rec := runSeedRequest(h)
+	rec := runSeedRequest(newSeedHandler(db, svc))
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
 	}
 	if !strings.Contains(rec.Body.String(), "failed") {
 		t.Fatalf("body = %q, want failure summary", rec.Body.String())
+	}
+}
+
+func TestSeed_RetriesTransientQuotaErrors(t *testing.T) {
+	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
+	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
+
+	items := 0
+	calls := 0
+	db := &fakeSeedDB{items: &items}
+	svc := &mockWardrobeSvc{
+		ingestScan: func(context.Context, string, []byte, string) (*wardrobe.ClothingItem, error) {
+			calls++
+			// Every first attempt per item is rate-limited; the retry succeeds.
+			if calls%2 == 1 {
+				return nil, errors.New(`classifier: status 503: {"detail":"AI quota exhausted — please try again later"}`)
+			}
+			items++
+			return savedItem(), nil
+		},
+	}
+
+	rec := runSeedRequest(newSeedHandler(db, svc))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	wantItems := seedImageCount(t) * 2
+	if items != wantItems {
+		t.Fatalf("items = %d, want %d (transient quota errors should be retried)", items, wantItems)
+	}
+}
+
+func TestSeed_AbortsWhenQuotaExhausted(t *testing.T) {
+	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
+	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
+
+	items := 0
+	calls := 0
+	db := &fakeSeedDB{items: &items}
+	svc := &mockWardrobeSvc{
+		ingestScan: func(context.Context, string, []byte, string) (*wardrobe.ClothingItem, error) {
+			calls++
+			// Daily quota gone: every call fails, retries included.
+			return nil, errors.New(`classifier: status 503: {"detail":"AI quota exhausted — please try again later"}`)
+		},
+	}
+
+	rec := runSeedRequest(newSeedHandler(db, svc))
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
+	}
+	if !strings.Contains(rec.Body.String(), "quota exhausted") {
+		t.Fatalf("body = %q, want quota-exhausted message", rec.Body.String())
+	}
+	// 2 items × 3 attempts each, then abort — not 32 items × 3 attempts.
+	if calls > 6 {
+		t.Fatalf("made %d AI calls before aborting, want early abort (≤6)", calls)
 	}
 }

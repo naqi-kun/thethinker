@@ -10,8 +10,9 @@ Gemini classification → background removal → GCS upload.
    `anthropicApiKey` on first start — the AI service needs both).
 2. Wait for the **ai** resource to show *Running* in the dashboard.
 3. On the **db** resource row, click **Seed Dev Data** and confirm.
-4. When it finishes (~1–2 min — every image is classified by Gemini), the
-   command output shows the test credentials.
+4. When it finishes (~4 min — every image is classified by Gemini, and calls
+   are paced to stay under the free-tier rate limit), the command output shows
+   the test credentials.
 
 ## Test accounts
 
@@ -42,7 +43,10 @@ Aspire dashboard button ("Seed Dev Data" on the db resource, apphost.mts)
 - Images are embedded into the backend binary via `//go:embed`
   ([backend/seeds/images.go](../backend/seeds/images.go)) — no filesystem
   dependency at runtime.
-- Items run concurrently (4 at a time) to keep total seed time reasonable.
+- Items are seeded **sequentially with ~6s spacing** between Gemini calls to
+  stay under the free-tier rate limit (10 requests/minute). Transient 503s are
+  retried with backoff; two consecutive quota failures abort the run (daily
+  quota exhausted — retrying won't help).
 
 ## Alternatives
 
@@ -58,7 +62,9 @@ Aspire dashboard button ("Seed Dev Data" on the db resource, apphost.mts)
 | `AI service not ready (…/healthz unreachable)` | The `ai` container is still building/starting | Wait for the **ai** resource to be *Running*, retry |
 | `seed endpoint not available outside dev environment` | `GCS_EMULATOR_HOST` not set | Run via `aspire run` (it wires the env var) |
 | Items appear but without images | GCS emulator (`gcs` resource) down mid-seed | Restart `gcs`, re-run the seed |
-| Slow seed (several minutes) | Each image is a live Gemini API call | Expected; check `aspire logs ai` if stuck |
+| Slow seed (several minutes) | Calls are paced at ~10/min for the Gemini free tier | Expected; check `aspire logs ai` if stuck |
+| `AI quota exhausted after N items` | Gemini daily free-tier quota reached | Wait for the daily reset or use a paid-tier key |
+| `cannot decode image` (422) | Image format Pillow can't read | avif/webp/jpeg/png are supported; convert anything else |
 
 ## Tests
 

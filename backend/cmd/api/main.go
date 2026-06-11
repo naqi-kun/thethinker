@@ -132,10 +132,10 @@ func main() {
 	mux.Handle("POST /recommendations/outfit/accept", auth(http.HandlerFunc(recommendHandler.AcceptOutfit)))
 
 	// dev-only seed endpoint (guarded inside handler by GCS_EMULATOR_HOST).
-	// Wraps with a 5-minute timeout because IngestScan calls the AI service for
-	// each image; the default 10s WriteTimeout would kill it mid-seed.
+	// 10-minute timeout: the seed paces Gemini calls at ~10 RPM (free-tier rate
+	// limit), so a full run takes ~4 minutes plus retry headroom.
 	devSeedHandler := handlers.NewDevSeedHandler(db, wardrobeSvc)
-	mux.Handle("POST /dev/seed", http.TimeoutHandler(http.HandlerFunc(devSeedHandler.Seed), 5*time.Minute, "seed timed out"))
+	mux.Handle("POST /dev/seed", http.TimeoutHandler(http.HandlerFunc(devSeedHandler.Seed), 10*time.Minute, "seed timed out"))
 
 	srv := &http.Server{
 		Addr:        ":" + port(),
