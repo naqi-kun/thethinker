@@ -835,6 +835,9 @@ components:
         description:
           type: string
           example: partly cloudy
+        location:
+          type: string
+          example: London
 
     Error:
       type: object

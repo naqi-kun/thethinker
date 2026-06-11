@@ -7,11 +7,14 @@ import (
 	"net/http"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
 )
 
 type userSvc interface {
 	Register(ctx context.Context, email, password string) (*user.AuthResult, error)
 	Login(ctx context.Context, email, password string) (*user.AuthResult, error)
+	GetPreferences(ctx context.Context, userID string) (*user.Preferences, error)
+	SavePreferences(ctx context.Context, p *user.Preferences) error
 }
 
 type UserHandler struct {
@@ -30,6 +33,16 @@ type authRequest struct {
 type authResponse struct {
 	Token  string `json:"token"`
 	UserID string `json:"user_id"`
+}
+
+type preferencesRequest struct {
+	Styles  []string          `json:"styles"`
+	Answers map[string]string `json:"answers"`
+}
+
+type preferencesResponse struct {
+	Styles  []string          `json:"styles"`
+	Answers map[string]string `json:"answers"`
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -85,11 +98,61 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) GetPreferences(w http.ResponseWriter, r *http.Request) {
-	// TODO: implement — KAN-14
-	http.Error(w, "not implemented", http.StatusNotImplemented)
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	prefs, err := h.svc.GetPreferences(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to get preferences")
+		return
+	}
+
+	styles := prefs.Styles
+	if styles == nil {
+		styles = []string{}
+	}
+	answers := prefs.Answers
+	if answers == nil {
+		answers = map[string]string{}
+	}
+
+	writeJSON(w, http.StatusOK, preferencesResponse{Styles: styles, Answers: answers})
 }
 
 func (h *UserHandler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
-	// TODO: implement — KAN-14
-	http.Error(w, "not implemented", http.StatusNotImplemented)
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	var req preferencesRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
+		return
+	}
+
+	prefs := &user.Preferences{
+		UserID:  userID,
+		Styles:  req.Styles,
+		Answers: req.Answers,
+	}
+	if err := h.svc.SavePreferences(r.Context(), prefs); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to save preferences")
+		return
+	}
+
+	styles := prefs.Styles
+	if styles == nil {
+		styles = []string{}
+	}
+	answers := prefs.Answers
+	if answers == nil {
+		answers = map[string]string{}
+	}
+
+	writeJSON(w, http.StatusOK, preferencesResponse{Styles: styles, Answers: answers})
 }
