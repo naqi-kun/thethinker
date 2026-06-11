@@ -3,7 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Download, Trash2, AlertTriangle, Plus, X } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import { token } from '../../../shared/api/token';
-import { getPreferences, getWorkSchedule, updatePreferences, updateWorkSchedule } from '../api';
+import {
+  getPreferences,
+  getWorkSchedule,
+  updatePreferences,
+  updateWorkSchedule,
+} from '../api';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -147,7 +152,9 @@ export default function SettingsPage() {
         setLocation(loc);
         setSavedLocation(loc);
       })
-      .catch(() => {/* best-effort; location stays empty */});
+      .catch(() => {
+        /* best-effort; location stays empty */
+      });
   }, []);
 
   useEffect(() => {
@@ -291,7 +298,9 @@ export default function SettingsPage() {
             {(location !== savedLocation || locationStatus) && (
               <div className="mt-2.5 flex items-center justify-end gap-3">
                 {locationStatus && (
-                  <span className="text-xs text-muted-foreground">{locationStatus}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {locationStatus}
+                  </span>
                 )}
                 {location !== savedLocation && (
                   <button
