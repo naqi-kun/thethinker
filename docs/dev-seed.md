@@ -15,12 +15,13 @@ uploads: validation → background removal (rembg) → GCS upload.
 
 ## Test accounts
 
-| Email | Password | Style profile |
-|---|---|---|
-| `dev@thethinker.com` | `password123` | casual / business-casual |
-| `jane@thethinker.com` | `password123` | formal / classic |
+| Email | Password | Style profile | Wardrobe |
+|---|---|---|---|
+| `dev@thethinker.com` | `password123` | casual / business-casual | menswear + unisex (13 items) |
+| `jane@thethinker.com` | `password123` | formal / classic | womenswear + unisex (10 items) |
 
-Both users get the full image set (one item per seed image).
+Each seed image is tagged men's / women's / unisex in the `imageMeta` map;
+unisex items (jeans, hoodie, sneakers…) seed both accounts.
 
 ## How it works
 
@@ -35,8 +36,8 @@ Aspire dashboard button ("Seed Dev Data" on the db resource, apphost.mts)
 ```
 
 - **Item metadata comes from the filename**, not the AI classifier. The Gemini
-  free tier allows only 20 requests/day — less than one seed run (32 items) —
-  so each image's category/color/fit/season is curated in the `imageMeta` map
+  free tier allows only 20 requests/day — less than one seed run — so each
+  image's category/color/fit/season/audience is curated in the `imageMeta` map
   in `seed_handler.go`. Adding a new image to `backend/seeds/images/` requires
   adding a matching `imageMeta` entry (the seed fails loudly if you forget).
 - **Background removal and GCS upload are the real pipeline** — the seed calls

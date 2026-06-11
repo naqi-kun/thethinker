@@ -21,6 +21,15 @@ type seedDB interface {
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 }
 
+// audience controls which test user(s) receive a seed item.
+type audience int
+
+const (
+	unisex audience = iota // both users
+	mens                   // dev@thethinker.com only
+	womens                 // jane@thethinker.com only
+)
+
 // seedMeta holds the curated classification for one seed image. The Gemini
 // free tier allows only 20 requests/day — far less than one seed run — so
 // seed items are classified from their filename instead of through the AI.
@@ -32,26 +41,29 @@ type seedMeta struct {
 	color    string
 	fit      string
 	season   string
+	audience audience
 }
 
-// imageMeta maps each filename stem under backend/seeds/images/ to its metadata.
+// imageMeta maps each filename stem under backend/seeds/images/ to its
+// metadata, curated by looking at the actual image. Men's items seed only the
+// dev account, women's only jane's; unisex items go to both.
 var imageMeta = map[string]seedMeta{
-	"shirt":      {"shirt", "formal", "white", "slim", "all"},
-	"t-shirt":    {"t-shirt", "casual", "white", "regular", "all"},
-	"sweatshirt": {"sweater", "casual", "beige", "relaxed", "autumn_winter"},
-	"hoodie":     {"hoodie", "casual", "grey", "oversized", "all"},
-	"jacket":     {"jacket", "casual", "black", "regular", "autumn_winter"},
-	"coat":       {"coat", "formal", "brown", "regular", "winter"},
-	"blazer":     {"blazer", "formal", "navy blue", "slim", "all"},
-	"suit":       {"suit", "formal", "grey", "slim", "all"},
-	"pants":      {"pants", "formal", "black", "slim", "all"},
-	"jeans":      {"jeans", "casual", "blue", "slim", "all"},
-	"shorts":     {"shorts", "casual", "beige", "regular", "spring_summer"},
-	"skirt":      {"skirt", "casual", "beige", "regular", "spring_summer"},
-	"dress":      {"dress", "casual", "navy blue", "regular", "spring_summer"},
-	"shoes":      {"shoes", "formal", "black", "regular", "all"},
-	"sneakers":   {"sneakers", "casual", "white", "regular", "all"},
-	"boots":      {"boots", "casual", "brown", "regular", "autumn_winter"},
+	"shirt":      {"shirt", "formal", "light blue", "slim", "all", mens},
+	"t-shirt":    {"t-shirt", "casual", "orange", "regular", "all", unisex},
+	"sweatshirt": {"sweater", "casual", "grey", "relaxed", "autumn_winter", unisex},
+	"hoodie":     {"hoodie", "casual", "beige", "oversized", "all", unisex},
+	"jacket":     {"jacket", "casual", "grey", "regular", "all", mens},
+	"coat":       {"coat", "formal", "navy blue", "relaxed", "autumn_winter", mens},
+	"blazer":     {"blazer", "formal", "grey", "regular", "all", mens},
+	"suit":       {"suit", "formal", "navy blue", "slim", "all", mens},
+	"pants":      {"pants", "casual", "beige", "relaxed", "all", womens},
+	"jeans":      {"jeans", "casual", "grey", "relaxed", "all", unisex},
+	"shorts":     {"shorts", "casual", "light blue", "regular", "spring_summer", unisex},
+	"skirt":      {"skirt", "casual", "olive", "regular", "spring_summer", womens},
+	"dress":      {"dress", "casual", "multicolor", "regular", "spring_summer", womens},
+	"shoes":      {"shoes", "formal", "black", "regular", "all", mens},
+	"sneakers":   {"sneakers", "casual", "beige", "regular", "all", unisex},
+	"boots":      {"boots", "casual", "black", "regular", "autumn_winter", unisex},
 }
 
 // DevSeedHandler populates the database with deterministic test data.
@@ -129,7 +141,7 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("read seed images: %w", err)
 	}
 
-	count := 0
+	perUser := map[string]int{}
 	failed := 0
 	var firstErr error
 
@@ -150,9 +162,19 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 			return "", fmt.Errorf("read %s: %w", entry.Name(), err)
 		}
 
-		for _, userID := range []string{user1, user2} {
+		var recipients []string
+		switch meta.audience {
+		case mens:
+			recipients = []string{user1}
+		case womens:
+			recipients = []string{user2}
+		default:
+			recipients = []string{user1, user2}
+		}
+
+		for _, userID := range recipients {
 			if err := ctx.Err(); err != nil {
-				return "", fmt.Errorf("seed canceled after %d items: %w", count, err)
+				return "", fmt.Errorf("seed canceled after %d items: %w", perUser[user1]+perUser[user2], err)
 			}
 			saved, err := h.wardrobeSvc.AddItem(ctx, userID, item)
 			if err == nil {
@@ -167,17 +189,18 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 				}
 				continue
 			}
-			count++
+			perUser[userID]++
 		}
 	}
 
+	count := perUser[user1] + perUser[user2]
 	if failed > 0 {
 		return "", fmt.Errorf("%d item(s) failed (%d seeded), first error: %w", failed, count, firstErr)
 	}
 
 	return fmt.Sprintf(
-		"seed complete — 2 users, %d wardrobe items\n\nLogin credentials:\n  dev@thethinker.com  / password123\n  jane@thethinker.com / password123",
-		count,
+		"seed complete — 2 users, %d wardrobe items\n\nLogin credentials:\n  dev@thethinker.com  / password123 (%d items, menswear + unisex)\n  jane@thethinker.com / password123 (%d items, womenswear + unisex)",
+		count, perUser[user1], perUser[user2],
 	), nil
 }
 

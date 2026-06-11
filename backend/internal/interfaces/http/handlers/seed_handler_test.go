@@ -64,7 +64,8 @@ func healthyAIServer(t *testing.T) *httptest.Server {
 
 // seedMockSvc returns a mock whose AddItem assigns sequential IDs and whose
 // UploadImage increments the shared item counter, mimicking the real flow.
-func seedMockSvc(items *int) *mockWardrobeSvc {
+// perUser (optional) records how many items each user received.
+func seedMockSvc(items *int, perUser map[string]int) *mockWardrobeSvc {
 	next := 0
 	return &mockWardrobeSvc{
 		addItem: func(_ context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error) {
@@ -74,8 +75,11 @@ func seedMockSvc(items *int) *mockWardrobeSvc {
 			saved.UserID = userID
 			return &saved, nil
 		},
-		uploadImage: func(_ context.Context, itemID, userID string, _ []byte) (*wardrobe.ClothingItem, error) {
+		uploadImage: func(_ context.Context, _ string, userID string, _ []byte) (*wardrobe.ClothingItem, error) {
 			*items++
+			if perUser != nil {
+				perUser[userID]++
+			}
 			return savedItem(), nil
 		},
 	}
@@ -152,18 +156,33 @@ func TestSeed_IdempotentAcrossRuns(t *testing.T) {
 	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
 
 	items := 0
+	perUser := map[string]int{}
 	db := &fakeSeedDB{items: &items}
-	h := handlers.NewDevSeedHandler(db, seedMockSvc(&items))
+	h := handlers.NewDevSeedHandler(db, seedMockSvc(&items, perUser))
 
-	wantItems := seedImageCount(t) * 2 // every image seeded for both test users
+	imageCount := seedImageCount(t)
+	firstRunItems := 0
 
 	for run := 1; run <= 2; run++ {
+		// Per-run counters: TRUNCATE resets `items`; reset perUser to match.
+		for k := range perUser {
+			delete(perUser, k)
+		}
 		rec := runSeedRequest(h)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("run %d: status = %d, body = %s", run, rec.Code, rec.Body.String())
 		}
-		if items != wantItems {
-			t.Fatalf("run %d: items = %d, want %d (no duplicates across runs)", run, items, wantItems)
+		// Gendered split: each image seeds 1 user (mens/womens) or 2 (unisex).
+		if items < imageCount || items > imageCount*2 {
+			t.Fatalf("run %d: items = %d, want between %d and %d", run, items, imageCount, imageCount*2)
+		}
+		if run == 1 {
+			firstRunItems = items
+		} else if items != firstRunItems {
+			t.Fatalf("run %d: items = %d, want %d (no duplicates across runs)", run, items, firstRunItems)
+		}
+		if len(perUser) != 2 {
+			t.Fatalf("run %d: items seeded for %d users, want both test users", run, len(perUser))
 		}
 		if !strings.Contains(rec.Body.String(), "dev@thethinker.com") {
 			t.Fatalf("run %d: response must surface test credentials, got: %s", run, rec.Body.String())
@@ -189,7 +208,7 @@ func TestSeed_EveryImageHasValidMetadata(t *testing.T) {
 	subTypes := map[wardrobe.SubType]bool{}
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	svc := seedMockSvc(&items)
+	svc := seedMockSvc(&items, nil)
 	baseAdd := svc.addItem
 	svc.addItem = func(ctx context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error) {
 		subTypes[item.SubType] = true
@@ -214,7 +233,7 @@ func TestSeed_ReportsUploadFailures(t *testing.T) {
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	svc := seedMockSvc(&items)
+	svc := seedMockSvc(&items, nil)
 	svc.uploadImage = func(context.Context, string, string, []byte) (*wardrobe.ClothingItem, error) {
 		// Simulates GCS bucket missing / emulator gone mid-seed.
 		return nil, errors.New("gcs: bucket not found")
