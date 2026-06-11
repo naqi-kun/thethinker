@@ -54,7 +54,6 @@ Prefer `aspire resource <name> restart` over a full `aspire stop`/`aspire run` c
 
 The AppHost wires:
 - Postgres with a persistent named volume (`thethinker-pgdata`)
-- Jaeger for distributed tracing (UI on 16686, OTLP HTTP on 4318)
 - Python AI classification service built from `./ai/Dockerfile`
 - Go backend with `DATABASE_URL`, `JWT_SECRET`, `AI_SERVICE_URL`, and OTel export to the Aspire dashboard
 - React/Vite frontend with `VITE_BACKEND_URL` pointed at the backend
