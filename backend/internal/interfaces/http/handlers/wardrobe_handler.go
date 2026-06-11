@@ -43,6 +43,7 @@ type classifyResultResponse struct {
 }
 
 type addItemRequest struct {
+	Name     string `json:"name,omitempty"`
 	Category string `json:"category"`
 	SubType  string `json:"sub_type"`
 	Color    string `json:"color"`
@@ -53,6 +54,7 @@ type addItemRequest struct {
 
 type clothingItemResponse struct {
 	ID       string  `json:"id"`
+	Name     string  `json:"name"`
 	Category string  `json:"category"`
 	SubType  string  `json:"sub_type"`
 	Color    string  `json:"color"`
@@ -65,6 +67,7 @@ type clothingItemResponse struct {
 func toItemResponse(item *wardrobe.ClothingItem) clothingItemResponse {
 	resp := clothingItemResponse{
 		ID:       item.ID,
+		Name:     item.Name,
 		Category: item.Category.String(),
 		SubType:  item.SubType.String(),
 		Color:    item.Color.String(),
@@ -119,6 +122,7 @@ func (h *WardrobeHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item, err := h.svc.AddItem(r.Context(), userID, wardrobe.ClothingItem{
+		Name:     req.Name,
 		Category: category,
 		SubType:  subType,
 		Color:    color,
@@ -265,6 +269,7 @@ func (h *WardrobeHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item, err := h.svc.UpdateItem(r.Context(), itemID, userID, wardrobe.ClothingItem{
+		Name:     req.Name,
 		Category: category,
 		SubType:  subType,
 		Color:    color,

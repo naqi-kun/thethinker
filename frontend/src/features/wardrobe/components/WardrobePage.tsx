@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
+import Select from '../../../shared/components/Select';
 import { deleteItem, listItems, updateItem, uploadItemImage } from '../api';
 import type {
   AddItemPayload,
@@ -20,6 +21,18 @@ import type {
   ClothingItem,
   ClothingSeason,
 } from '../../../shared/api/types';
+import { HexColorPicker } from 'react-colorful';
+import {
+  CATEGORIES,
+  COLOR_SWATCHES,
+  FITS,
+  SEASONS,
+  SUB_TYPES,
+  colorLabel,
+  type ClothingColor,
+  type ClothingSubType,
+} from '../options';
+import { nearestNamedColor } from '../colorMatch';
 
 type WardrobeCategory = 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
 type FilterTab = 'All' | WardrobeCategory;
@@ -33,46 +46,10 @@ const CATEGORY_TABS: FilterTab[] = [
   'Accessories',
 ];
 
-// ── Form types & constants ────────────────────────────────────────────────────
-
-type ClothingSubType =
-  | 'shirt'
-  | 't-shirt'
-  | 'sweater'
-  | 'hoodie'
-  | 'jacket'
-  | 'coat'
-  | 'blazer'
-  | 'suit'
-  | 'pants'
-  | 'jeans'
-  | 'shorts'
-  | 'skirt'
-  | 'dress'
-  | 'shoes'
-  | 'sneakers'
-  | 'boots';
-
-type ClothingColor =
-  | 'black'
-  | 'white'
-  | 'grey'
-  | 'navy blue'
-  | 'blue'
-  | 'light blue'
-  | 'red'
-  | 'burgundy'
-  | 'green'
-  | 'olive'
-  | 'beige'
-  | 'brown'
-  | 'yellow'
-  | 'orange'
-  | 'pink'
-  | 'purple'
-  | 'multicolor';
+// ── Form types ────────────────────────────────────────────────────────────────
 
 type FormState = {
+  name: string;
   category: ClothingCategory | '';
   sub_type: ClothingSubType | '';
   color: ClothingColor | '';
@@ -80,126 +57,10 @@ type FormState = {
   season: ClothingSeason | '';
 };
 
-type PillOption<T extends string> = { value: T; label: string };
-
-const CATEGORIES: PillOption<ClothingCategory>[] = [
-  { value: 'formal', label: 'Formal' },
-  { value: 'casual', label: 'Casual' },
-  { value: 'sport', label: 'Sport' },
-];
-
-const SUB_TYPES: PillOption<ClothingSubType>[] = [
-  { value: 'shirt', label: 'Shirt' },
-  { value: 't-shirt', label: 'T-Shirt' },
-  { value: 'sweater', label: 'Sweater' },
-  { value: 'hoodie', label: 'Hoodie' },
-  { value: 'jacket', label: 'Jacket' },
-  { value: 'coat', label: 'Coat' },
-  { value: 'blazer', label: 'Blazer' },
-  { value: 'suit', label: 'Suit' },
-  { value: 'pants', label: 'Pants' },
-  { value: 'jeans', label: 'Jeans' },
-  { value: 'shorts', label: 'Shorts' },
-  { value: 'skirt', label: 'Skirt' },
-  { value: 'dress', label: 'Dress' },
-  { value: 'shoes', label: 'Shoes' },
-  { value: 'sneakers', label: 'Sneakers' },
-  { value: 'boots', label: 'Boots' },
-];
-
-const FITS: PillOption<ClothingFit>[] = [
-  { value: 'slim', label: 'Slim' },
-  { value: 'regular', label: 'Regular' },
-  { value: 'relaxed', label: 'Relaxed' },
-  { value: 'oversized', label: 'Oversized' },
-];
-
-const SEASONS: PillOption<ClothingSeason>[] = [
-  { value: 'all', label: 'All Seasons' },
-  { value: 'spring_summer', label: 'Spring / Summer' },
-  { value: 'autumn_winter', label: 'Autumn / Winter' },
-  { value: 'winter', label: 'Winter Only' },
-];
-
-const COLOR_SWATCHES: Record<ClothingColor, string> = {
-  black: '#1a1a1a',
-  white: '#f0f0f0',
-  grey: '#888888',
-  'navy blue': '#1f3a5f',
-  blue: '#4a6fa5',
-  'light blue': '#6fa3c7',
-  red: '#c0392b',
-  burgundy: '#800020',
-  green: '#27ae60',
-  olive: '#6b7c39',
-  beige: '#d4bda8',
-  brown: '#795548',
-  yellow: '#f1c40f',
-  orange: '#e67e22',
-  pink: '#e91e8c',
-  purple: '#9b59b6',
-  multicolor: 'linear-gradient(135deg, #e74c3c, #3498db, #2ecc71)',
-};
-
-const COLORS: PillOption<ClothingColor>[] = (
-  Object.keys(COLOR_SWATCHES) as ClothingColor[]
-).map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1) }));
-
-// ── Pill components ───────────────────────────────────────────────────────────
-
-function ColorPill({
-  color,
-  selected,
-  onSelect,
-}: {
-  color: ClothingColor;
-  selected: ClothingColor | '';
-  onSelect: (c: ClothingColor) => void;
-}) {
-  const swatch = COLOR_SWATCHES[color];
-  const isGradient = swatch.startsWith('linear');
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(color)}
-      className={`flex cursor-pointer items-center gap-1.5 transition-all ${
-        selected === color ? 'badge-primary' : 'badge-outline'
-      }`}
-    >
-      <span
-        className="inline-block h-3 w-3 shrink-0 rounded-full border border-black/10"
-        style={isGradient ? { backgroundImage: swatch } : { backgroundColor: swatch }}
-      />
-      {color.charAt(0).toUpperCase() + color.slice(1)}
-    </button>
-  );
-}
-
-function PillGroup<T extends string>({
-  options,
-  selected,
-  onSelect,
-}: {
-  options: PillOption<T>[];
-  selected: T | '';
-  onSelect: (value: T) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onSelect(opt.value)}
-          className={`cursor-pointer transition-all ${
-            selected === opt.value ? 'badge-primary' : 'badge-outline'
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
+/** A hex to seed the colour wheel from a named colour (neutral for multicolor). */
+function hexForColor(color: string): string {
+  const swatch = COLOR_SWATCHES[color as ClothingColor];
+  return swatch && swatch.startsWith('#') ? swatch : '#888888';
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -278,12 +139,17 @@ function colorSwatch(color: string) {
 
 function itemToFormState(item: ClothingItem): FormState {
   return {
+    name: item.name ?? '',
     category: (item.category as ClothingCategory) ?? '',
     sub_type: (item.sub_type as ClothingSubType) ?? '',
     color: (item.color as ClothingColor) ?? '',
     fit: (item.fit as ClothingFit) ?? '',
     season: (item.season as ClothingSeason) ?? '',
   };
+}
+
+function displayNameFor(item: ClothingItem): string {
+  return item.name?.trim() || `${capitalize(item.color)} ${item.sub_type}`;
 }
 
 // ── ItemDetailModal ───────────────────────────────────────────────────────────
@@ -298,12 +164,15 @@ function ItemDetailModal({
   onSaved: (updated: ClothingItem) => void;
 }) {
   const [form, setForm] = useState<FormState>(itemToFormState(item));
+  const [pickedHex, setPickedHex] = useState<string>(hexForColor(item.color));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
 
   const category = subTypeToCategory(item.sub_type);
-  const displayName = `${capitalize(item.color)} ${item.sub_type}`;
+  const displayName = displayNameFor(item);
+  const colorIsMulticolor = form.color === 'multicolor';
+  const snappedSwatch = form.color ? COLOR_SWATCHES[form.color] : '';
 
   const isFormValid =
     form.category !== '' &&
@@ -312,12 +181,24 @@ function ItemDetailModal({
     form.fit !== '' &&
     form.season !== '';
 
+  function handleColorPick(hex: string) {
+    setPickedHex(hex);
+    setForm((f) => ({ ...f, color: nearestNamedColor(hex) }));
+  }
+
   async function handleSave() {
     if (!isFormValid) return;
     setSaving(true);
     setSaveError(null);
     try {
-      const updated = await updateItem(item.id, form as AddItemPayload);
+      const updated = await updateItem(item.id, {
+        name: form.name.trim(),
+        category: form.category,
+        sub_type: form.sub_type,
+        color: form.color,
+        fit: form.fit,
+        season: form.season,
+      } as AddItemPayload);
       onSaved(updated);
       onClose();
     } catch {
@@ -374,13 +255,31 @@ function ItemDetailModal({
           {/* Edit form */}
           <div className="space-y-4">
             <div>
+              <label
+                htmlFor="modal-item-name"
+                className="mb-2 block text-xs font-medium text-muted-foreground uppercase tracking-wide"
+              >
+                Name
+              </label>
+              <input
+                id="modal-item-name"
+                type="text"
+                className="input"
+                value={form.name}
+                placeholder="e.g. Black T-Shirt"
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+
+            <div>
               <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Category
               </p>
-              <PillGroup
+              <Select
                 options={CATEGORIES}
-                selected={form.category}
-                onSelect={(v) => setForm((f) => ({ ...f, category: v }))}
+                value={form.category}
+                placeholder="Select category…"
+                onChange={(v) => setForm((f) => ({ ...f, category: v }))}
               />
             </div>
 
@@ -388,10 +287,11 @@ function ItemDetailModal({
               <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Type
               </p>
-              <PillGroup
+              <Select
                 options={SUB_TYPES}
-                selected={form.sub_type}
-                onSelect={(v) => setForm((f) => ({ ...f, sub_type: v }))}
+                value={form.sub_type}
+                placeholder="Select type…"
+                onChange={(v) => setForm((f) => ({ ...f, sub_type: v }))}
               />
             </div>
 
@@ -399,15 +299,39 @@ function ItemDetailModal({
               <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Color
               </p>
-              <div className="flex flex-wrap gap-2">
-                {COLORS.map((c) => (
-                  <ColorPill
-                    key={c.value}
-                    color={c.value}
-                    selected={form.color}
-                    onSelect={(v) => setForm((f) => ({ ...f, color: v }))}
-                  />
-                ))}
+              <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                <HexColorPicker color={pickedHex} onChange={handleColorPick} />
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-6 w-6 shrink-0 rounded-full border border-black/10"
+                      style={
+                        snappedSwatch.startsWith('linear')
+                          ? { backgroundImage: snappedSwatch }
+                          : { backgroundColor: snappedSwatch }
+                      }
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Snaps to:{' '}
+                      <span className="font-medium text-foreground">
+                        {form.color ? colorLabel(form.color) : '—'}
+                      </span>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, color: 'multicolor' }))}
+                    className={`flex w-fit cursor-pointer items-center gap-1.5 transition-all ${
+                      colorIsMulticolor ? 'badge-primary' : 'badge-outline'
+                    }`}
+                  >
+                    <span
+                      className="inline-block h-3 w-3 shrink-0 rounded-full border border-black/10"
+                      style={{ backgroundImage: COLOR_SWATCHES.multicolor }}
+                    />
+                    Multicolor
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -415,10 +339,11 @@ function ItemDetailModal({
               <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Fit
               </p>
-              <PillGroup
+              <Select
                 options={FITS}
-                selected={form.fit}
-                onSelect={(v) => setForm((f) => ({ ...f, fit: v }))}
+                value={form.fit}
+                placeholder="Select fit…"
+                onChange={(v) => setForm((f) => ({ ...f, fit: v }))}
               />
             </div>
 
@@ -426,10 +351,11 @@ function ItemDetailModal({
               <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Season
               </p>
-              <PillGroup
+              <Select
                 options={SEASONS}
-                selected={form.season}
-                onSelect={(v) => setForm((f) => ({ ...f, season: v }))}
+                value={form.season}
+                placeholder="Select season…"
+                onChange={(v) => setForm((f) => ({ ...f, season: v }))}
               />
             </div>
           </div>
@@ -481,7 +407,7 @@ function ItemCard({
   const [imgError, setImgError] = useState(false);
 
   const category = subTypeToCategory(item.sub_type);
-  const displayName = `${capitalize(item.color)} ${item.sub_type}`;
+  const displayName = displayNameFor(item);
   const tags = [item.category, item.fit].filter(Boolean) as string[];
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -719,7 +645,8 @@ export default function WardrobePage() {
     const category = subTypeToCategory(item.sub_type);
     const normalizedSearch = search.trim().toLowerCase();
     const matchesCategory = activeTab === 'All' || category === activeTab;
-    const displayName = `${item.color} ${item.sub_type}`.toLowerCase();
+    const displayName =
+      `${item.name ?? ''} ${item.color} ${item.sub_type}`.toLowerCase();
     const matchesSearch =
       normalizedSearch === '' ||
       displayName.includes(normalizedSearch) ||

@@ -186,6 +186,7 @@ func ParseSeason(s string) (Season, error) {
 type ClothingItem struct {
 	ID        string
 	UserID    string
+	Name      string
 	Category  Category
 	SubType   SubType
 	Color     Color

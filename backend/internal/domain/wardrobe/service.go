@@ -110,6 +110,7 @@ func (s *Service) UpdateItem(ctx context.Context, itemID, userID string, fields 
 	if existing.UserID != userID {
 		return nil, ErrForbidden
 	}
+	existing.Name = fields.Name
 	existing.Category = fields.Category
 	existing.SubType = fields.SubType
 	existing.Color = fields.Color
