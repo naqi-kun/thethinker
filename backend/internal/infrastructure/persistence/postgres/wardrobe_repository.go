@@ -64,9 +64,9 @@ func scanRow(
 }
 
 func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([]*wardrobe.ClothingItem, error) {
-	rows, err := r.db.Query(ctx,
+	rows, err := queryFromContext(ctx, r.db).Query(ctx,
 		`SELECT id, user_id, name, category, sub_type, color, fit, season, image_url, last_worn, created_at
-		 FROM wardrobe_items WHERE user_id = $1 ORDER BY created_at DESC`,
+		 FROM wardrobe_items WHERE user_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
 		userID,
 	)
 	if err != nil {
@@ -99,9 +99,9 @@ func (r *WardrobeRepository) FindByID(ctx context.Context, id string) (*wardrobe
 		lastWorn                                                         *time.Time
 		createdAt                                                        time.Time
 	)
-	err := r.db.QueryRow(ctx,
+	err := queryFromContext(ctx, r.db).QueryRow(ctx,
 		`SELECT id, user_id, name, category, sub_type, color, fit, season, image_url, last_worn, created_at
-		 FROM wardrobe_items WHERE id = $1`,
+		 FROM wardrobe_items WHERE id = $1 AND deleted_at IS NULL`,
 		id,
 	).Scan(&rid, &uid, &name, &category, &subType, &color, &fit, &season, &imageURL, &lastWorn, &createdAt)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -143,13 +143,16 @@ func (r *WardrobeRepository) UpdateImageURL(ctx context.Context, id, imageURL st
 }
 
 func (r *WardrobeRepository) Delete(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM wardrobe_items WHERE id = $1`, id)
+	_, err := r.db.Exec(ctx,
+		`UPDATE wardrobe_items SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL`,
+		id,
+	)
 	return err
 }
 
 func (r *WardrobeRepository) MarkWorn(ctx context.Context, userID string, itemIDs []string, wornAt time.Time) error {
-	_, err := r.db.Exec(ctx,
-		`UPDATE wardrobe_items SET last_worn = $1 WHERE user_id = $2 AND id::text = ANY($3)`,
+	_, err := queryFromContext(ctx, r.db).Exec(ctx,
+		`UPDATE wardrobe_items SET last_worn = $1 WHERE user_id = $2 AND id::text = ANY($3) AND deleted_at IS NULL`,
 		wornAt, userID, itemIDs,
 	)
 	return err

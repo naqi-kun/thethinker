@@ -14,25 +14,17 @@ import (
 )
 
 type mockRecommendationSvc struct {
-	outfit *recommendation.OutfitRecommendation
-	err    error
+	outfit    *recommendation.OutfitRecommendation
+	err       error
+	acceptErr error
 }
 
 func (m *mockRecommendationSvc) GetOutfit(_ context.Context, _ string, _ time.Time, _ string) (*recommendation.OutfitRecommendation, error) {
 	return m.outfit, m.err
 }
 
-func (m *mockRecommendationSvc) AcceptSession(_ context.Context, _ string) error {
-	return nil
-}
-
-// mockWardrobeAccepter lets each test control what MarkItemsWorn returns.
-type mockWardrobeAccepter struct {
-	err error
-}
-
-func (m *mockWardrobeAccepter) MarkItemsWorn(_ context.Context, _ string, _ []string) error {
-	return m.err
+func (m *mockRecommendationSvc) AcceptAndRecord(_ context.Context, _, _ string, _ []string) error {
+	return m.acceptErr
 }
 
 func TestAcceptOutfit(t *testing.T) {
@@ -78,7 +70,7 @@ func TestAcceptOutfit(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h := handlers.NewRecommendationHandler(&mockRecommendationSvc{}, &mockWardrobeAccepter{err: tc.svcErr})
+			h := handlers.NewRecommendationHandler(&mockRecommendationSvc{acceptErr: tc.svcErr})
 
 			req := httptest.NewRequest(http.MethodPost, "/recommendations/outfit/accept",
 				strings.NewReader(tc.body))
@@ -142,7 +134,7 @@ func TestGetOutfit(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := &mockRecommendationSvc{outfit: tc.outfit, err: tc.svcErr}
-			h := handlers.NewRecommendationHandler(svc, &mockWardrobeAccepter{})
+			h := handlers.NewRecommendationHandler(svc)
 
 			req := httptest.NewRequest(http.MethodGet, "/recommendations/outfit", nil)
 			if tc.injectUser {

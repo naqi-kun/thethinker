@@ -17,3 +17,7 @@ export type WorkSchedule = components['schemas']['WorkSchedule'];
 export type WeatherSnapshot = components['schemas']['WeatherSnapshot'];
 export type OutfitRecommendation = components['schemas']['OutfitRecommendation'];
 export type AcceptOutfitRequest = components['schemas']['AcceptOutfitRequest'];
+export type OutfitHistoryResponse = components['schemas']['OutfitHistoryResponse'];
+export type HistoryEntry = components['schemas']['HistoryEntry'];
+export type AcceptedOutfit = components['schemas']['AcceptedOutfit'];
+export type OutfitHistoryItem = components['schemas']['OutfitHistoryItem'];

@@ -13,20 +13,15 @@ import (
 
 type recommendationSvc interface {
 	GetOutfit(ctx context.Context, userID string, date time.Time, sessionID string) (*recommendation.OutfitRecommendation, error)
-	AcceptSession(ctx context.Context, sessionID string) error
-}
-
-type wardrobeAccepter interface {
-	MarkItemsWorn(ctx context.Context, userID string, itemIDs []string) error
+	AcceptAndRecord(ctx context.Context, userID, sessionID string, itemIDs []string) error
 }
 
 type RecommendationHandler struct {
-	svc         recommendationSvc
-	wardrobeSvc wardrobeAccepter
+	svc recommendationSvc
 }
 
-func NewRecommendationHandler(svc recommendationSvc, wardrobeSvc wardrobeAccepter) *RecommendationHandler {
-	return &RecommendationHandler{svc: svc, wardrobeSvc: wardrobeSvc}
+func NewRecommendationHandler(svc recommendationSvc) *RecommendationHandler {
+	return &RecommendationHandler{svc: svc}
 }
 
 type weatherResponse struct {
@@ -119,13 +114,10 @@ func (h *RecommendationHandler) AcceptOutfit(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.wardrobeSvc.MarkItemsWorn(r.Context(), userID, req.ItemIDs); err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to mark items as worn")
+	if err := h.svc.AcceptAndRecord(r.Context(), userID, req.SessionID, req.ItemIDs); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to accept outfit")
 		return
 	}
-
-	// Close the AI session; non-fatal if it has already expired.
-	_ = h.svc.AcceptSession(r.Context(), req.SessionID)
 
 	w.WriteHeader(http.StatusNoContent)
 }

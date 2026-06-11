@@ -54,3 +54,6 @@ aspire-output/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# playwright-cli scratch (snapshots, screenshots, console logs)
+.playwright-cli/

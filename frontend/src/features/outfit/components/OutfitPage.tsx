@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TopNav from '../../../shared/components/TopNav';
+import FlatLay from '../../../shared/components/FlatLay';
+import MetadataCard from '../../../shared/components/MetadataCard';
 import { ApiError } from '../../../shared/api/client';
 import type {
   CalendarEvent,
@@ -28,21 +30,6 @@ const today = new Date().toLocaleDateString('en-US', {
   month: 'long',
   day: 'numeric',
 });
-
-// Editorial flat-lay slots — a tight collage with slight overlaps, like a
-// styled magazine board. top/left/width as % of canvas, rotate in degrees.
-// Keep top% + width% ≤ ~92 so items never reach the canvas bottom edge.
-// The first three slots fit the common top + bottom + shoes outfit.
-const FLAT_LAY_SLOTS = [
-  { top: '4%', left: '6%', width: '52%', rotate: -5 },
-  { top: '16%', left: '44%', width: '50%', rotate: 4 },
-  { top: '50%', left: '16%', width: '42%', rotate: -4 },
-  { top: '46%', left: '54%', width: '38%', rotate: 7 },
-  { top: '6%', left: '62%', width: '32%', rotate: 9 },
-  { top: '56%', left: '2%', width: '32%', rotate: -8 },
-  { top: '28%', left: '2%', width: '34%', rotate: -2 },
-  { top: '58%', left: '58%', width: '32%', rotate: 6 },
-];
 
 function deriveHashtags(rec: OutfitRecommendation): string[] {
   const tags: string[] = [];
@@ -76,6 +63,7 @@ export default function OutfitPage() {
   const [accepted, setAccepted] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [showToast, setShowToast] = useState(false);
 
   const fetchOutfit = useCallback((sessionId?: string) => {
@@ -258,55 +246,26 @@ export default function OutfitPage() {
           </div>
         ) : recommendation ? (
           <>
-            {/* Editorial flat-lay canvas — fills the remaining viewport height */}
-            <div className="flex min-h-0 flex-1 justify-center">
-              <div
-                className="relative h-full max-w-full overflow-hidden rounded-2xl bg-cream"
-                style={{ aspectRatio: '3/4' }}
-              >
-                {displayItems.map((item, i) => {
-                  const slot = FLAT_LAY_SLOTS[i % FLAT_LAY_SLOTS.length];
-                  return (
-                    <button
-                      key={item.id}
-                      className="group absolute rounded-xl transition-transform duration-200 hover:scale-105"
-                      style={{
-                        top: slot.top,
-                        left: slot.left,
-                        width: slot.width,
-                        transform: `rotate(${slot.rotate}deg)`,
-                        zIndex: i + 1,
-                      }}
-                      onClick={() => setSwappingItem(item)}
-                      aria-label={`Swap ${item.color} ${item.sub_type}`}
-                    >
-                      {item.image_url ? (
-                        <img
-                          src={item.image_url}
-                          alt={item.sub_type}
-                          className="h-auto w-full"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex aspect-3/4 w-full flex-col items-center justify-center gap-1 rounded-xl bg-linen/60">
-                          <p className="text-xs font-medium capitalize text-espresso">
-                            {item.sub_type}
-                          </p>
-                          <p className="text-xs capitalize text-muted-foreground">
-                            {item.color}
-                          </p>
-                        </div>
-                      )}
-                      {/* Hover tooltip — details on hover, click swaps */}
-                      <span className="pointer-events-none absolute left-1/2 top-2 z-20 -translate-x-1/2 whitespace-nowrap rounded-lg bg-espresso/90 px-3 py-1.5 text-xs capitalize text-cream opacity-0 shadow transition-opacity duration-150 group-hover:opacity-100">
-                        {item.color} {item.sub_type} · {item.category}
-                        {item.fit ? ` · ${item.fit}` : ''}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mb-4">
+              <FlatLay
+                items={displayItems}
+                selectedItemId={selectedItem?.id}
+                onSelectItem={setSelectedItem}
+              />
             </div>
+
+            {selectedItem && (
+              <div className="mb-4">
+                <MetadataCard
+                  item={selectedItem}
+                  onClose={() => setSelectedItem(null)}
+                  onSwap={() => {
+                    setSwappingItem(selectedItem);
+                    setSelectedItem(null);
+                  }}
+                />
+              </div>
+            )}
 
             {/* Hashtags + refresh on one compact row */}
             <div className="mt-3 flex shrink-0 items-center justify-between gap-3">

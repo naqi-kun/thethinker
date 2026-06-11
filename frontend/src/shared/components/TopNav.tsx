@@ -7,6 +7,7 @@ const navItems = [
   { to: '/wardrobe', label: 'Wardrobe' },
   { to: '/outfit', label: 'Outfit' },
   { to: '/calendar', label: 'Calendar' },
+  { to: '/history', label: 'History' },
 ];
 
 export default function TopNav() {

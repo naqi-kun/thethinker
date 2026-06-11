@@ -537,6 +537,47 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /recommendations/history:
+    get:
+      tags: [recommendations]
+      summary: List accepted outfits, grouped by date (newest first)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          description: Opaque cursor returned by the previous page
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: range
+          in: query
+          schema:
+            type: string
+            enum: [week, month, season, all]
+            default: week
+        - name: time_of_day
+          in: query
+          schema:
+            type: string
+            enum: [morning, afternoon, evening]
+      responses:
+        '200':
+          description: Paginated outfit history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutfitHistoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /recommendations/outfit/accept:
     post:
       tags: [recommendations]
@@ -830,6 +871,71 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ClothingItem'
+
+    OutfitHistoryResponse:
+      type: object
+      required: [entries]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryEntry'
+        next_cursor:
+          type: string
+          nullable: true
+
+    HistoryEntry:
+      type: object
+      required: [worn_on, outfits]
+      properties:
+        worn_on:
+          type: string
+          format: date
+          example: '2026-06-11'
+        outfits:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcceptedOutfit'
+
+    AcceptedOutfit:
+      type: object
+      required: [id, worn_on, time_of_day, items]
+      properties:
+        id:
+          type: string
+        worn_on:
+          type: string
+          format: date
+        occasion:
+          type: string
+        time_of_day:
+          type: string
+          enum: [morning, afternoon, evening]
+        weather:
+          $ref: '#/components/schemas/WeatherSnapshot'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OutfitHistoryItem'
+
+    OutfitHistoryItem:
+      type: object
+      required: [item_id, category, sub_type, color]
+      properties:
+        item_id:
+          type: string
+        image_url:
+          type: string
+        category:
+          type: string
+        sub_type:
+          type: string
+        color:
+          type: string
+        fit:
+          type: string
+        season:
+          type: string
 
     WeatherSnapshot:
       type: object

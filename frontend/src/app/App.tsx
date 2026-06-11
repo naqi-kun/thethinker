@@ -7,6 +7,7 @@ import ReviewItemPage from '../features/wardrobe/components/ReviewItemPage';
 import { OutfitPage } from '../features/outfit';
 import { CalendarPage } from '../features/calendar';
 import { SettingsPage } from '../features/settings';
+import { HistoryPage } from '../features/history';
 
 export function App() {
   return (
@@ -67,6 +68,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <HistoryPage />
           </ProtectedRoute>
         }
       />
