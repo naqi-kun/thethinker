@@ -8,23 +8,37 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/weather"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/workschedule"
 )
+
+// Outfit is a recommendation for a given day: the occasion derived from the
+// user's work schedule, a weather snapshot, and the chosen wardrobe items.
+type Outfit struct {
+	Date      time.Time
+	Occasion  string
+	IsWorkday bool
+	Weather   *weather.Conditions
+	Items     []*wardrobe.ClothingItem
+}
 
 type Service struct {
 	wardrobeRepo wardrobe.Repository
 	calendarRepo calendar.Repository
 	weatherSvc   *weather.Service
+	scheduleSvc  *workschedule.Service
 }
 
 func NewService(
 	wardrobeRepo wardrobe.Repository,
 	calendarRepo calendar.Repository,
 	weatherSvc *weather.Service,
+	scheduleSvc *workschedule.Service,
 ) *Service {
 	return &Service{
 		wardrobeRepo: wardrobeRepo,
 		calendarRepo: calendarRepo,
 		weatherSvc:   weatherSvc,
+		scheduleSvc:  scheduleSvc,
 	}
 }
 

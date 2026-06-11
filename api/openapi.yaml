@@ -109,6 +109,40 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /users/me/work-schedule:
+    get:
+      tags: [users]
+      summary: Get the user's working schedule, working time, and holidays
+      responses:
+        '200':
+          description: The user's work schedule (defaults are returned if unset)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSchedule'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [users]
+      summary: Set the working schedule, working time, and holidays
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkSchedule'
+      responses:
+        '200':
+          description: Work schedule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkSchedule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   # ── Wardrobe ────────────────────────────────────────────────────────────────
 
   /wardrobe/items:
@@ -350,6 +384,128 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /calendars:
+    get:
+      tags: [calendar]
+      summary: List the user's calendars
+      responses:
+        '200':
+          description: The user's calendars
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Calendar'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [calendar]
+      summary: Add a calendar from an ICS URL
+      description: >
+        Fetches the ICS feed at the given URL, parses its events, and stores
+        the calendar. Users may add one or more calendars.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCalendarRequest'
+      responses:
+        '201':
+          description: Calendar added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          description: The ICS feed could not be fetched or parsed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /calendars/{id}:
+    delete:
+      tags: [calendar]
+      summary: Remove a calendar
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Calendar removed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /calendars/events:
+    get:
+      tags: [calendar]
+      summary: List calendar events for a given day
+      parameters:
+        - name: date
+          in: query
+          description: Day to list events for (ISO 8601 date, defaults to today)
+          schema:
+            type: string
+            format: date
+            example: '2025-06-01'
+      responses:
+        '200':
+          description: Events for the day
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CalendarEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /calendars/events/{id}/ignore:
+    post:
+      tags: [calendar]
+      summary: Ignore an event so it is hidden and excluded from recommendations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Event ignored
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [calendar]
+      summary: Stop ignoring a previously ignored event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Event un-ignored
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   # ── Recommendations ─────────────────────────────────────────────────────────
 
   /recommendations/outfit:
@@ -551,6 +707,82 @@ components:
         connected_at:
           type: string
           format: date-time
+
+    AddCalendarRequest:
+      type: object
+      required: [name, ics_url]
+      properties:
+        name:
+          type: string
+          example: Work
+        ics_url:
+          type: string
+          format: uri
+          description: Public ICS feed URL for the calendar
+
+    Calendar:
+      type: object
+      required: [id, name, source, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        source:
+          type: string
+          description: Where the calendar was imported from (e.g. the ICS URL)
+        created_at:
+          type: string
+          format: date-time
+
+    CalendarEvent:
+      type: object
+      required: [id, title, starts_at, all_day]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        location:
+          type: string
+        all_day:
+          type: boolean
+
+    WorkSchedule:
+      type: object
+      required: [working_days, work_start, work_end, holidays]
+      properties:
+        working_days:
+          type: array
+          description: Working weekdays as integers, 0 = Sunday … 6 = Saturday
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+          example: [1, 2, 3, 4, 5]
+        work_start:
+          type: string
+          description: Start of the working day, "HH:MM" 24-hour
+          example: '09:00'
+        work_end:
+          type: string
+          description: End of the working day, "HH:MM" 24-hour
+          example: '17:00'
+        holidays:
+          type: array
+          description: Days off as ISO 8601 dates, even on a working weekday
+          items:
+            type: string
+            format: date
+          example: ['2025-12-25']
 
     AcceptOutfitRequest:
       type: object

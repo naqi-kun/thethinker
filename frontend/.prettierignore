@@ -3,4 +3,6 @@ dist
 node_modules
 package-lock.json
 .playwright-cli/
+playwright-report
+test-results
 src/shared/api/schema.d.ts

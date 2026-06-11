@@ -1,9 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Briefcase, Check, RefreshCw, Shirt, Sun, X } from 'lucide-react';
+import {
+  Briefcase,
+  CalendarClock,
+  Check,
+  MapPin,
+  RefreshCw,
+  Shirt,
+  Sun,
+  X,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import TopNav from '../../../shared/components/TopNav';
 import { ApiError } from '../../../shared/api/client';
-import type { ClothingItem, OutfitRecommendation } from '../../../shared/api/types';
+import type {
+  CalendarEvent,
+  ClothingItem,
+  OutfitRecommendation,
+} from '../../../shared/api/types';
+import { getTodayEvents, ignoreEvent } from '../../calendar/api';
 import { acceptOutfit, getOutfit } from '../api';
 import SwapBottomSheet from './SwapBottomSheet';
 
@@ -39,11 +53,20 @@ function deriveHashtags(rec: OutfitRecommendation): string[] {
   return [...new Set(tags)].slice(0, 5);
 }
 
+function formatEventTime(event: CalendarEvent): string {
+  if (event.all_day) return 'All day';
+  return new Date(event.starts_at).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export default function OutfitPage() {
   const navigate = useNavigate();
   const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(
     null,
   );
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [emptyWardrobe, setEmptyWardrobe] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,10 +99,29 @@ export default function OutfitPage() {
   }, [fetchOutfit]);
 
   useEffect(() => {
+    // Today's calendar events are best-effort context; failures shouldn't block
+    // the outfit view.
+    getTodayEvents()
+      .then(setEvents)
+      .catch(() => setEvents([]));
+  }, []);
+
+  useEffect(() => {
     if (!showToast) return;
     const t = setTimeout(() => setShowToast(false), 3000);
     return () => clearTimeout(t);
   }, [showToast]);
+
+  function handleIgnore(id: string) {
+    // Optimistically drop it; ignored events are hidden server-side too.
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+    ignoreEvent(id).catch(() => {
+      // On failure, reload so the UI matches the server.
+      getTodayEvents()
+        .then(setEvents)
+        .catch(() => undefined);
+    });
+  }
 
   const handleAccept = useCallback(async () => {
     if (!recommendation || accepting || accepted) return;
@@ -149,6 +191,43 @@ export default function OutfitPage() {
             </div>
           )}
         </div>
+
+        {events.length > 0 && (
+          <div className="mb-6 rounded-xl border border-border bg-card/60 p-4">
+            <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              <CalendarClock className="h-3.5 w-3.5 text-terracotta" />
+              Today's schedule
+            </p>
+            <ul className="space-y-2.5">
+              {events.map((event) => (
+                <li key={event.id} className="flex items-start gap-3 text-sm">
+                  <span className="w-20 shrink-0 font-medium text-foreground">
+                    {formatEventTime(event)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-foreground">
+                      {event.title}
+                    </span>
+                    {event.location && (
+                      <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        {event.location}
+                      </span>
+                    )}
+                  </span>
+                  <button
+                    onClick={() => handleIgnore(event.id)}
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                    aria-label={`Ignore ${event.title}`}
+                    title="Ignore this event"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {loading ? (
           <p className="py-20 text-center text-sm text-muted-foreground">
