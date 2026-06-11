@@ -126,10 +126,12 @@ func main() {
 	mux.Handle("POST /recommendations/outfit/accept", auth(http.HandlerFunc(recommendHandler.AcceptOutfit)))
 
 	srv := &http.Server{
-		Addr:         ":" + port(),
-		Handler:      middleware.Tracing(mux),
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		Addr:        ":" + port(),
+		Handler:     middleware.Tracing(mux),
+		ReadTimeout: 30 * time.Second,
+		// 120s > max AI client timeout (90s classifier, 60s recommender).
+		// Gemini and Claude calls are network-bound; 10s was too short post-migration.
+		WriteTimeout: 120 * time.Second,
 	}
 
 	go func() {
