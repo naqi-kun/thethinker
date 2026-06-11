@@ -1,18 +1,17 @@
 # Dev Seed (KAN-56)
 
 Resets the dev database and populates it with test users and a full wardrobe of
-real clothing images. Images run through the same pipeline as user uploads:
-Gemini classification → background removal → GCS upload.
+real clothing images. Images run through the same upload pipeline as real user
+uploads: validation → background removal (rembg) → GCS upload.
 
 ## Quick start
 
-1. `aspire run` from the repo root (you'll be prompted for `googleApiKey` and
-   `anthropicApiKey` on first start — the AI service needs both).
-2. Wait for the **ai** resource to show *Running* in the dashboard.
+1. `aspire run` from the repo root.
+2. Wait for the **ai** resource to show *Running* in the dashboard (it serves
+   background removal).
 3. On the **db** resource row, click **Seed Dev Data** and confirm.
-4. When it finishes (~4 min — every image is classified by Gemini, and calls
-   are paced to stay under the free-tier rate limit), the command output shows
-   the test credentials.
+4. When it finishes (~1–2 min — every image gets its background removed), the
+   command output shows the test credentials.
 
 ## Test accounts
 
@@ -21,8 +20,7 @@ Gemini classification → background removal → GCS upload.
 | `dev@thethinker.com` | `password123` | casual / business-casual |
 | `jane@thethinker.com` | `password123` | formal / classic |
 
-Both users get the full image set (one item per seed image), classified and
-background-removed by the AI service.
+Both users get the full image set (one item per seed image).
 
 ## How it works
 
@@ -33,20 +31,24 @@ Aspire dashboard button ("Seed Dev Data" on the db resource, apphost.mts)
         ├─ TRUNCATE wardrobe_items, user_preferences, users
         ├─ INSERT 2 test users + preferences
         └─ for each image in backend/seeds/images/ × each user:
-             wardrobeSvc.IngestScan() → Gemini classify → rembg bg-removal → GCS upload → DB insert
+             AddItem (metadata from filename) → UploadImage → rembg bg-removal → GCS upload
 ```
 
+- **Item metadata comes from the filename**, not the AI classifier. The Gemini
+  free tier allows only 20 requests/day — less than one seed run (32 items) —
+  so each image's category/color/fit/season is curated in the `imageMeta` map
+  in `seed_handler.go`. Adding a new image to `backend/seeds/images/` requires
+  adding a matching `imageMeta` entry (the seed fails loudly if you forget).
+- **Background removal and GCS upload are the real pipeline** — the seed calls
+  the same `UploadImage` service method as a user uploading a photo.
 - The endpoint only works when `GCS_EMULATOR_HOST` is set (dev guard) — it
   returns 403 otherwise, so it is inert in production builds.
 - Seeding is **idempotent**: every run truncates first, so clicking the button
   twice never duplicates data or leaves broken image URLs.
 - Images are embedded into the backend binary via `//go:embed`
   ([backend/seeds/images.go](../backend/seeds/images.go)) — no filesystem
-  dependency at runtime.
-- Items are seeded **sequentially with ~6s spacing** between Gemini calls to
-  stay under the free-tier rate limit (10 requests/minute). Transient 503s are
-  retried with backoff; two consecutive quota failures abort the run (daily
-  quota exhausted — retrying won't help).
+  dependency at runtime. Seed images are committed as JPEG because the upload
+  pipeline's validation step decodes with Go's stdlib (no AVIF support).
 
 ## Alternatives
 
@@ -61,17 +63,16 @@ Aspire dashboard button ("Seed Dev Data" on the db resource, apphost.mts)
 |---|---|---|
 | `AI service not ready (…/healthz unreachable)` | The `ai` container is still building/starting | Wait for the **ai** resource to be *Running*, retry |
 | `seed endpoint not available outside dev environment` | `GCS_EMULATOR_HOST` not set | Run via `aspire run` (it wires the env var) |
+| `no metadata for seed image "x.jpg"` | Image added without an `imageMeta` entry | Add the entry in `seed_handler.go` |
 | Items appear but without images | GCS emulator (`gcs` resource) down mid-seed | Restart `gcs`, re-run the seed |
-| Slow seed (several minutes) | Calls are paced at ~10/min for the Gemini free tier | Expected; check `aspire logs ai` if stuck |
-| `AI quota exhausted after N items` | Gemini daily free-tier quota reached | Wait for the daily reset or use a paid-tier key |
-| `cannot decode image` (422) | Image format Pillow can't read | avif/webp/jpeg/png are supported; convert anything else |
+| Items have images with backgrounds | AI service died mid-seed (JPEG fallback) | Re-run the seed once **ai** is healthy |
 
 ## Tests
 
 `backend/internal/interfaces/http/handlers/seed_handler_test.go` covers the
 dev-environment guard, AI-down fail-fast (DB untouched), idempotency across
-runs (truncate-per-run, no duplicates), content-type mapping, and ingest
-failure reporting. Run with:
+runs (truncate-per-run, no duplicates), metadata completeness for every
+committed image, and upload failure reporting. Run with:
 
 ```bash
 cd backend && go test ./internal/interfaces/http/handlers/

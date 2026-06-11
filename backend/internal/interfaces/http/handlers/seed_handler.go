@@ -6,18 +6,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
 	"school-gitlab.xsolla.dev/team3/thethinker/seeds"
 )
-
-// Gemini free tier allows ~10 requests/minute; one classify call per item,
-// so items are seeded sequentially with this much spacing between calls.
-const defaultClassifyInterval = 6 * time.Second
 
 // seedDB is the subset of pgxpool.Pool the seed needs; an interface so tests
 // can run the seed against a fake without a live Postgres.
@@ -25,23 +21,48 @@ type seedDB interface {
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 }
 
+// seedMeta holds the curated classification for one seed image. The Gemini
+// free tier allows only 20 requests/day — far less than one seed run — so
+// seed items are classified from their filename instead of through the AI.
+// Background removal and GCS upload still run through the normal upload
+// pipeline (wardrobeSvc.UploadImage), identical to a real user upload.
+type seedMeta struct {
+	subType  string
+	category string
+	color    string
+	fit      string
+	season   string
+}
+
+// imageMeta maps each filename stem under backend/seeds/images/ to its metadata.
+var imageMeta = map[string]seedMeta{
+	"shirt":      {"shirt", "formal", "white", "slim", "all"},
+	"t-shirt":    {"t-shirt", "casual", "white", "regular", "all"},
+	"sweatshirt": {"sweater", "casual", "beige", "relaxed", "autumn_winter"},
+	"hoodie":     {"hoodie", "casual", "grey", "oversized", "all"},
+	"jacket":     {"jacket", "casual", "black", "regular", "autumn_winter"},
+	"coat":       {"coat", "formal", "brown", "regular", "winter"},
+	"blazer":     {"blazer", "formal", "navy blue", "slim", "all"},
+	"suit":       {"suit", "formal", "grey", "slim", "all"},
+	"pants":      {"pants", "formal", "black", "slim", "all"},
+	"jeans":      {"jeans", "casual", "blue", "slim", "all"},
+	"shorts":     {"shorts", "casual", "beige", "regular", "spring_summer"},
+	"skirt":      {"skirt", "casual", "beige", "regular", "spring_summer"},
+	"dress":      {"dress", "casual", "navy blue", "regular", "spring_summer"},
+	"shoes":      {"shoes", "formal", "black", "regular", "all"},
+	"sneakers":   {"sneakers", "casual", "white", "regular", "all"},
+	"boots":      {"boots", "casual", "brown", "regular", "autumn_winter"},
+}
+
 // DevSeedHandler populates the database with deterministic test data.
 // Only active when GCS_EMULATOR_HOST is set (dev environment guard).
-// Images are processed through the full pipeline: AI classification + background removal.
 type DevSeedHandler struct {
-	db               seedDB
-	wardrobeSvc      wardrobeSvc
-	classifyInterval time.Duration
+	db          seedDB
+	wardrobeSvc wardrobeSvc
 }
 
 func NewDevSeedHandler(db seedDB, svc wardrobeSvc) *DevSeedHandler {
-	return &DevSeedHandler{db: db, wardrobeSvc: svc, classifyInterval: defaultClassifyInterval}
-}
-
-// WithClassifyInterval overrides the spacing between AI calls (used by tests).
-func (h *DevSeedHandler) WithClassifyInterval(d time.Duration) *DevSeedHandler {
-	h.classifyInterval = d
-	return h
+	return &DevSeedHandler{db: db, wardrobeSvc: svc}
 }
 
 func (h *DevSeedHandler) Seed(w http.ResponseWriter, r *http.Request) {
@@ -50,13 +71,13 @@ func (h *DevSeedHandler) Seed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The paced run takes ~4 min; extend this connection's write deadline past
-	// the server-wide WriteTimeout (120s), which would otherwise drop the
-	// connection mid-seed. Best-effort: not all writers support it.
+	// Background removal across 32 items takes a couple of minutes; extend this
+	// connection's write deadline past the server-wide WriteTimeout (120s),
+	// which would otherwise drop the connection mid-seed.
 	rc := http.NewResponseController(w)
-	_ = rc.SetWriteDeadline(time.Now().Add(12 * time.Minute))
+	_ = rc.SetWriteDeadline(time.Now().Add(10 * time.Minute))
 
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Minute)
 	defer cancel()
 
 	msg, err := h.runSeed(ctx)
@@ -74,6 +95,8 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 	const user1 = "00000000-0000-0000-0000-000000000001"
 	const user2 = "00000000-0000-0000-0000-000000000002"
 
+	// Bg removal needs the AI service; fail fast with a clear message instead
+	// of seeding a wardrobe of images with backgrounds still in place.
 	if err := checkAIServiceReady(); err != nil {
 		return "", err
 	}
@@ -106,50 +129,44 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("read seed images: %w", err)
 	}
 
-	// Sequential on purpose: every IngestScan makes a Gemini call, and the free
-	// tier rate-limits at ~10 RPM. Spacing the calls keeps the whole run under
-	// the limit; consecutive quota failures abort early (daily cap, not RPM).
 	count := 0
-	consecutiveQuota := 0
-	first := true
-	var firstErr error
 	failed := 0
+	var firstErr error
 
 	for _, entry := range entries {
+		stem := strings.TrimSuffix(entry.Name(), ".jpg")
+		meta, ok := imageMeta[stem]
+		if !ok {
+			return "", fmt.Errorf("no metadata for seed image %q — add it to imageMeta in seed_handler.go", entry.Name())
+		}
+
+		item, err := buildItem(meta)
+		if err != nil {
+			return "", fmt.Errorf("metadata for %s: %w", entry.Name(), err)
+		}
+
 		data, err := seeds.FS.ReadFile("images/" + entry.Name())
 		if err != nil {
 			return "", fmt.Errorf("read %s: %w", entry.Name(), err)
 		}
-		ct := seedContentType(entry.Name())
 
 		for _, userID := range []string{user1, user2} {
-			if !first {
-				select {
-				case <-ctx.Done():
-					return "", fmt.Errorf("seed canceled after %d items: %w", count, ctx.Err())
-				case <-time.After(h.classifyInterval):
-				}
+			if err := ctx.Err(); err != nil {
+				return "", fmt.Errorf("seed canceled after %d items: %w", count, err)
 			}
-			first = false
-
-			err := h.ingestWithRetry(ctx, userID, data, ct)
+			saved, err := h.wardrobeSvc.AddItem(ctx, userID, item)
+			if err == nil {
+				// Same path as a real user upload: validate → bg removal → GCS.
+				_, err = h.wardrobeSvc.UploadImage(ctx, saved.ID, userID, data)
+			}
 			if err != nil {
-				log.Printf("seed: ingest %s for %s: %v", entry.Name(), userID, err)
+				log.Printf("seed: %s for %s: %v", entry.Name(), userID, err)
 				failed++
 				if firstErr == nil {
-					firstErr = fmt.Errorf("ingest %s: %w", entry.Name(), err)
-				}
-				if isQuotaErr(err) {
-					consecutiveQuota++
-					if consecutiveQuota >= 2 {
-						return "", fmt.Errorf(
-							"AI quota exhausted after %d items seeded — the Gemini daily limit may be reached, try again later: %w",
-							count, err)
-					}
+					firstErr = fmt.Errorf("%s: %w", entry.Name(), err)
 				}
 				continue
 			}
-			consecutiveQuota = 0
 			count++
 		}
 	}
@@ -164,38 +181,40 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 	), nil
 }
 
-// ingestWithRetry retries quota-limited calls (transient RPM throttling) with
-// growing backoff. Non-quota errors are returned immediately.
-func (h *DevSeedHandler) ingestWithRetry(ctx context.Context, userID string, data []byte, contentType string) error {
-	var err error
-	for attempt := 0; attempt < 3; attempt++ {
-		if attempt > 0 {
-			wait := time.Duration(attempt) * 4 * h.classifyInterval
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(wait):
-			}
-		}
-		_, err = h.wardrobeSvc.IngestScan(ctx, userID, data, contentType)
-		if err == nil || !isQuotaErr(err) {
-			return err
-		}
+// buildItem converts curated string metadata into a typed ClothingItem.
+func buildItem(meta seedMeta) (wardrobe.ClothingItem, error) {
+	category, err := wardrobe.ParseCategory(meta.category)
+	if err != nil {
+		return wardrobe.ClothingItem{}, err
 	}
-	return err
-}
-
-func isQuotaErr(err error) bool {
-	if err == nil {
-		return false
+	subType, err := wardrobe.ParseSubType(meta.subType)
+	if err != nil {
+		return wardrobe.ClothingItem{}, err
 	}
-	s := strings.ToLower(err.Error())
-	return strings.Contains(s, "status 503") || strings.Contains(s, "status 429") || strings.Contains(s, "quota")
+	color, err := wardrobe.ParseColor(meta.color)
+	if err != nil {
+		return wardrobe.ClothingItem{}, err
+	}
+	fit, err := wardrobe.ParseFit(meta.fit)
+	if err != nil {
+		return wardrobe.ClothingItem{}, err
+	}
+	season, err := wardrobe.ParseSeason(meta.season)
+	if err != nil {
+		return wardrobe.ClothingItem{}, err
+	}
+	return wardrobe.ClothingItem{
+		Category: category,
+		SubType:  subType,
+		Color:    color,
+		Fit:      fit,
+		Season:   season,
+	}, nil
 }
 
 // checkAIServiceReady does a quick /healthz probe on the AI service.
 // Returns a clear error if the service is unreachable so the seed fails fast
-// instead of silently retrying 32 items against a down DCP proxy.
+// instead of uploading 32 images that skip background removal.
 func checkAIServiceReady() error {
 	aiURL := os.Getenv("AI_SERVICE_URL")
 	if aiURL == "" {
@@ -211,15 +230,4 @@ func checkAIServiceReady() error {
 		return fmt.Errorf("AI service not ready (%s/healthz returned %d) — wait for it to start in the dashboard and retry", aiURL, resp.StatusCode)
 	}
 	return nil
-}
-
-func seedContentType(filename string) string {
-	switch filepath.Ext(filename) {
-	case ".avif":
-		return "image/avif"
-	case ".webp":
-		return "image/webp"
-	default:
-		return "image/jpeg"
-	}
 }

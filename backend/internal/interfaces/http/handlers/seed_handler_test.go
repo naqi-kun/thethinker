@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -61,9 +62,23 @@ func healthyAIServer(t *testing.T) *httptest.Server {
 	return srv
 }
 
-// newSeedHandler builds a handler with zero AI-call spacing so tests run fast.
-func newSeedHandler(db *fakeSeedDB, svc *mockWardrobeSvc) *handlers.DevSeedHandler {
-	return handlers.NewDevSeedHandler(db, svc).WithClassifyInterval(0)
+// seedMockSvc returns a mock whose AddItem assigns sequential IDs and whose
+// UploadImage increments the shared item counter, mimicking the real flow.
+func seedMockSvc(items *int) *mockWardrobeSvc {
+	next := 0
+	return &mockWardrobeSvc{
+		addItem: func(_ context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error) {
+			next++
+			saved := item
+			saved.ID = fmt.Sprintf("item-%d", next)
+			saved.UserID = userID
+			return &saved, nil
+		},
+		uploadImage: func(_ context.Context, itemID, userID string, _ []byte) (*wardrobe.ClothingItem, error) {
+			*items++
+			return savedItem(), nil
+		},
+	}
 }
 
 func runSeedRequest(h *handlers.DevSeedHandler) *httptest.ResponseRecorder {
@@ -78,7 +93,7 @@ func TestSeed_RejectedOutsideDevEnvironment(t *testing.T) {
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	rec := runSeedRequest(newSeedHandler(db, &mockWardrobeSvc{}))
+	rec := runSeedRequest(handlers.NewDevSeedHandler(db, &mockWardrobeSvc{}))
 
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusForbidden)
@@ -98,7 +113,7 @@ func TestSeed_FailsFastWhenAIServiceDown(t *testing.T) {
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	rec := runSeedRequest(newSeedHandler(db, &mockWardrobeSvc{}))
+	rec := runSeedRequest(handlers.NewDevSeedHandler(db, &mockWardrobeSvc{}))
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
@@ -122,7 +137,7 @@ func TestSeed_FailsWhenAIHealthzUnhealthy(t *testing.T) {
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	rec := runSeedRequest(newSeedHandler(db, &mockWardrobeSvc{}))
+	rec := runSeedRequest(handlers.NewDevSeedHandler(db, &mockWardrobeSvc{}))
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
@@ -138,15 +153,7 @@ func TestSeed_IdempotentAcrossRuns(t *testing.T) {
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	svc := &mockWardrobeSvc{
-		ingestScan: func(_ context.Context, userID string, _ []byte, _ string) (*wardrobe.ClothingItem, error) {
-			items++
-			it := *savedItem()
-			it.UserID = userID
-			return &it, nil
-		},
-	}
-	h := newSeedHandler(db, svc)
+	h := handlers.NewDevSeedHandler(db, seedMockSvc(&items))
 
 	wantItems := seedImageCount(t) * 2 // every image seeded for both test users
 
@@ -175,114 +182,50 @@ func TestSeed_IdempotentAcrossRuns(t *testing.T) {
 	}
 }
 
-func TestSeed_SendsCorrectContentTypes(t *testing.T) {
+func TestSeed_EveryImageHasValidMetadata(t *testing.T) {
 	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
 	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
 
-	contentTypes := map[string]int{}
+	subTypes := map[wardrobe.SubType]bool{}
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	svc := &mockWardrobeSvc{
-		ingestScan: func(_ context.Context, _ string, _ []byte, contentType string) (*wardrobe.ClothingItem, error) {
-			contentTypes[contentType]++
-			return savedItem(), nil
-		},
+	svc := seedMockSvc(&items)
+	baseAdd := svc.addItem
+	svc.addItem = func(ctx context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error) {
+		subTypes[item.SubType] = true
+		return baseAdd(ctx, userID, item)
 	}
 
-	if rec := runSeedRequest(newSeedHandler(db, svc)); rec.Code != http.StatusOK {
+	rec := runSeedRequest(handlers.NewDevSeedHandler(db, svc))
+
+	// A 200 means every filename resolved to parseable enum metadata —
+	// an image without an imageMeta entry fails the whole run.
+	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-
-	// Committed seed set: avif + webp only. Anything else means a file was
-	// added without a content-type mapping.
-	for ct := range contentTypes {
-		if ct != "image/avif" && ct != "image/webp" {
-			t.Fatalf("unexpected content type %q sent to IngestScan", ct)
-		}
-	}
-	if contentTypes["image/webp"] == 0 || contentTypes["image/avif"] == 0 {
-		t.Fatalf("expected both avif and webp images in seed set, got: %v", contentTypes)
+	if len(subTypes) != seedImageCount(t) {
+		t.Fatalf("distinct sub-types = %d, want %d (one per image)", len(subTypes), seedImageCount(t))
 	}
 }
 
-func TestSeed_ReportsIngestFailures(t *testing.T) {
+func TestSeed_ReportsUploadFailures(t *testing.T) {
 	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
 	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
 
 	items := 0
 	db := &fakeSeedDB{items: &items}
-	svc := &mockWardrobeSvc{
-		ingestScan: func(context.Context, string, []byte, string) (*wardrobe.ClothingItem, error) {
-			// Simulates GCS bucket missing / emulator gone mid-seed.
-			return nil, errors.New("gcs: bucket not found")
-		},
+	svc := seedMockSvc(&items)
+	svc.uploadImage = func(context.Context, string, string, []byte) (*wardrobe.ClothingItem, error) {
+		// Simulates GCS bucket missing / emulator gone mid-seed.
+		return nil, errors.New("gcs: bucket not found")
 	}
 
-	rec := runSeedRequest(newSeedHandler(db, svc))
+	rec := runSeedRequest(handlers.NewDevSeedHandler(db, svc))
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
 	}
 	if !strings.Contains(rec.Body.String(), "failed") {
 		t.Fatalf("body = %q, want failure summary", rec.Body.String())
-	}
-}
-
-func TestSeed_RetriesTransientQuotaErrors(t *testing.T) {
-	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
-	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
-
-	items := 0
-	calls := 0
-	db := &fakeSeedDB{items: &items}
-	svc := &mockWardrobeSvc{
-		ingestScan: func(context.Context, string, []byte, string) (*wardrobe.ClothingItem, error) {
-			calls++
-			// Every first attempt per item is rate-limited; the retry succeeds.
-			if calls%2 == 1 {
-				return nil, errors.New(`classifier: status 503: {"detail":"AI quota exhausted — please try again later"}`)
-			}
-			items++
-			return savedItem(), nil
-		},
-	}
-
-	rec := runSeedRequest(newSeedHandler(db, svc))
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
-	}
-	wantItems := seedImageCount(t) * 2
-	if items != wantItems {
-		t.Fatalf("items = %d, want %d (transient quota errors should be retried)", items, wantItems)
-	}
-}
-
-func TestSeed_AbortsWhenQuotaExhausted(t *testing.T) {
-	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
-	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
-
-	items := 0
-	calls := 0
-	db := &fakeSeedDB{items: &items}
-	svc := &mockWardrobeSvc{
-		ingestScan: func(context.Context, string, []byte, string) (*wardrobe.ClothingItem, error) {
-			calls++
-			// Daily quota gone: every call fails, retries included.
-			return nil, errors.New(`classifier: status 503: {"detail":"AI quota exhausted — please try again later"}`)
-		},
-	}
-
-	rec := runSeedRequest(newSeedHandler(db, svc))
-
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusInternalServerError)
-	}
-	if !strings.Contains(rec.Body.String(), "quota exhausted") {
-		t.Fatalf("body = %q, want quota-exhausted message", rec.Body.String())
-	}
-	// 2 items × 3 attempts each, then abort — not 32 items × 3 attempts.
-	if calls > 6 {
-		t.Fatalf("made %d AI calls before aborting, want early abort (≤6)", calls)
 	}
 }
