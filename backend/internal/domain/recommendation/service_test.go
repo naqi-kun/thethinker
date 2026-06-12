@@ -106,7 +106,8 @@ func TestAcceptAndRecord_EmptyItemIDs(t *testing.T) {
 	svc := recommendation.NewService(
 		&stubWardrobeRepo{},
 		&stubCalendarRepo{},
-		weather.NewService(),
+		nil,
+		weather.NewService(nil),
 		&stubAIRecommender{},
 		&stubHistoryRepo{},
 		&stubTransactor{},
