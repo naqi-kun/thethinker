@@ -144,15 +144,32 @@ func (h *UserHandler) UpdatePreferences(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	useAI := existing.UseAI
+	// Merge: start from existing values so omitted fields are preserved.
+	var existingStyles []string
+	existingAnswers := map[string]string{}
+	useAI := true
+	if existing != nil {
+		existingStyles = existing.Styles
+		existingAnswers = existing.Answers
+		useAI = existing.UseAI
+	}
+
+	styles := req.Styles
+	if styles == nil {
+		styles = existingStyles
+	}
+	answers := req.Answers
+	if answers == nil {
+		answers = existingAnswers
+	}
 	if req.UseAI != nil {
 		useAI = *req.UseAI
 	}
 
 	prefs := &user.Preferences{
 		UserID:  userID,
-		Styles:  req.Styles,
-		Answers: req.Answers,
+		Styles:  styles,
+		Answers: answers,
 		UseAI:   useAI,
 	}
 	if err := h.svc.SavePreferences(r.Context(), prefs); err != nil {
@@ -160,14 +177,14 @@ func (h *UserHandler) UpdatePreferences(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	styles := prefs.Styles
-	if styles == nil {
-		styles = []string{}
+	respStyles := prefs.Styles
+	if respStyles == nil {
+		respStyles = []string{}
 	}
-	answers := prefs.Answers
-	if answers == nil {
-		answers = map[string]string{}
+	respAnswers := prefs.Answers
+	if respAnswers == nil {
+		respAnswers = map[string]string{}
 	}
 
-	writeJSON(w, http.StatusOK, preferencesResponse{Styles: styles, Answers: answers, UseAI: prefs.UseAI})
+	writeJSON(w, http.StatusOK, preferencesResponse{Styles: respStyles, Answers: respAnswers, UseAI: prefs.UseAI})
 }
