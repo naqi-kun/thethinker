@@ -121,7 +121,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		Occasion:    "casual",
 		Weather:     conditions,
 		Recommender: recommender,
-		CreatedAt: time.Now(),
+		CreatedAt:   time.Now(),
 	}, nil
 }
 
@@ -217,7 +217,6 @@ func pickItemsByID(items []*wardrobe.ClothingItem, rec AIRec) []*wardrobe.Clothi
 	}
 	return result
 }
-
 
 func leastRecentlyWorn(items []*wardrobe.ClothingItem) *wardrobe.ClothingItem {
 	if len(items) == 0 {
