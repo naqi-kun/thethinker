@@ -104,6 +104,7 @@ func main() {
 	mux.HandleFunc("POST /auth/login", userHandler.Login)
 
 	// user — protected
+	mux.Handle("GET /users/me", auth(http.HandlerFunc(userHandler.GetMe)))
 	mux.Handle("GET /users/me/preferences", auth(http.HandlerFunc(userHandler.GetPreferences)))
 	mux.Handle("PUT /users/me/preferences", auth(http.HandlerFunc(userHandler.UpdatePreferences)))
 	mux.Handle("GET /users/me/work-schedule", auth(http.HandlerFunc(workScheduleHandler.Get)))

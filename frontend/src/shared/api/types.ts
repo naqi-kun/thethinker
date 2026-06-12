@@ -1,6 +1,7 @@
 import type { components } from './schema';
 
 export type AuthResponse = components['schemas']['AuthResponse'];
+export type UserProfile = components['schemas']['UserProfile'];
 export type Preferences = components['schemas']['Preferences'];
 export type StylePreference = NonNullable<Preferences['styles']>[number];
 export type ClothingItem = components['schemas']['ClothingItem'];

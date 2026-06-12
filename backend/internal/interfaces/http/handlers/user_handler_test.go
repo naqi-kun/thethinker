@@ -10,11 +10,13 @@ import (
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
 )
 
 type mockUserSvc struct {
 	register        func(ctx context.Context, email, password string) (*user.AuthResult, error)
 	login           func(ctx context.Context, email, password string) (*user.AuthResult, error)
+	getProfile      func(ctx context.Context, userID string) (*user.User, error)
 	getPreferences  func(ctx context.Context, userID string) (*user.Preferences, error)
 	savePreferences func(ctx context.Context, p *user.Preferences) error
 }
@@ -25,6 +27,13 @@ func (m *mockUserSvc) Register(ctx context.Context, email, password string) (*us
 
 func (m *mockUserSvc) Login(ctx context.Context, email, password string) (*user.AuthResult, error) {
 	return m.login(ctx, email, password)
+}
+
+func (m *mockUserSvc) GetProfile(ctx context.Context, userID string) (*user.User, error) {
+	if m.getProfile != nil {
+		return m.getProfile(ctx, userID)
+	}
+	return &user.User{ID: userID, Email: "dev@thethinker.com"}, nil
 }
 
 func (m *mockUserSvc) GetPreferences(ctx context.Context, userID string) (*user.Preferences, error) {
@@ -115,6 +124,59 @@ func TestRegister(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetMe(t *testing.T) {
+	t.Run("happy path returns 200 with the authenticated user's email", func(t *testing.T) {
+		svc := &mockUserSvc{
+			getProfile: func(_ context.Context, userID string) (*user.User, error) {
+				return &user.User{ID: userID, Email: "real.user@thethinker.com"}, nil
+			},
+		}
+		h := handlers.NewUserHandler(svc)
+
+		req := httptest.NewRequest(http.MethodGet, "/users/me", nil)
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, "user-123"))
+		rr := httptest.NewRecorder()
+		h.GetMe(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d (body: %s)", rr.Code, http.StatusOK, rr.Body.String())
+		}
+		if !strings.Contains(rr.Body.String(), "real.user@thethinker.com") {
+			t.Errorf("body = %s, want it to contain the user's email", rr.Body.String())
+		}
+	})
+
+	t.Run("missing user context returns 401", func(t *testing.T) {
+		h := handlers.NewUserHandler(&mockUserSvc{})
+
+		req := httptest.NewRequest(http.MethodGet, "/users/me", nil)
+		rr := httptest.NewRecorder()
+		h.GetMe(rr, req)
+
+		if rr.Code != http.StatusUnauthorized {
+			t.Errorf("status = %d, want %d", rr.Code, http.StatusUnauthorized)
+		}
+	})
+
+	t.Run("service error returns 500", func(t *testing.T) {
+		svc := &mockUserSvc{
+			getProfile: func(_ context.Context, _ string) (*user.User, error) {
+				return nil, errors.New("db unavailable")
+			},
+		}
+		h := handlers.NewUserHandler(svc)
+
+		req := httptest.NewRequest(http.MethodGet, "/users/me", nil)
+		req = req.WithContext(context.WithValue(req.Context(), middleware.UserIDKey, "user-123"))
+		rr := httptest.NewRecorder()
+		h.GetMe(rr, req)
+
+		if rr.Code != http.StatusInternalServerError {
+			t.Errorf("status = %d, want %d", rr.Code, http.StatusInternalServerError)
+		}
+	})
 }
 
 func TestLogin(t *testing.T) {

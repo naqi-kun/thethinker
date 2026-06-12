@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/middleware"
@@ -13,6 +14,7 @@ import (
 type userSvc interface {
 	Register(ctx context.Context, email, password string) (*user.AuthResult, error)
 	Login(ctx context.Context, email, password string) (*user.AuthResult, error)
+	GetProfile(ctx context.Context, userID string) (*user.User, error)
 	GetPreferences(ctx context.Context, userID string) (*user.Preferences, error)
 	SavePreferences(ctx context.Context, p *user.Preferences) error
 }
@@ -45,6 +47,12 @@ type preferencesResponse struct {
 	Styles  []string          `json:"styles"`
 	Answers map[string]string `json:"answers"`
 	UseAI   bool              `json:"use_ai"`
+}
+
+type profileResponse struct {
+	ID        string `json:"id"`
+	Email     string `json:"email"`
+	CreatedAt string `json:"created_at"`
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +105,26 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, authResponse{Token: result.Token, UserID: result.UserID})
+}
+
+func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	u, err := h.svc.GetProfile(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to get profile")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, profileResponse{
+		ID:        u.ID,
+		Email:     u.Email,
+		CreatedAt: u.CreatedAt.Format(time.RFC3339),
+	})
 }
 
 func (h *UserHandler) GetPreferences(w http.ResponseWriter, r *http.Request) {

@@ -79,6 +79,18 @@ func (s *Service) Login(ctx context.Context, email, password string) (*AuthResul
 	return &AuthResult{Token: tok, UserID: u.ID}, nil
 }
 
+// GetProfile returns the authenticated user's account profile.
+func (s *Service) GetProfile(ctx context.Context, userID string) (*User, error) {
+	u, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, ErrInvalidCredentials
+	}
+	return u, nil
+}
+
 // GetPreferences returns the user's style preferences, or an empty struct if
 // none have been saved yet (e.g. a new user who skipped onboarding).
 func (s *Service) GetPreferences(ctx context.Context, userID string) (*Preferences, error) {
