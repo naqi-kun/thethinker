@@ -37,7 +37,6 @@ const googleApiKey = builder.addParameter('googleApiKey', { secret: true });
 // Get a free key at https://home.openweathermap.org/users/sign_up
 const weatherApiKey = builder.addParameter('weatherApiKey', { secret: true, value: '' });
 
-
 // Python AI classification service — built from ./ai/Dockerfile
 const ai = await builder.addDockerfile('ai', './ai');
 await ai.withHttpEndpoint({ port: 8001, targetPort: 8001, name: 'http' });

@@ -652,6 +652,10 @@ components:
           description: Personalized Q answers keyed by question ID
           additionalProperties:
             type: string
+        use_ai:
+          type: boolean
+          description: Use AI recommender (true) or rule-based fallback (false). Defaults to true.
+          default: true
 
     ClassifyResult:
       type: object

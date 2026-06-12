@@ -970,6 +970,11 @@ export interface components {
             answers?: {
                 [key: string]: string;
             };
+            /**
+             * @description Use AI recommender (true) or rule-based fallback (false). Defaults to true.
+             * @default true
+             */
+            use_ai: boolean;
         };
         ClassifyResult: {
             /** @enum {string} */

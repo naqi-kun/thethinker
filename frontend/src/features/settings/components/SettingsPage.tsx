@@ -151,11 +151,25 @@ export default function SettingsPage() {
         const loc = p.answers?.['location'] ?? '';
         setLocation(loc);
         setSavedLocation(loc);
+        setUseAI(p.use_ai ?? true);
       })
       .catch(() => {
         /* best-effort; location stays empty */
       });
   }, []);
+
+  async function toggleUseAI(value: boolean) {
+    setUseAI(value);
+    setSavingAI(true);
+    try {
+      const current = await getPreferences();
+      await updatePreferences({ ...current, use_ai: value });
+    } catch {
+      setUseAI(!value); // revert on error
+    } finally {
+      setSavingAI(false);
+    }
+  }
 
   useEffect(() => {
     getWorkSchedule()
@@ -177,6 +191,7 @@ export default function SettingsPage() {
       await updatePreferences({
         styles: current.styles ?? [],
         answers: { ...(current.answers ?? {}), location: location.trim() },
+        use_ai: current.use_ai ?? true,
       });
       setSavedLocation(location.trim());
       setLocationStatus('Saved!');
@@ -224,6 +239,8 @@ export default function SettingsPage() {
   const [includeAccessories, setIncludeAccessories] = useState(true);
   const [weatherAware, setWeatherAware] = useState(true);
   const [calendarAware, setCalendarAware] = useState(true);
+  const [useAI, setUseAI] = useState(true);
+  const [savingAI, setSavingAI] = useState(false);
 
   // Notifications
   const [dailyReminder, setDailyReminder] = useState(true);
@@ -498,6 +515,18 @@ export default function SettingsPage() {
               checked={calendarAware}
               onChange={setCalendarAware}
             />
+          </Row>
+          <Row>
+            <RowLabel
+              label="AI-powered recommendations"
+              description={
+                savingAI
+                  ? 'Saving…'
+                  : 'Use AI to pick outfits. Off = rule-based fallback.'
+              }
+              htmlFor="toggle-use-ai"
+            />
+            <Toggle id="toggle-use-ai" checked={useAI} onChange={toggleUseAI} />
           </Row>
         </Section>
 

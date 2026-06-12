@@ -64,12 +64,12 @@ func (r *UserRepository) Save(ctx context.Context, u *user.User) error {
 }
 
 func (r *UserRepository) FindPreferences(ctx context.Context, userID string) (*user.Preferences, error) {
-	p := &user.Preferences{UserID: userID}
+	p := &user.Preferences{UserID: userID, UseAI: true}
 	var answersJSON []byte
 	err := r.db.QueryRow(ctx,
-		`SELECT styles, answers FROM user_preferences WHERE user_id = $1`,
+		`SELECT styles, answers, use_ai FROM user_preferences WHERE user_id = $1`,
 		userID,
-	).Scan(&p.Styles, &answersJSON)
+	).Scan(&p.Styles, &answersJSON, &p.UseAI)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -88,12 +88,13 @@ func (r *UserRepository) SavePreferences(ctx context.Context, p *user.Preference
 		return err
 	}
 	_, err = r.db.Exec(ctx,
-		`INSERT INTO user_preferences (user_id, styles, answers)
-		 VALUES ($1, $2, $3)
+		`INSERT INTO user_preferences (user_id, styles, answers, use_ai)
+		 VALUES ($1, $2, $3, $4)
 		 ON CONFLICT (user_id) DO UPDATE SET
 		   styles  = EXCLUDED.styles,
-		   answers = EXCLUDED.answers`,
-		p.UserID, p.Styles, answersJSON,
+		   answers = EXCLUDED.answers,
+		   use_ai  = EXCLUDED.use_ai`,
+		p.UserID, p.Styles, answersJSON, p.UseAI,
 	)
 	return err
 }

@@ -59,6 +59,8 @@ func NewService(
 // GetOutfit returns an outfit recommendation.
 // Pass sessionID="" to start a new AI session; pass an existing sessionID to
 // regenerate (the AI will avoid the previously rejected combination).
+// If the user has disabled AI (use_ai=false) or the AI service is unavailable,
+// a rule-based fallback is used instead.
 func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, sessionID string) (*OutfitRecommendation, error) {
 	items, err := s.wardrobeRepo.FindByUserID(ctx, userID)
 	if err != nil {
@@ -68,35 +70,42 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		return nil, ErrEmptyWardrobe
 	}
 
-	var rec AIRec
-	if sessionID == "" {
-		sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
-	} else {
-		rec, err = s.aiRecommender.Regenerate(ctx, sessionID)
-		if err != nil {
-			// Session expired (AI service restarted) — start a new one instead.
-			if isSessionNotFound(err) {
-				sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
-			}
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	selected := pickItemsByID(items, rec)
-	if len(selected) == 0 {
-		selected = pickOutfit(items)
-	}
-
-	// Best-effort weather lookup — never blocks the recommendation.
+	// Best-effort prefs + weather lookup — neither blocks the recommendation.
 	var conditions *weather.Conditions
+	useAI := true
 	if prefs, err := s.userPrefsRepo.FindPreferences(ctx, userID); err == nil && prefs != nil {
+		useAI = prefs.UseAI
 		if loc := prefs.Answers["location"]; loc != "" {
 			if cond, err := s.weatherSvc.GetConditions(ctx, loc); err == nil {
 				conditions = cond
 			}
 		}
+	}
+
+	var selected []*wardrobe.ClothingItem
+	if useAI {
+		var rec AIRec
+		if sessionID == "" {
+			sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
+		} else {
+			rec, err = s.aiRecommender.Regenerate(ctx, sessionID)
+			if err != nil {
+				// Session expired (AI service restarted) — start a new one instead.
+				if isSessionNotFound(err) {
+					sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
+				}
+			}
+		}
+		if err == nil {
+			selected = pickItemsByID(items, rec)
+		}
+		// AI call failed — fall through to rule-based below.
+	}
+
+	if len(selected) == 0 {
+		// Rule-based fallback: used when use_ai=false or AI service is unavailable.
+		sessionID = "" // no session ID for rule-based recommendations
+		selected = ruleBasedOutfit(items, conditions, date)
 	}
 
 	return &OutfitRecommendation{
@@ -203,39 +212,6 @@ func pickItemsByID(items []*wardrobe.ClothingItem, rec AIRec) []*wardrobe.Clothi
 	return result
 }
 
-// pickOutfit is the deterministic fallback used when AI selection yields nothing.
-func pickOutfit(items []*wardrobe.ClothingItem) []*wardrobe.ClothingItem {
-	var tops, bottoms, footwear []*wardrobe.ClothingItem
-	for _, item := range items {
-		switch item.SubType {
-		case wardrobe.SubTypeShirt, wardrobe.SubTypeTShirt, wardrobe.SubTypeSweater,
-			wardrobe.SubTypeHoodie, wardrobe.SubTypeJacket, wardrobe.SubTypeCoat,
-			wardrobe.SubTypeBlazer, wardrobe.SubTypeSuit:
-			tops = append(tops, item)
-		case wardrobe.SubTypePants, wardrobe.SubTypeJeans, wardrobe.SubTypeShorts,
-			wardrobe.SubTypeSkirt, wardrobe.SubTypeDress:
-			bottoms = append(bottoms, item)
-		case wardrobe.SubTypeShoes, wardrobe.SubTypeSneakers, wardrobe.SubTypeBoots:
-			footwear = append(footwear, item)
-		}
-	}
-
-	var result []*wardrobe.ClothingItem
-	if top := leastRecentlyWorn(tops); top != nil {
-		result = append(result, top)
-	}
-	if bottom := leastRecentlyWorn(bottoms); bottom != nil {
-		result = append(result, bottom)
-	}
-	if shoe := leastRecentlyWorn(footwear); shoe != nil {
-		result = append(result, shoe)
-	}
-
-	if len(result) == 0 {
-		return items[:1]
-	}
-	return result
-}
 
 func leastRecentlyWorn(items []*wardrobe.ClothingItem) *wardrobe.ClothingItem {
 	if len(items) == 0 {

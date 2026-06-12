@@ -35,6 +35,7 @@ export function buildPreferences(answers: OnboardingAnswers): Preferences {
       location: answers.location,
       climate: answers.climate,
     },
+    use_ai: true,
   };
 }
 
