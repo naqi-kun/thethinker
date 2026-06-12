@@ -37,6 +37,11 @@ await jaeger.withHttpEndpoint({ port: 4318, targetPort: 4318, name: 'otlp' });
 // Google API key for Gemini 2.5 Flash — Aspire prompts once on first start
 const googleApiKey = builder.addParameter('googleApiKey', { secret: true });
 
+// OpenWeatherMap API key — optional. When absent the backend falls back to a
+// 22°C/clear stub so the weather badge still renders without a real key.
+// Get a free key at https://home.openweathermap.org/users/sign_up
+const weatherApiKey = builder.addParameter('weatherApiKey', { secret: true, default: '' });
+
 // Python AI classification service — built from ./ai/Dockerfile
 const ai = await builder.addDockerfile('ai', './ai');
 await ai.withHttpEndpoint({ port: 8001, targetPort: 8001, name: 'http' });
@@ -57,6 +62,7 @@ await backend.withEnvironment('OTEL_BSP_EXPORT_TIMEOUT', '60000');
 // Image storage → local GCS emulator (host:port form, the client adds the scheme).
 await backend.withEnvironment('GCS_BUCKET', 'wardrobe-images');
 await backend.withEnvironment('GCS_EMULATOR_HOST', 'localhost:4443');
+await backend.withEnvironment('WEATHER_API_KEY', weatherApiKey);
 await backend.waitFor(db);
 await backend.waitFor(gcs);
 await backend.waitFor(ai);
