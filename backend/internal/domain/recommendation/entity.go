@@ -7,14 +7,22 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/weather"
 )
 
+type Recommender string
+
+const (
+	RecommenderAI        Recommender = "ai"
+	RecommenderRuleBased Recommender = "rule_based"
+)
+
 type OutfitRecommendation struct {
-	SessionID string
-	UserID    string
-	Date      time.Time
-	Items     []*wardrobe.ClothingItem
-	Occasion  string
-	Weather   *weather.Conditions // nil when location is unknown
-	CreatedAt time.Time
+	SessionID   string
+	UserID      string
+	Date        time.Time
+	Items       []*wardrobe.ClothingItem
+	Occasion    string
+	Weather     *weather.Conditions // nil when location is unknown
+	Recommender Recommender
+	CreatedAt   time.Time
 }
 
 // AIRec holds the raw item IDs returned by the AI recommendation service.

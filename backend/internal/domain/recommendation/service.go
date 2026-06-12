@@ -84,6 +84,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 	}
 
 	var selected []*wardrobe.ClothingItem
+	recommender := RecommenderRuleBased
 	if useAI {
 		var rec AIRec
 		if sessionID == "" {
@@ -99,6 +100,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		}
 		if err == nil {
 			selected = pickItemsByID(items, rec)
+			recommender = RecommenderAI
 		} else {
 			log.Printf("recommendation: AI unavailable for user %s, falling back to rule-based: %v", userID, err)
 		}
@@ -107,16 +109,18 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 	if len(selected) == 0 {
 		// Rule-based fallback: used when use_ai=false or AI service is unavailable.
 		sessionID = "" // no session ID for rule-based recommendations
+		recommender = RecommenderRuleBased
 		selected = ruleBasedOutfit(items, conditions, date)
 	}
 
 	return &OutfitRecommendation{
-		SessionID: sessionID,
-		UserID:    userID,
-		Date:      date,
-		Items:     selected,
-		Occasion:  "casual",
-		Weather:   conditions,
+		SessionID:   sessionID,
+		UserID:      userID,
+		Date:        date,
+		Items:       selected,
+		Occasion:    "casual",
+		Weather:     conditions,
+		Recommender: recommender,
 		CreatedAt: time.Now(),
 	}, nil
 }

@@ -1115,6 +1115,11 @@ export interface components {
             session_id: string;
             /** Format: date */
             date: string;
+            /**
+             * @description Which recommender produced this outfit — "ai" (LangGraph stylist) or "rule_based" (season-aware fallback).
+             * @enum {string}
+             */
+            recommender: "ai" | "rule_based";
             /** @example business meeting */
             occasion?: string;
             weather?: components["schemas"]["WeatherSnapshot"];

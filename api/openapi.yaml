@@ -858,7 +858,7 @@ components:
 
     OutfitRecommendation:
       type: object
-      required: [session_id, date, items]
+      required: [session_id, date, items, recommender]
       properties:
         session_id:
           type: string
@@ -866,6 +866,10 @@ components:
         date:
           type: string
           format: date
+        recommender:
+          type: string
+          enum: [ai, rule_based]
+          description: Which recommender produced this outfit — "ai" (LangGraph stylist) or "rule_based" (season-aware fallback).
         occasion:
           type: string
           example: business meeting

@@ -32,11 +32,12 @@ type weatherResponse struct {
 }
 
 type outfitResponse struct {
-	SessionID string                 `json:"session_id"`
-	Date      string                 `json:"date"`
-	Occasion  string                 `json:"occasion,omitempty"`
-	Weather   *weatherResponse       `json:"weather,omitempty"`
-	Items     []clothingItemResponse `json:"items"`
+	SessionID   string                 `json:"session_id"`
+	Date        string                 `json:"date"`
+	Recommender string                 `json:"recommender"`
+	Occasion    string                 `json:"occasion,omitempty"`
+	Weather     *weatherResponse       `json:"weather,omitempty"`
+	Items       []clothingItemResponse `json:"items"`
 }
 
 func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request) {
@@ -88,11 +89,12 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusOK, outfitResponse{
-		SessionID: rec.SessionID,
-		Date:      rec.Date.Format("2006-01-02"),
-		Occasion:  rec.Occasion,
-		Weather:   wr,
-		Items:     items,
+		SessionID:   rec.SessionID,
+		Date:        rec.Date.Format("2006-01-02"),
+		Recommender: string(rec.Recommender),
+		Occasion:    rec.Occasion,
+		Weather:     wr,
+		Items:       items,
 	})
 }
 
