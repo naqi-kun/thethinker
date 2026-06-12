@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -64,6 +65,7 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "no items in wardrobe")
 			return
 		}
+		log.Printf("GetOutfit failed for user %s: %v", userID, err)
 		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to get recommendation")
 		return
 	}
