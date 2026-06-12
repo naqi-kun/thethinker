@@ -29,18 +29,14 @@ await gcs.withVolume('/storage', { name: 'thethinker-gcsdata' });
 // works for both the backend process and the browser loading image URLs.
 await gcs.withHttpEndpoint({ port: 4443, targetPort: 4443, isProxied: false });
 
-// Jaeger for distributed tracing (UI on 16686, OTLP HTTP on 4318)
-const jaeger = await builder.addContainer('jaeger', { image: 'jaegertracing/all-in-one', tag: '1.57' });
-await jaeger.withHttpEndpoint({ port: 16686, targetPort: 16686, name: 'ui' });
-await jaeger.withHttpEndpoint({ port: 4318, targetPort: 4318, name: 'otlp' });
-
 // Google API key for Gemini 2.5 Flash — Aspire prompts once on first start
 const googleApiKey = builder.addParameter('googleApiKey', { secret: true });
 
 // OpenWeatherMap API key — optional. When absent the backend falls back to a
 // 22°C/clear stub so the weather badge still renders without a real key.
 // Get a free key at https://home.openweathermap.org/users/sign_up
-const weatherApiKey = builder.addParameter('weatherApiKey', { secret: true, default: '' });
+const weatherApiKey = builder.addParameter('weatherApiKey', { secret: true, value: '' });
+
 
 // Python AI classification service — built from ./ai/Dockerfile
 const ai = await builder.addDockerfile('ai', './ai');
@@ -55,10 +51,7 @@ await backend.withHttpEndpoint({ env: 'PORT', port: 8080 });
 await backend.withEnvironment('DATABASE_URL', dbUri);
 await backend.withEnvironment('JWT_SECRET', jwtSecret);
 await backend.withEnvironment('AI_SERVICE_URL', ai.getEndpoint('http'));
-await backend.withEnvironment('OTEL_EXPORTER_OTLP_ENDPOINT', jaeger.getEndpoint('otlp'));
-await backend.withEnvironment('OTEL_EXPORTER_OTLP_PROTOCOL', 'http/protobuf');
 await backend.withEnvironment('OTEL_SERVICE_NAME', 'thethinker-api');
-await backend.withEnvironment('OTEL_BSP_EXPORT_TIMEOUT', '60000');
 // Image storage → local GCS emulator (host:port form, the client adds the scheme).
 await backend.withEnvironment('GCS_BUCKET', 'wardrobe-images');
 await backend.withEnvironment('GCS_EMULATOR_HOST', 'localhost:4443');
@@ -66,7 +59,6 @@ await backend.withEnvironment('WEATHER_API_KEY', weatherApiKey);
 await backend.waitFor(db);
 await backend.waitFor(gcs);
 await backend.waitFor(ai);
-await backend.waitFor(jaeger);
 
 // Dashboard button on the db resource: click "Seed Dev Data" to reset the DB
 // and preload GCS with real clothing images.

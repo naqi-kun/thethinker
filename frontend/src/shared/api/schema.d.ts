@@ -857,6 +857,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recommendations/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List accepted outfits, grouped by date (newest first) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Opaque cursor returned by the previous page */
+                    cursor?: string;
+                    limit?: number;
+                    range?: "week" | "month" | "season" | "all";
+                    time_of_day?: "morning" | "afternoon" | "evening";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Paginated outfit history */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OutfitHistoryResponse"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/recommendations/outfit/accept": {
         parameters: {
             query?: never;
@@ -1070,6 +1114,37 @@ export interface components {
             occasion?: string;
             weather?: components["schemas"]["WeatherSnapshot"];
             items: components["schemas"]["ClothingItem"][];
+        };
+        OutfitHistoryResponse: {
+            entries: components["schemas"]["HistoryEntry"][];
+            next_cursor?: string | null;
+        };
+        HistoryEntry: {
+            /**
+             * Format: date
+             * @example 2026-06-11
+             */
+            worn_on: string;
+            outfits: components["schemas"]["AcceptedOutfit"][];
+        };
+        AcceptedOutfit: {
+            id: string;
+            /** Format: date */
+            worn_on: string;
+            occasion?: string;
+            /** @enum {string} */
+            time_of_day: "morning" | "afternoon" | "evening";
+            weather?: components["schemas"]["WeatherSnapshot"];
+            items: components["schemas"]["OutfitHistoryItem"][];
+        };
+        OutfitHistoryItem: {
+            item_id: string;
+            image_url?: string;
+            category: string;
+            sub_type: string;
+            color: string;
+            fit?: string;
+            season?: string;
         };
         WeatherSnapshot: {
             /** @description Temperature in Celsius */

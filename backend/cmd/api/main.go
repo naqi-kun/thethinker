@@ -68,6 +68,8 @@ func main() {
 	wardrobeRepo := postgres.NewWardrobeRepository(db)
 	calendarRepo := postgres.NewCalendarRepository(db)
 	workScheduleRepo := postgres.NewWorkScheduleRepository(db)
+	historyRepo := postgres.NewOutfitHistoryRepository(db)
+	transactor := postgres.NewTransactor(db)
 
 	// services
 	userSvc := user.NewService(userRepo, jwtSecret)
@@ -81,14 +83,15 @@ func main() {
 	}
 	weatherSvc := weather.NewService(weatherClient)
 	aiRecommendClient := aiinfra.NewRecommendClient(aiServiceURL)
-	recommendSvc := recommendation.NewService(wardrobeRepo, calendarRepo, userRepo, weatherSvc, aiRecommendClient)
+	recommendSvc := recommendation.NewService(wardrobeRepo, calendarRepo, userRepo, weatherSvc, aiRecommendClient, historyRepo, transactor)
 
 	// handlers
 	userHandler := handlers.NewUserHandler(userSvc)
 	wardrobeHandler := handlers.NewWardrobeHandler(wardrobeSvc)
 	calendarHandler := handlers.NewCalendarHandler(calendarSvc)
 	workScheduleHandler := handlers.NewWorkScheduleHandler(workScheduleSvc)
-	recommendHandler := handlers.NewRecommendationHandler(recommendSvc, wardrobeSvc)
+	recommendHandler := handlers.NewRecommendationHandler(recommendSvc)
+	historyHandler := handlers.NewHistoryHandler(historyRepo)
 
 	// middleware
 	auth := middleware.Auth(jwtSecret)
@@ -130,6 +133,7 @@ func main() {
 	// recommendations — protected
 	mux.Handle("GET /recommendations/outfit", auth(http.HandlerFunc(recommendHandler.GetOutfit)))
 	mux.Handle("POST /recommendations/outfit/accept", auth(http.HandlerFunc(recommendHandler.AcceptOutfit)))
+	mux.Handle("GET /recommendations/history", auth(http.HandlerFunc(historyHandler.List)))
 
 	// dev-only seed endpoint (guarded inside handler by GCS_EMULATOR_HOST).
 	// The handler manages its own 10-min deadline and extends the connection's

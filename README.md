@@ -37,7 +37,7 @@ apphost.mts    ← Aspire AppHost — all services wired here
 aspire run
 ```
 
-This single command starts Postgres, Jaeger, the AI service, the Go backend, and the React frontend — fully wired with service discovery and telemetry. The Aspire dashboard URL is printed on startup.
+This single command starts Postgres, the AI service, the Go backend, and the React frontend — fully wired with service discovery and telemetry. The Aspire dashboard URL is printed on startup.
 
 ### Other Aspire commands
 
@@ -55,7 +55,7 @@ aspire dashboard    # open the Aspire dashboard in a browser
 <summary>Backend only</summary>
 
 ```bash
-# Start all supporting services (Postgres, AI, Jaeger) via Aspire
+# Start all supporting services (Postgres, AI) via Aspire
 aspire run
 
 # Then in a separate terminal, run just the backend directly

@@ -32,6 +32,8 @@ type Service struct {
 	userPrefsRepo userPrefsReader
 	weatherSvc    *weather.Service
 	aiRecommender AIRecommender
+	historyRepo   OutfitHistoryRepository
+	transactor    Transactor
 }
 
 func NewService(
@@ -40,6 +42,8 @@ func NewService(
 	userPrefsRepo userPrefsReader,
 	weatherSvc *weather.Service,
 	aiRecommender AIRecommender,
+	historyRepo OutfitHistoryRepository,
+	transactor Transactor,
 ) *Service {
 	return &Service{
 		wardrobeRepo:  wardrobeRepo,
@@ -47,6 +51,8 @@ func NewService(
 		userPrefsRepo: userPrefsRepo,
 		weatherSvc:    weatherSvc,
 		aiRecommender: aiRecommender,
+		historyRepo:   historyRepo,
+		transactor:    transactor,
 	}
 }
 
@@ -113,6 +119,63 @@ func (s *Service) AcceptSession(ctx context.Context, sessionID string) error {
 	if err := s.aiRecommender.Accept(ctx, sessionID); err != nil && !isSessionNotFound(err) {
 		return err
 	}
+	return nil
+}
+
+// AcceptAndRecord atomically marks the given items as worn and records an
+// AcceptedOutfit in outfit_history.
+func (s *Service) AcceptAndRecord(ctx context.Context, userID, sessionID string, itemIDs []string) error {
+	now := time.Now().UTC()
+
+	var historyItems []*AcceptedOutfitItem
+	for _, id := range itemIDs {
+		item, err := s.wardrobeRepo.FindByID(ctx, id)
+		if err != nil || item == nil {
+			continue
+		}
+		historyItems = append(historyItems, &AcceptedOutfitItem{
+			ItemID:   item.ID,
+			ImageURL: item.ImageURL,
+			Category: item.Category.String(),
+			SubType:  item.SubType.String(),
+			Color:    item.Color.String(),
+			Fit:      item.Fit.String(),
+			Season:   item.Season.String(),
+		})
+	}
+
+	var ws *WeatherSnapshot
+	if cond, err := s.weatherSvc.GetConditions(ctx, ""); err == nil {
+		ws = &WeatherSnapshot{
+			Temperature: float64(cond.Temperature),
+			FeelsLike:   float64(cond.FeelsLike),
+			Description: cond.Description,
+		}
+	}
+
+	outfit := &AcceptedOutfit{
+		UserID:          userID,
+		SessionID:       sessionID,
+		WornOn:          now.Truncate(24 * time.Hour),
+		TimeOfDay:       DeriveTimeOfDay(now),
+		WeatherSnapshot: ws,
+		Items:           historyItems,
+		CreatedAt:       now,
+	}
+
+	if err := s.transactor.InTransaction(ctx, func(ctx context.Context) error {
+		if err := s.wardrobeRepo.MarkWorn(ctx, userID, itemIDs, now); err != nil {
+			return err
+		}
+		return s.historyRepo.Save(ctx, outfit)
+	}); err != nil {
+		return err
+	}
+
+	if sessionID != "" {
+		_ = s.aiRecommender.Accept(ctx, sessionID)
+	}
+
 	return nil
 }
 
