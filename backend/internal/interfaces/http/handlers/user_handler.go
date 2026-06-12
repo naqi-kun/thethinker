@@ -38,11 +38,13 @@ type authResponse struct {
 type preferencesRequest struct {
 	Styles  []string          `json:"styles"`
 	Answers map[string]string `json:"answers"`
+	UseAI   *bool             `json:"use_ai"`
 }
 
 type preferencesResponse struct {
 	Styles  []string          `json:"styles"`
 	Answers map[string]string `json:"answers"`
+	UseAI   bool              `json:"use_ai"`
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -119,7 +121,7 @@ func (h *UserHandler) GetPreferences(w http.ResponseWriter, r *http.Request) {
 		answers = map[string]string{}
 	}
 
-	writeJSON(w, http.StatusOK, preferencesResponse{Styles: styles, Answers: answers})
+	writeJSON(w, http.StatusOK, preferencesResponse{Styles: styles, Answers: answers, UseAI: prefs.UseAI})
 }
 
 func (h *UserHandler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
@@ -129,30 +131,60 @@ func (h *UserHandler) UpdatePreferences(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Read existing prefs first so unset fields keep their current values.
+	existing, err := h.svc.GetPreferences(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to get preferences")
+		return
+	}
+
 	var req preferencesRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
 		return
 	}
 
+	// Merge: start from existing values so omitted fields are preserved.
+	var existingStyles []string
+	existingAnswers := map[string]string{}
+	useAI := true
+	if existing != nil {
+		existingStyles = existing.Styles
+		existingAnswers = existing.Answers
+		useAI = existing.UseAI
+	}
+
+	styles := req.Styles
+	if styles == nil {
+		styles = existingStyles
+	}
+	answers := req.Answers
+	if answers == nil {
+		answers = existingAnswers
+	}
+	if req.UseAI != nil {
+		useAI = *req.UseAI
+	}
+
 	prefs := &user.Preferences{
 		UserID:  userID,
-		Styles:  req.Styles,
-		Answers: req.Answers,
+		Styles:  styles,
+		Answers: answers,
+		UseAI:   useAI,
 	}
 	if err := h.svc.SavePreferences(r.Context(), prefs); err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to save preferences")
 		return
 	}
 
-	styles := prefs.Styles
-	if styles == nil {
-		styles = []string{}
+	respStyles := prefs.Styles
+	if respStyles == nil {
+		respStyles = []string{}
 	}
-	answers := prefs.Answers
-	if answers == nil {
-		answers = map[string]string{}
+	respAnswers := prefs.Answers
+	if respAnswers == nil {
+		respAnswers = map[string]string{}
 	}
 
-	writeJSON(w, http.StatusOK, preferencesResponse{Styles: styles, Answers: answers})
+	writeJSON(w, http.StatusOK, preferencesResponse{Styles: respStyles, Answers: respAnswers, UseAI: prefs.UseAI})
 }

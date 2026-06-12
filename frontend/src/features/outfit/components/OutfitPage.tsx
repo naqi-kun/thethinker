@@ -189,6 +189,12 @@ export default function OutfitPage() {
                   {recommendation.occasion}
                 </span>
               )}
+              {recommendation.recommender === 'rule_based' && (
+                <span className="badge-default gap-1.5 text-muted-foreground">
+                  <Shirt className="h-3.5 w-3.5" />
+                  AI unavailable · using rule-based
+                </span>
+              )}
             </div>
           )}
         </div>

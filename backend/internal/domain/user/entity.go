@@ -13,4 +13,5 @@ type Preferences struct {
 	UserID  string
 	Styles  []string          // e.g. ["casual", "formal", "sport"]
 	Answers map[string]string // personalized Q answers keyed by question ID
+	UseAI   bool              // true = AI recommender, false = rule-based fallback
 }
