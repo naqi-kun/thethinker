@@ -8,6 +8,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from google import genai
 from google.genai import types
+import pillow_avif  # noqa: F401 — registers AVIF codec in Pillow (phone uploads, seed images)
 from PIL import Image
 from pydantic import BaseModel
 from rembg import new_session, remove

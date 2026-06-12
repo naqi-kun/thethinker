@@ -45,7 +45,12 @@ aspire ps           # list resources and their live ports
 aspire logs backend # stream backend logs
 aspire logs frontend
 aspire dashboard    # open telemetry dashboard in browser
+
+aspire resource backend restart   # recompile + restart one resource (e.g. after Go changes)
+aspire wait backend               # block until a resource is healthy
 ```
+
+Prefer `aspire resource <name> restart` over a full `aspire stop`/`aspire run` cycle when only one service changed — restarting a Go app resource recompiles it.
 
 The AppHost wires:
 - Postgres with a persistent named volume (`thethinker-pgdata`)
@@ -53,6 +58,10 @@ The AppHost wires:
 - Python AI classification service built from `./ai/Dockerfile`
 - Go backend with `DATABASE_URL`, `JWT_SECRET`, `AI_SERVICE_URL`, and OTel export to the Aspire dashboard
 - React/Vite frontend with `VITE_BACKEND_URL` pointed at the backend
+
+### Dev Seed
+
+Click **Seed Dev Data** on the **db** resource in the Aspire dashboard to reset the database and load 2 test users with a full image wardrobe (test accounts: `dev@thethinker.com` / `jane@thethinker.com`, both `password123`). Idempotent — safe to click repeatedly. See [docs/dev-seed.md](docs/dev-seed.md) for details.
 
 ### Docker Compose Publishing
 
