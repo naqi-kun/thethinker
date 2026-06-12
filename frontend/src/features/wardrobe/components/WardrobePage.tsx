@@ -449,7 +449,7 @@ function ItemCard({
           <img
             src={item.image_url}
             alt={displayName}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
             onError={() => setImgError(true)}
           />
         ) : (
