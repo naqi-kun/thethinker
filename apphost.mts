@@ -44,7 +44,7 @@ const googleApiKey = builder.addParameter("googleApiKey", { secret: true });
 // OpenWeatherMap API key — optional. When absent the backend falls back to a
 // 22°C/clear stub so the weather badge still renders without a real key.
 // Get a free key at https://home.openweathermap.org/users/sign_up
-const weatherApiKey = builder.addParameter("weatherApiKey", { secret: true });
+const weatherApiKey = builder.addParameter("weatherApiKey", { secret: true, value: "" });
 
 // Python AI classification service — built from ./ai/Dockerfile
 const ai = await builder.addDockerfile("ai", "./ai");
