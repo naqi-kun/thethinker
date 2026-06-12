@@ -3,6 +3,7 @@ package recommendation
 import (
 	"context"
 	"errors"
+	"log"
 	"math/rand"
 	"sort"
 	"time"
@@ -98,8 +99,9 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		}
 		if err == nil {
 			selected = pickItemsByID(items, rec)
+		} else {
+			log.Printf("recommendation: AI unavailable for user %s, falling back to rule-based: %v", userID, err)
 		}
-		// AI call failed — fall through to rule-based below.
 	}
 
 	if len(selected) == 0 {

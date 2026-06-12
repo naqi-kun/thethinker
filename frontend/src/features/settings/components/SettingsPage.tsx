@@ -162,8 +162,7 @@ export default function SettingsPage() {
     setUseAI(value);
     setSavingAI(true);
     try {
-      const current = await getPreferences();
-      await updatePreferences({ ...current, use_ai: value });
+      await updatePreferences({ use_ai: value });
     } catch {
       setUseAI(!value); // revert on error
     } finally {
