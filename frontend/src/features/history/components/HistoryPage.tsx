@@ -338,10 +338,8 @@ export default function HistoryPage() {
                           {customRange ? 'Earlier' : EARLIER_LABELS[range]}
                         </motion.p>
                       )}
-                      {/* One always-mounted card. Persistent elements (date, image
-                          tiles) morph via layout/layoutId; expanded-only content
-                          fades through AnimatePresence popLayout so the card's
-                          size morph and the content fades run in parallel. */}
+                      {/* One always-mounted card. Date morphs via layoutId;
+                          thumb slides out and bento tiles cascade in on expand. */}
                       <motion.div
                         layout
                         transition={layoutTransition}
@@ -370,13 +368,26 @@ export default function HistoryPage() {
                               : 'items-center gap-3'
                           }`}
                         >
-                          {!isExpanded && (
-                            <FlatLay
-                              items={clothingItems}
-                              variant="thumb"
-                              morphId={outfit.id}
-                            />
-                          )}
+                          <AnimatePresence mode="popLayout" initial={false}>
+                            {!isExpanded && (
+                              <motion.div
+                                key="thumb"
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{
+                                  opacity: 1,
+                                  x: 0,
+                                  transition: { duration: 0.22, ease, delay: 0.04 },
+                                }}
+                                exit={{
+                                  opacity: 0,
+                                  x: -10,
+                                  transition: { duration: 0.18, ease },
+                                }}
+                              >
+                                <FlatLay items={clothingItems} variant="thumb" animateIn />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                           <div className="min-w-0 flex-1">
                             {isExpanded && index === 0 && (
                               <motion.p
@@ -482,15 +493,13 @@ export default function HistoryPage() {
                           )}
                         </AnimatePresence>
 
-                        {/* No opacity fade here: the tiles morph in from the
-                            thumb via shared layoutIds and must stay visible. */}
-                        {isExpanded && (
-                          <FlatLay
-                            items={clothingItems}
-                            variant="bento"
-                            morphId={outfit.id}
-                          />
-                        )}
+                        <AnimatePresence mode="popLayout" initial={false}>
+                          {isExpanded && (
+                            <motion.div key="bento" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                              <FlatLay items={clothingItems} variant="bento" animateIn />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
 
                         <AnimatePresence mode="popLayout" initial={false}>
                           {isExpanded && (

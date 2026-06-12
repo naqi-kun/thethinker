@@ -2,13 +2,6 @@ import type { CSSProperties, ReactNode } from 'react';
 import { motion } from 'motion/react';
 import type { ClothingItem } from '../api/types';
 
-/* Matches the history card's layoutTransition so tiles and card morph in sync. */
-const morphTransition = {
-  type: 'tween' as const,
-  duration: 0.45,
-  ease: [0.4, 0, 0.2, 1] as [number, number, number, number],
-};
-
 const FLAT_LAY_SLOTS = [
   { top: '4%', left: '4%', rotate: -8 },
   { top: '6%', left: '53%', rotate: 6 },
@@ -20,29 +13,72 @@ const FLAT_LAY_SLOTS = [
   { top: '76%', left: '30%', rotate: 5 },
 ];
 
+const TILE_WELL_CLASS = 'bg-espresso/5';
+const OVERFLOW_OVERLAY_CLASS = 'bg-espresso/60';
+
 interface FlatLayProps {
   items: ClothingItem[];
   selectedItemId?: string | null;
   onSelectItem?: (item: ClothingItem | null) => void;
   variant?: 'scatter' | 'bento' | 'thumb';
-  /* Shared-element scope: when set, each tile gets a layoutId of
-     `${morphId}-tile-${item.id}` so the same item morphs between the
-     thumb and bento variants of the same outfit. */
-  morphId?: string;
+  /** When true, bento/thumb tiles animate in with a staggered cascade. */
+  animateIn?: boolean;
 }
 
-function MorphTile({
-  morphKey,
+function ItemImage({ item, label = false }: { item: ClothingItem; label?: boolean }) {
+  if (item.image_url) {
+    return (
+      <div className={`flex h-full w-full items-center justify-center ${TILE_WELL_CLASS}`}>
+        <img
+          src={item.image_url}
+          alt={item.sub_type}
+          className="h-full w-full object-contain"
+          loading="lazy"
+        />
+        {label && <span className="sr-only">{item.sub_type}</span>}
+      </div>
+    );
+  }
+  return (
+    <div className={`flex h-full w-full flex-col items-center justify-center ${TILE_WELL_CLASS}`}>
+      {label && (
+        <p className="text-xs capitalize text-muted-foreground">{item.sub_type}</p>
+      )}
+    </div>
+  );
+}
+
+const tileEnter = {
+  hidden: { opacity: 0, scale: 0.86, x: -24, y: 10 },
+  visible: (i: number) => ({
+    opacity: 1,
+    scale: 1,
+    x: 0,
+    y: 0,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 280,
+      damping: 30,
+      mass: 0.85,
+      delay: i * 0.055,
+    },
+  }),
+};
+
+function AnimatedTile({
+  children,
+  index,
+  animateIn,
   className,
   style,
-  children,
 }: {
-  morphKey?: string;
-  className: string;
-  style?: CSSProperties;
   children: ReactNode;
+  index: number;
+  animateIn: boolean;
+  className?: string;
+  style?: CSSProperties;
 }) {
-  if (!morphKey) {
+  if (!animateIn) {
     return (
       <div className={className} style={style}>
         {children}
@@ -51,8 +87,10 @@ function MorphTile({
   }
   return (
     <motion.div
-      layoutId={morphKey}
-      transition={morphTransition}
+      custom={index}
+      variants={tileEnter}
+      initial="hidden"
+      animate="visible"
       className={className}
       style={style}
     >
@@ -61,114 +99,90 @@ function MorphTile({
   );
 }
 
-function ItemImage({ item, label = false }: { item: ClothingItem; label?: boolean }) {
-  if (item.image_url) {
-    return (
-      <img
-        src={item.image_url}
-        alt={item.sub_type}
-        className="h-full w-full object-cover"
-        loading="lazy"
-      />
-    );
-  }
-  return (
-    <div className="flex h-full w-full flex-col items-center justify-center bg-sand/60">
-      {label && (
-        <p className="text-xs capitalize text-muted-foreground">{item.sub_type}</p>
-      )}
-    </div>
-  );
-}
-
 /* Collage grid matching the design's hero card: one large image on the
    left, one medium top-right, up to two small bottom-right. */
-function Bento({ items, morphId }: { items: ClothingItem[]; morphId?: string }) {
+function Bento({ items, animateIn }: { items: ClothingItem[]; animateIn: boolean }) {
   const [main, topRight, ...rest] = items;
   const bottom = rest.slice(0, 2);
   const overflow = items.length - 4;
-  const tileKey = (item: ClothingItem) =>
-    morphId ? `${morphId}-tile-${item.id}` : undefined;
 
   return (
-    <MorphTile
-      morphKey={morphId ? `${morphId}-frame` : undefined}
-      className="flex h-[210px] w-full gap-2"
-    >
-      <MorphTile
-        morphKey={tileKey(main)}
-        className="flex-1 overflow-hidden"
+    <div className="flex h-[210px] w-full gap-2 overflow-hidden">
+      <AnimatedTile
+        index={0}
+        animateIn={animateIn}
+        className="min-h-0 flex-1 overflow-hidden"
         style={{ borderRadius: 12 }}
       >
         <ItemImage item={main} label />
-      </MorphTile>
+      </AnimatedTile>
       {topRight && (
-        <div className="flex flex-1 flex-col gap-2">
-          <MorphTile
-            morphKey={tileKey(topRight)}
-            className="flex-1 overflow-hidden"
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <AnimatedTile
+            index={1}
+            animateIn={animateIn}
+            className="min-h-0 flex-1 overflow-hidden"
             style={{ borderRadius: 12 }}
           >
             <ItemImage item={topRight} label />
-          </MorphTile>
+          </AnimatedTile>
           {bottom.length > 0 && (
-            <div className="flex flex-1 gap-2">
+            <div className="flex min-h-0 flex-1 gap-2">
               {bottom.map((item, i) => (
-                <MorphTile
+                <AnimatedTile
                   key={item.id}
-                  morphKey={tileKey(item)}
-                  className="relative flex-1 overflow-hidden"
+                  index={i + 2}
+                  animateIn={animateIn}
+                  className="relative min-h-0 flex-1 overflow-hidden"
                   style={{ borderRadius: 12 }}
                 >
                   <ItemImage item={item} label />
                   {i === bottom.length - 1 && overflow > 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-espresso/50">
-                      <span className="text-sm font-semibold text-cream">
-                        +{overflow}
-                      </span>
+                    <div
+                      className={`absolute inset-0 flex items-center justify-center ${OVERFLOW_OVERLAY_CLASS}`}
+                    >
+                      <span className="text-sm font-semibold text-cream">+{overflow}</span>
                     </div>
                   )}
-                </MorphTile>
+                </AnimatedTile>
               ))}
             </div>
           )}
         </div>
       )}
-    </MorphTile>
+    </div>
   );
 }
 
 /* Compact 76x90 collage for collapsed history rows: first item fills the
    left half, up to two more stack on the right. */
-function Thumb({ items, morphId }: { items: ClothingItem[]; morphId?: string }) {
+function Thumb({ items, animateIn }: { items: ClothingItem[]; animateIn: boolean }) {
   const [main, ...rest] = items;
   const side = rest.slice(0, 2);
-  const tileKey = (item: ClothingItem) =>
-    morphId ? `${morphId}-tile-${item.id}` : undefined;
 
   return (
-    <MorphTile
-      morphKey={morphId ? `${morphId}-frame` : undefined}
+    <div
       className="flex h-[90px] w-[76px] shrink-0 gap-px overflow-hidden"
       style={{ borderRadius: 12 }}
     >
-      <MorphTile morphKey={tileKey(main)} className="flex-1 overflow-hidden">
+      <AnimatedTile index={0} animateIn={animateIn} className="flex-1 overflow-hidden">
         <ItemImage item={main} />
-      </MorphTile>
+      </AnimatedTile>
       {side.length > 0 && (
         <div className="flex flex-1 flex-col gap-px">
-          {side.map((item) => (
-            <MorphTile
+          {side.map((item, i) => (
+            <AnimatedTile
               key={item.id}
-              morphKey={tileKey(item)}
+              index={i + 1}
+              animateIn={animateIn}
               className="flex-1 overflow-hidden"
             >
               <ItemImage item={item} />
-            </MorphTile>
+            </AnimatedTile>
           ))}
         </div>
       )}
-    </MorphTile>
+    </div>
   );
 }
 
@@ -177,14 +191,14 @@ export default function FlatLay({
   selectedItemId,
   onSelectItem,
   variant = 'scatter',
-  morphId,
+  animateIn = false,
 }: FlatLayProps) {
   const hasSelection = selectedItemId != null;
 
   if (items.length === 0) return null;
 
-  if (variant === 'bento') return <Bento items={items} morphId={morphId} />;
-  if (variant === 'thumb') return <Thumb items={items} morphId={morphId} />;
+  if (variant === 'bento') return <Bento items={items} animateIn={animateIn} />;
+  if (variant === 'thumb') return <Thumb items={items} animateIn={animateIn} />;
 
   return (
     <div

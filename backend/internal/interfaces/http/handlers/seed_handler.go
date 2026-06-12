@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/wardrobe"
@@ -107,6 +108,11 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 	const user1 = "00000000-0000-0000-0000-000000000001"
 	const user2 = "00000000-0000-0000-0000-000000000002"
 
+	itemIDs := map[string]map[string]string{
+		user1: {},
+		user2: {},
+	}
+
 	// Bg removal needs the AI service; fail fast with a clear message instead
 	// of seeding a wardrobe of images with backgrounds still in place.
 	if err := checkAIServiceReady(); err != nil {
@@ -190,6 +196,7 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 				continue
 			}
 			perUser[userID]++
+			itemIDs[userID][meta.subType] = saved.ID
 		}
 	}
 
@@ -198,10 +205,60 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("%d item(s) failed (%d seeded), first error: %w", failed, count, firstErr)
 	}
 
+	histCount, err := h.seedHistory(ctx, user1, itemIDs[user1])
+	if err != nil {
+		return "", fmt.Errorf("seed history: %w", err)
+	}
+
 	return fmt.Sprintf(
-		"seed complete — 2 users, %d wardrobe items\n\nLogin credentials:\n  dev@thethinker.com  / password123 (%d items, menswear + unisex)\n  jane@thethinker.com / password123 (%d items, womenswear + unisex)",
-		count, perUser[user1], perUser[user2],
+		"seed complete — 2 users, %d wardrobe items, %d outfit history entries\n\nLogin credentials:\n  dev@thethinker.com  / password123 (%d items, menswear + unisex)\n  jane@thethinker.com / password123 (%d items, womenswear + unisex)",
+		count, histCount, perUser[user1], perUser[user2],
 	), nil
+}
+
+func (h *DevSeedHandler) seedHistory(ctx context.Context, userID string, itemIDs map[string]string) (int, error) {
+	type entry struct {
+		occasion  string
+		daysAgo   int
+		timeOfDay string
+		weather   string
+		subTypes  []string
+	}
+	entries := []entry{
+		{"casual", 1, "morning", `{"temperature":20,"feels_like":19,"description":"sunny"}`, []string{"t-shirt", "jeans", "sneakers"}},
+		{"formal", 2, "afternoon", `{"temperature":18,"feels_like":17,"description":"cloudy"}`, []string{"shirt", "blazer", "shoes"}},
+		{"casual", 3, "evening", `{"temperature":15,"feels_like":14,"description":"clear"}`, []string{"hoodie", "jeans", "boots"}},
+		{"casual", 4, "morning", `{"temperature":22,"feels_like":22,"description":"clear"}`, []string{"t-shirt", "shorts", "sneakers"}},
+		{"formal", 5, "afternoon", `{"temperature":16,"feels_like":15,"description":"overcast"}`, []string{"shirt", "blazer", "shoes"}},
+	}
+	inserted := 0
+	for i, e := range entries {
+		histID := uuid.New().String()
+		if _, err := h.db.Exec(ctx, `
+			INSERT INTO outfit_history (id, user_id, session_id, occasion, worn_on, time_of_day, weather_snapshot, created_at)
+			VALUES ($1, $2, $3, $4, CURRENT_DATE - $5::int, $6, $7, NOW() - $5::int * INTERVAL '1 day')`,
+			histID, userID, fmt.Sprintf("seed-session-%d", i+1), e.occasion, e.daysAgo, e.timeOfDay, e.weather,
+		); err != nil {
+			return inserted, fmt.Errorf("entry %d: %w", i+1, err)
+		}
+		for _, subType := range e.subTypes {
+			itemID, ok := itemIDs[subType]
+			if !ok {
+				continue
+			}
+			m := imageMeta[subType]
+			if _, err := h.db.Exec(ctx, `
+				INSERT INTO outfit_history_items (outfit_history_id, item_id, image_url, category, sub_type, color, fit, season)
+				SELECT $1, id, COALESCE(image_url, ''), $3, $4, $5, $6, $7
+				FROM wardrobe_items WHERE id = $2`,
+				histID, itemID, m.category, m.subType, m.color, m.fit, m.season,
+			); err != nil {
+				return inserted, fmt.Errorf("entry %d item %s: %w", i+1, subType, err)
+			}
+		}
+		inserted++
+	}
+	return inserted, nil
 }
 
 // buildItem converts curated string metadata into a typed ClothingItem.
