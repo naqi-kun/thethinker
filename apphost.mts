@@ -53,11 +53,10 @@ await ai.withEnvironment("ANTHROPIC_API_KEY", anthropicApiKey);
 await ai.withEnvironment("GOOGLE_API_KEY", googleApiKey);
 
 // Go backend — runs `go run ./cmd/api` from ./backend
-// Port is pinned to 8080 so the Seed Dev Data dashboard command can reach it at a known address.
 const backend = await builder.addGoApp("backend", "./backend", {
   packagePath: "./cmd/api",
 });
-await backend.withHttpEndpoint({ env: "PORT", port: 8080 });
+await backend.withHttpEndpoint({ env: "PORT" });
 await backend.withEnvironment("DATABASE_URL", dbUri);
 await backend.withEnvironment("JWT_SECRET", jwtSecret);
 await backend.withEnvironment("AI_SERVICE_URL", ai.getEndpoint("http"));
@@ -77,16 +76,17 @@ await pgServer.withCommand(
   "Seed Dev Data",
   async (_ctx) => {
     try {
-      const res = await fetch("http://localhost:8080/dev/seed", {
+      const backendUrl = await backend.getEndpoint("http").url();
+      const res = await fetch(`${backendUrl}/dev/seed`, {
         method: "POST",
       });
       const text = await res.text();
       if (!res.ok) {
-        return { success: false, errorMessage: text };
+        return { success: false, message: text };
       }
       return { success: true, message: text.trim() };
     } catch (err) {
-      return { success: false, errorMessage: String(err) };
+      return { success: false, message: String(err) };
     }
   },
   {
