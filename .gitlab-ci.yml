@@ -114,8 +114,8 @@ deploy-railway:
   image: node:22
   script:
     - npm install -g @railway/cli
-    - cd frontend && railway up --service frontend && cd ..
-    - cd backend && railway up --service backend && cd ..
+    - (cd frontend && railway up --service frontend)
+    - (cd backend && railway up --service backend)
   only:
     - main
   variables:
