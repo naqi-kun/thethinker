@@ -115,8 +115,8 @@ deploy-railway:
   script:
     - npm install -g @railway/cli
     - railway --version
-    - railway up --service frontend
-    - railway up --service backend
+    - cd frontend && railway up --service frontend && cd ..
+    - cd backend && railway up --service backend && cd ..
   variables:
     RAILWAY_TOKEN: $RAILWAY_TOKEN
     RAILWAY_PROJECT_ID: $RAILWAY_PROJECT_ID
