@@ -36,6 +36,8 @@ func New(ctx context.Context, bucket string) (*Client, error) {
 			option.WithEndpoint("http://"+emulatorHost+"/storage/v1/"),
 			option.WithoutAuthentication(),
 		)
+	} else if credsJSON := os.Getenv("GCS_CREDENTIALS_JSON"); credsJSON != "" {
+		opts = append(opts, option.WithCredentialsJSON([]byte(credsJSON)))
 	}
 
 	gcsClient, err := storage.NewClient(ctx, opts...)

@@ -20,23 +20,22 @@ const anthropicApiKey = builder.addParameter("anthropicApiKey", {
   secret: true,
 });
 
-// Local Google Cloud Storage emulator (fake-gcs-server) — gives the wardrobe
-// image-upload feature a closed loop under `aspire run`, with no cloud creds.
-// Published on a fixed host port so both the backend process and the browser
-// (which loads image URLs directly) can reach it at localhost:4443.
-const gcs = await builder.addContainer("gcs", "fsouza/fake-gcs-server:1.49");
-await gcs.withArgs([
-  "-scheme",
-  "http",
-  "-port",
-  "4443",
-  "-backend",
-  "filesystem",
-]);
-await gcs.withVolume("/storage", { name: "thethinker-gcsdata" });
-// Bind directly to the host port (no DCP proxy) so the fixed localhost:4443
-// works for both the backend process and the browser loading image URLs.
-await gcs.withHttpEndpoint({ port: 4443, targetPort: 4443, isProxied: false });
+// Local Google Cloud Storage emulator — dev only, excluded from `aspire publish`.
+const isPublish = await builder.executionContext().isPublishMode();
+let gcs: Awaited<ReturnType<typeof builder.addContainer>> | null = null;
+if (!isPublish) {
+  gcs = await builder.addContainer("gcs", "fsouza/fake-gcs-server:1.49");
+  await gcs.withArgs([
+    "-scheme",
+    "http",
+    "-port",
+    "4443",
+    "-backend",
+    "filesystem",
+  ]);
+  await gcs.withVolume("/storage", { name: "thethinker-gcsdata" });
+  await gcs.withHttpEndpoint({ port: 4443, targetPort: 4443, isProxied: false });
+}
 
 // Google API key for Gemini 2.5 Flash — Aspire prompts once on first start
 const googleApiKey = builder.addParameter("googleApiKey", { secret: true });
@@ -63,10 +62,12 @@ await backend.withEnvironment("AI_SERVICE_URL", ai.getEndpoint("http"));
 await backend.withEnvironment("OTEL_SERVICE_NAME", "thethinker-api");
 // Image storage → local GCS emulator (host:port form, the client adds the scheme).
 await backend.withEnvironment("GCS_BUCKET", "wardrobe-images");
-await backend.withEnvironment("GCS_EMULATOR_HOST", "localhost:4443");
+if (!isPublish && gcs) {
+  await backend.withEnvironment("GCS_EMULATOR_HOST", "localhost:4443");
+  await backend.waitFor(gcs);
+}
 await backend.withEnvironment("WEATHER_API_KEY", weatherApiKey);
 await backend.waitFor(db);
-await backend.waitFor(gcs);
 await backend.waitFor(ai);
 
 // Dashboard button on the db resource: click "Seed Dev Data" to reset the DB
