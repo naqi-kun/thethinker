@@ -5,12 +5,25 @@ import TopNav from '../../../shared/components/TopNav';
 import { token } from '../../../shared/api/token';
 import {
   getPreferences,
+  getProfile,
   getWorkSchedule,
   updatePreferences,
   updateWorkSchedule,
 } from '../api';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Derive a friendly display name from an email's local-part, since the backend
+// stores no separate name field — e.g. "alex.rivera@example.com" → "Alex Rivera".
+function displayNameFromEmail(email: string): string {
+  const localPart = email.split('@')[0] ?? '';
+  const name = localPart
+    .split(/[._+-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+  return name || email;
+}
 
 // ─── Toggle ──────────────────────────────────────────────────────────────────
 
@@ -123,9 +136,9 @@ type FitPref = 'Slim' | 'Regular' | 'Relaxed' | 'Oversized';
 export default function SettingsPage() {
   const navigate = useNavigate();
 
-  // Account
-  const [name] = useState('Alex Rivera');
-  const [email] = useState('alex.rivera@example.com');
+  // Account — fetched from the authenticated user's profile
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
 
   // Preferences
   const [tempUnit, setTempUnit] = useState<TempUnit>('Celsius');
@@ -144,6 +157,17 @@ export default function SettingsPage() {
   const [newHoliday, setNewHoliday] = useState('');
   const [savingSchedule, setSavingSchedule] = useState(false);
   const [scheduleStatus, setScheduleStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    getProfile()
+      .then((p) => {
+        setEmail(p.email);
+        setName(displayNameFromEmail(p.email));
+      })
+      .catch(() => {
+        /* best-effort; account fields stay empty */
+      });
+  }, []);
 
   useEffect(() => {
     getPreferences()
@@ -260,11 +284,13 @@ export default function SettingsPage() {
         <Section title="Account">
           <Row>
             <RowLabel label="Name" />
-            <span className="text-sm text-muted-foreground">{name}</span>
+            <span className="text-sm text-muted-foreground">{name || '—'}</span>
           </Row>
           <Row>
             <RowLabel label="Email" />
-            <span className="truncate text-sm text-muted-foreground">{email}</span>
+            <span className="truncate text-sm text-muted-foreground">
+              {email || '—'}
+            </span>
           </Row>
           <Row>
             <RowLabel

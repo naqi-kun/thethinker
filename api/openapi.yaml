@@ -75,6 +75,20 @@ paths:
 
   # ── Users ───────────────────────────────────────────────────────────────────
 
+  /users/me:
+    get:
+      tags: [users]
+      summary: Get the authenticated user's account profile (id, email)
+      responses:
+        '200':
+          description: The authenticated user's profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /users/me/preferences:
     get:
       tags: [users]
@@ -637,6 +651,19 @@ components:
           description: JWT Bearer token
         user_id:
           type: string
+
+    UserProfile:
+      type: object
+      required: [id, email, created_at]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        created_at:
+          type: string
+          format: date-time
 
     Preferences:
       type: object

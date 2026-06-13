@@ -88,6 +88,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the authenticated user's account profile (id, email) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The authenticated user's profile */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfile"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/me/preferences": {
         parameters: {
             query?: never;
@@ -962,6 +999,13 @@ export interface components {
             /** @description JWT Bearer token */
             token: string;
             user_id: string;
+        };
+        UserProfile: {
+            id: string;
+            /** Format: email */
+            email: string;
+            /** Format: date-time */
+            created_at: string;
         };
         Preferences: {
             /** @description Preferred clothing styles */

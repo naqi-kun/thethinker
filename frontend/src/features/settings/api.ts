@@ -1,5 +1,10 @@
 import { apiClient } from '../../shared/api/client';
-import type { Preferences, WorkSchedule } from '../../shared/api/types';
+import type { Preferences, UserProfile, WorkSchedule } from '../../shared/api/types';
+
+export async function getProfile(): Promise<UserProfile> {
+  const { data } = await apiClient.GET('/users/me');
+  return data!;
+}
 
 export async function getPreferences(): Promise<Preferences> {
   const { data } = await apiClient.GET('/users/me/preferences');
