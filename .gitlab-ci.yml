@@ -114,10 +114,10 @@ deploy-railway:
   image: node:22-alpine
   script:
     - npm install -g @railway/cli
+    - railway --version
+    - railway whoami
     - railway up --service frontend --detach
     - railway up --service backend --detach
-  only:
-    - main
   variables:
     RAILWAY_TOKEN: $RAILWAY_TOKEN
     RAILWAY_PROJECT_ID: $RAILWAY_PROJECT_ID
