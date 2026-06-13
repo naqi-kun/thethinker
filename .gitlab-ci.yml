@@ -111,7 +111,7 @@ docker-build:
 
 deploy-railway:
   stage: deploy
-  image: node:22-alpine
+  image: node:22
   script:
     - npm install -g @railway/cli
     - railway --version
