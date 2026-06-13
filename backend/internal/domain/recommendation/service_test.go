@@ -42,7 +42,10 @@ func (s *stubWardrobeRepo) FindByID(_ context.Context, _ string) (*wardrobe.Clot
 }
 func (s *stubWardrobeRepo) Save(_ context.Context, _ *wardrobe.ClothingItem) error { return nil }
 func (s *stubWardrobeRepo) UpdateImageURL(_ context.Context, _, _ string) error    { return nil }
-func (s *stubWardrobeRepo) Delete(_ context.Context, _ string) error               { return nil }
+func (s *stubWardrobeRepo) UpdateStatus(_ context.Context, _ string, _ wardrobe.Status) error {
+	return nil
+}
+func (s *stubWardrobeRepo) Delete(_ context.Context, _ string) error { return nil }
 func (s *stubWardrobeRepo) MarkWorn(_ context.Context, _ string, _ []string, _ time.Time) error {
 	return nil
 }

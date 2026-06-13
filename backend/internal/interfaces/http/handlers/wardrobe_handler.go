@@ -22,6 +22,7 @@ type wardrobeSvc interface {
 	UploadImage(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
 	ClassifyOnly(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error)
 	UpdateItem(ctx context.Context, itemID, userID string, fields wardrobe.ClothingItem) (*wardrobe.ClothingItem, error)
+	UpdateItemStatus(ctx context.Context, itemID, userID string, status wardrobe.Status) (*wardrobe.ClothingItem, error)
 	DeleteItem(ctx context.Context, itemID, userID string) error
 }
 
@@ -60,6 +61,7 @@ type clothingItemResponse struct {
 	Color    string  `json:"color"`
 	Fit      string  `json:"fit"`
 	Season   string  `json:"season"`
+	Status   string  `json:"status"`
 	ImageURL string  `json:"image_url,omitempty"`
 	LastWorn *string `json:"last_worn"`
 }
@@ -73,6 +75,7 @@ func toItemResponse(item *wardrobe.ClothingItem) clothingItemResponse {
 		Color:    item.Color.String(),
 		Fit:      item.Fit.String(),
 		Season:   item.Season.String(),
+		Status:   item.Status.String(),
 		ImageURL: item.ImageURL,
 	}
 	if item.LastWorn != nil {
@@ -284,6 +287,51 @@ func (h *WardrobeHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "access denied")
 		default:
 			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to update item")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toItemResponse(item))
+}
+
+type updateStatusRequest struct {
+	Status string `json:"status"`
+}
+
+func (h *WardrobeHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	itemID := r.PathValue("id")
+	if itemID == "" {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "item ID is required")
+		return
+	}
+
+	var req updateStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
+		return
+	}
+
+	status, err := wardrobe.ParseStatus(req.Status)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
+	item, err := h.svc.UpdateItemStatus(r.Context(), itemID, userID, status)
+	if err != nil {
+		switch {
+		case errors.Is(err, wardrobe.ErrNotFound):
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "clothing item not found")
+		case errors.Is(err, wardrobe.ErrForbidden):
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "access denied")
+		default:
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to update status")
 		}
 		return
 	}

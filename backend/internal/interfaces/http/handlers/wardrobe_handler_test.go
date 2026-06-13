@@ -20,6 +20,7 @@ type mockWardrobeSvc struct {
 	uploadImage  func(ctx context.Context, itemID, userID string, imageData []byte) (*wardrobe.ClothingItem, error)
 	classifyOnly func(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error)
 	updateItem   func(ctx context.Context, itemID, userID string, fields wardrobe.ClothingItem) (*wardrobe.ClothingItem, error)
+	updateStatus func(ctx context.Context, itemID, userID string, status wardrobe.Status) (*wardrobe.ClothingItem, error)
 	deleteItem   func(ctx context.Context, itemID, userID string) error
 }
 
@@ -45,6 +46,10 @@ func (m *mockWardrobeSvc) ClassifyOnly(ctx context.Context, imageBytes []byte, c
 
 func (m *mockWardrobeSvc) UpdateItem(ctx context.Context, itemID, userID string, fields wardrobe.ClothingItem) (*wardrobe.ClothingItem, error) {
 	return m.updateItem(ctx, itemID, userID, fields)
+}
+
+func (m *mockWardrobeSvc) UpdateItemStatus(ctx context.Context, itemID, userID string, status wardrobe.Status) (*wardrobe.ClothingItem, error) {
+	return m.updateStatus(ctx, itemID, userID, status)
 }
 
 func (m *mockWardrobeSvc) DeleteItem(ctx context.Context, itemID, userID string) error {
@@ -212,6 +217,86 @@ func TestListItems(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 			h.ListItems(rr, req)
+
+			if rr.Code != tc.wantStatus {
+				t.Errorf("status = %d, want %d (body: %s)", rr.Code, tc.wantStatus, rr.Body.String())
+			}
+		})
+	}
+}
+
+func TestUpdateStatus(t *testing.T) {
+	tests := []struct {
+		name       string
+		body       string
+		injectUser bool
+		svcErr     error
+		wantStatus int
+	}{
+		{
+			name:       "happy path returns 200",
+			body:       `{"status":"in_laundry"}`,
+			injectUser: true,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "missing user returns 401",
+			body:       `{"status":"in_laundry"}`,
+			injectUser: false,
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "invalid status returns 400",
+			body:       `{"status":"sparkling"}`,
+			injectUser: true,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "malformed JSON returns 400",
+			body:       `{`,
+			injectUser: true,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "not found returns 404",
+			body:       `{"status":"clean"}`,
+			injectUser: true,
+			svcErr:     wardrobe.ErrNotFound,
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:       "other user's item returns 403",
+			body:       `{"status":"clean"}`,
+			injectUser: true,
+			svcErr:     wardrobe.ErrForbidden,
+			wantStatus: http.StatusForbidden,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svcErr := tc.svcErr
+			svc := &mockWardrobeSvc{
+				updateStatus: func(_ context.Context, _, _ string, status wardrobe.Status) (*wardrobe.ClothingItem, error) {
+					if svcErr != nil {
+						return nil, svcErr
+					}
+					item := savedItem()
+					item.Status = status
+					return item, nil
+				},
+			}
+			h := handlers.NewWardrobeHandler(svc)
+
+			req := httptest.NewRequest(http.MethodPatch, "/wardrobe/items/item-1/status", strings.NewReader(tc.body))
+			req.Header.Set("Content-Type", "application/json")
+			req.SetPathValue("id", "item-1")
+			if tc.injectUser {
+				req = withUserID(req, "user-123")
+			}
+
+			rr := httptest.NewRecorder()
+			h.UpdateStatus(rr, req)
 
 			if rr.Code != tc.wantStatus {
 				t.Errorf("status = %d, want %d (body: %s)", rr.Code, tc.wantStatus, rr.Body.String())

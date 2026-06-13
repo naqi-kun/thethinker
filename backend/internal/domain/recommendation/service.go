@@ -71,6 +71,18 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		return nil, ErrEmptyWardrobe
 	}
 
+	// Only suggest items that are currently clean.
+	clean := items[:0]
+	for _, item := range items {
+		if item.Status == wardrobe.StatusClean {
+			clean = append(clean, item)
+		}
+	}
+	items = clean
+	if len(items) == 0 {
+		return nil, ErrEmptyWardrobe
+	}
+
 	// Best-effort prefs + weather lookup — neither blocks the recommendation.
 	var conditions *weather.Conditions
 	useAI := true

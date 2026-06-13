@@ -5,6 +5,7 @@ import type {
   ClothingCategory,
   ClothingFit,
   ClothingSeason,
+  ClothingStatus,
 } from '../../shared/api/types';
 
 export type ClothingSubType =
@@ -72,6 +73,14 @@ export const SEASONS: SelectOption<ClothingSeason>[] = [
   { value: 'spring_summer', label: 'Spring / Summer' },
   { value: 'autumn_winter', label: 'Autumn / Winter' },
   { value: 'winter', label: 'Winter Only' },
+];
+
+export const STATUSES: SelectOption<ClothingStatus>[] = [
+  { value: 'clean', label: 'Clean' },
+  { value: 'worn', label: 'Worn' },
+  { value: 'in_laundry', label: 'In Laundry' },
+  { value: 'washing', label: 'Washing' },
+  { value: 'drying', label: 'Drying' },
 ];
 
 export const SUB_TYPES: SelectOption<ClothingSubType>[] = [

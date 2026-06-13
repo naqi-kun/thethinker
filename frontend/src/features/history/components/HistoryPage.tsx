@@ -45,6 +45,7 @@ function toClothingItem(item: OutfitHistoryItem): ClothingItem {
     color: item.color as ClothingItem['color'],
     fit: (item.fit ?? undefined) as ClothingItem['fit'],
     season: (item.season ?? undefined) as ClothingItem['season'],
+    status: 'clean',
   };
 }
 
