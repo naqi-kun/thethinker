@@ -54,6 +54,14 @@ const (
 	SubTypeBoots
 	SubTypeSuit
 	SubTypeBlazer
+	// accessories
+	SubTypeWatch
+	SubTypeBag
+	SubTypeBelt
+	SubTypeHat
+	SubTypeScarf
+	SubTypeSunglasses
+	SubTypeTie
 )
 
 func (s SubType) String() string {
@@ -61,6 +69,7 @@ func (s SubType) String() string {
 		"shirt", "t-shirt", "sweater", "hoodie", "jacket", "coat",
 		"pants", "jeans", "shorts", "skirt", "dress",
 		"shoes", "sneakers", "boots", "suit", "blazer",
+		"watch", "bag", "belt", "hat", "scarf", "sunglasses", "tie",
 	}[s]
 }
 
@@ -72,6 +81,9 @@ func ParseSubType(s string) (SubType, error) {
 		"skirt": SubTypeSkirt, "dress": SubTypeDress, "shoes": SubTypeShoes,
 		"sneakers": SubTypeSneakers, "boots": SubTypeBoots, "suit": SubTypeSuit,
 		"blazer": SubTypeBlazer,
+		"watch":  SubTypeWatch, "bag": SubTypeBag, "belt": SubTypeBelt,
+		"hat": SubTypeHat, "scarf": SubTypeScarf, "sunglasses": SubTypeSunglasses,
+		"tie": SubTypeTie,
 	}
 	if v, ok := m[s]; ok {
 		return v, nil

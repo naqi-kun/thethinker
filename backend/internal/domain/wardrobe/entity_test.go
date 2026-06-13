@@ -36,6 +36,9 @@ func TestParseSubType(t *testing.T) {
 	valid := map[string]SubType{
 		"shirt": SubTypeShirt, "t-shirt": SubTypeTShirt, "jeans": SubTypeJeans,
 		"sneakers": SubTypeSneakers, "blazer": SubTypeBlazer,
+		"watch": SubTypeWatch, "bag": SubTypeBag, "belt": SubTypeBelt,
+		"hat": SubTypeHat, "scarf": SubTypeScarf, "sunglasses": SubTypeSunglasses,
+		"tie": SubTypeTie,
 	}
 	for in, want := range valid {
 		got, err := ParseSubType(in)
