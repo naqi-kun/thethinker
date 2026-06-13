@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -56,12 +58,19 @@ func main() {
 	}
 	defer db.Close()
 
-	// storage
-	gcsClient, err := gcsclient.New(ctx, gcsBucket)
+	// storage — use a short timeout so credential lookup fails fast when
+	// no GCS config is present (avoids hanging on GCP metadata server).
+	var imageStore wardrobe.ImageStore
+	gcsCtx, gcsCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer gcsCancel()
+	gcsClient, err := gcsclient.New(gcsCtx, gcsBucket)
 	if err != nil {
-		log.Fatalf("gcs: %v", err)
+		log.Printf("WARNING: GCS unavailable (%v) — image uploads disabled", err)
+		imageStore = &unavailableImageStore{}
+	} else {
+		defer gcsClient.Close()
+		imageStore = gcsClient
 	}
-	defer gcsClient.Close()
 
 	// repositories
 	userRepo := postgres.NewUserRepository(db)
@@ -74,7 +83,7 @@ func main() {
 	// services
 	userSvc := user.NewService(userRepo, jwtSecret)
 	classifierClient := classifier.NewClient(aiServiceURL)
-	wardrobeSvc := wardrobe.NewService(wardrobeRepo, classifierClient, gcsClient, classifierClient)
+	wardrobeSvc := wardrobe.NewService(wardrobeRepo, classifierClient, imageStore, classifierClient)
 	calendarSvc := calendar.NewService(calendarRepo, calendarext.NewICSFetcher())
 	workScheduleSvc := workschedule.NewService(workScheduleRepo)
 	var weatherClient weather.Client
@@ -192,3 +201,13 @@ func getEnvOrDefault(key, defaultVal string) string {
 	}
 	return defaultVal
 }
+
+// unavailableImageStore satisfies wardrobe.ImageStore when GCS is not configured.
+// All uploads fail with a clear error; the rest of the app starts normally.
+type unavailableImageStore struct{}
+
+func (unavailableImageStore) Upload(_ context.Context, _, _ string, _ io.Reader, _ int64) (string, error) {
+	return "", errors.New("image storage not configured — set GCS_CREDENTIALS_JSON")
+}
+
+func (unavailableImageStore) PublicURL(_ string) string { return "" }
