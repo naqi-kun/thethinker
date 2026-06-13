@@ -28,7 +28,9 @@ interface FlatLayProps {
 function ItemImage({ item, label = false }: { item: ClothingItem; label?: boolean }) {
   if (item.image_url) {
     return (
-      <div className={`flex h-full w-full items-center justify-center ${TILE_WELL_CLASS}`}>
+      <div
+        className={`flex h-full w-full items-center justify-center ${TILE_WELL_CLASS}`}
+      >
         <img
           src={item.image_url}
           alt={item.sub_type}
@@ -40,7 +42,9 @@ function ItemImage({ item, label = false }: { item: ClothingItem; label?: boolea
     );
   }
   return (
-    <div className={`flex h-full w-full flex-col items-center justify-center ${TILE_WELL_CLASS}`}>
+    <div
+      className={`flex h-full w-full flex-col items-center justify-center ${TILE_WELL_CLASS}`}
+    >
       {label && (
         <p className="text-xs capitalize text-muted-foreground">{item.sub_type}</p>
       )}
@@ -141,7 +145,9 @@ function Bento({ items, animateIn }: { items: ClothingItem[]; animateIn: boolean
                     <div
                       className={`absolute inset-0 flex items-center justify-center ${OVERFLOW_OVERLAY_CLASS}`}
                     >
-                      <span className="text-sm font-semibold text-cream">+{overflow}</span>
+                      <span className="text-sm font-semibold text-cream">
+                        +{overflow}
+                      </span>
                     </div>
                   )}
                 </AnimatedTile>

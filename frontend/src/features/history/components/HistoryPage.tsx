@@ -384,7 +384,11 @@ export default function HistoryPage() {
                                   transition: { duration: 0.18, ease },
                                 }}
                               >
-                                <FlatLay items={clothingItems} variant="thumb" animateIn />
+                                <FlatLay
+                                  items={clothingItems}
+                                  variant="thumb"
+                                  animateIn
+                                />
                               </motion.div>
                             )}
                           </AnimatePresence>
@@ -495,8 +499,16 @@ export default function HistoryPage() {
 
                         <AnimatePresence mode="popLayout" initial={false}>
                           {isExpanded && (
-                            <motion.div key="bento" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                              <FlatLay items={clothingItems} variant="bento" animateIn />
+                            <motion.div
+                              key="bento"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                            >
+                              <FlatLay
+                                items={clothingItems}
+                                variant="bento"
+                                animateIn
+                              />
                             </motion.div>
                           )}
                         </AnimatePresence>
