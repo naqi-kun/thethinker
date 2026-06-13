@@ -3,6 +3,7 @@ stages:
   - test
   - build
   - docker
+  - deploy
 
 variables:
   NODE_VERSION: "22.16.0"
@@ -105,3 +106,17 @@ docker-build:
     - docker push $IMAGE_NAME:latest
   only:
     - main
+
+# ── Deploy ──────────────────────────────────────────────────
+
+deploy-railway:
+  stage: deploy
+  image: node:22-alpine
+  script:
+    - npm install -g @railway/cli
+    - railway up --service frontend --detach
+    - railway up --service backend --detach
+  only:
+    - main
+  variables:
+    RAILWAY_TOKEN: $RAILWAY_TOKEN
