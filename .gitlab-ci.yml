@@ -111,13 +111,12 @@ docker-build:
 
 deploy-railway:
   stage: deploy
-  image: node:22-alpine
+  image: node:22
   script:
     - npm install -g @railway/cli
-    - railway up --service frontend --detach
-    - railway up --service backend --detach
-  only:
-    - main
+    - railway --version
+    - cd frontend && railway up --service frontend && cd ..
+    - cd backend && railway up --service backend && cd ..
   variables:
     RAILWAY_TOKEN: $RAILWAY_TOKEN
     RAILWAY_PROJECT_ID: $RAILWAY_PROJECT_ID
