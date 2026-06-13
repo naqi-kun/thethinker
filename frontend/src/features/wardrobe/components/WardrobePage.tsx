@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import {
   Footprints,
@@ -13,6 +14,8 @@ import {
 } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import Select from '../../../shared/components/Select';
+import Skeleton from '../../../shared/components/Skeleton';
+import { staggerContainer, fadeUpItem } from '../../../shared/motion';
 import {
   deleteItem,
   listItems,
@@ -776,7 +779,26 @@ export default function WardrobePage() {
         </div>
 
         {loading ? (
-          <div className="py-20 text-center helper-text">Loading…</div>
+          <div aria-busy="true">
+            {/* stats bar */}
+            <Skeleton className="mb-6 h-16 rounded-xl" />
+            {/* readiness hint */}
+            <Skeleton className="mb-6 h-17 rounded-xl" />
+            {/* search field */}
+            <Skeleton className="mb-4 h-11 rounded-md" />
+            {/* category tabs */}
+            <div className="mb-6 flex gap-2">
+              {['w-12', 'w-14', 'w-20', 'w-16', 'w-24', 'w-28'].map((w, i) => (
+                <Skeleton key={i} className={`h-7 ${w} rounded-full`} />
+              ))}
+            </div>
+            {/* card grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-4/5 rounded-2xl" />
+              ))}
+            </div>
+          </div>
         ) : error ? (
           <p className="py-20 text-center text-sm text-destructive">{error}</p>
         ) : (
@@ -810,18 +832,27 @@ export default function WardrobePage() {
             </div>
 
             {filtered.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
+              // key by tab so switching categories replays the stagger; typing
+              // in search keeps the container mounted (only new matches fade in).
+              <motion.div
+                key={activeTab}
+                className="grid grid-cols-2 gap-3"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
                 {filtered.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    onCardClick={setSelectedItem}
-                    onImageUploaded={handleImageUploaded}
-                    onStatusChanged={handleItemUpdated}
-                    onDeleted={handleDeleted}
-                  />
+                  <motion.div key={item.id} variants={fadeUpItem}>
+                    <ItemCard
+                      item={item}
+                      onCardClick={setSelectedItem}
+                      onImageUploaded={handleImageUploaded}
+                      onStatusChanged={handleItemUpdated}
+                      onDeleted={handleDeleted}
+                    />
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             ) : (
               <div className="flex flex-col items-center py-20 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
