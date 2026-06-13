@@ -66,6 +66,13 @@ const SUB_TYPE_LABELS: Record<ClothingSubType, string> = {
   boots: 'Boots',
   suit: 'Suit',
   blazer: 'Blazer',
+  watch: 'Watch',
+  bag: 'Bag',
+  belt: 'Belt',
+  hat: 'Hat',
+  scarf: 'Scarf',
+  sunglasses: 'Sunglasses',
+  tie: 'Tie',
 };
 
 /** Suggest a default item name, e.g. "Navy Blue Jeans". Falls back gracefully. */
