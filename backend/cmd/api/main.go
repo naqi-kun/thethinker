@@ -58,9 +58,12 @@ func main() {
 	}
 	defer db.Close()
 
-	// storage
+	// storage — use a short timeout so credential lookup fails fast when
+	// no GCS config is present (avoids hanging on GCP metadata server).
 	var imageStore wardrobe.ImageStore
-	gcsClient, err := gcsclient.New(ctx, gcsBucket)
+	gcsCtx, gcsCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer gcsCancel()
+	gcsClient, err := gcsclient.New(gcsCtx, gcsBucket)
 	if err != nil {
 		log.Printf("WARNING: GCS unavailable (%v) — image uploads disabled", err)
 		imageStore = &unavailableImageStore{}
