@@ -150,6 +150,37 @@ Trim the *required* flow to the 3 used inputs now (Fork A) — bank the intuitiv
 the recommender later (Fork B) when/if you invest there. Avoids collect-and-ignore
 (it's explicitly optional + future-facing) without blocking on the big backend work.
 
+#### Reframe + decisions (2026-06-14, grilling)
+**Grounding finding (verified in code):** of all onboarding inputs, **only `location`
+(→ weather) is actually consumed by recommendations.** `styles` is stored and echoed
+back but never read by the recommender; `occasion` is hardcoded `"casual"`
+(`service.go:121`). So style, occasions, *and* the rich profile are all
+collect-and-ignore today.
+
+This kills the trim-vs-upgrade **binary**. Reframed as a **per-input proposal to take
+to the team:**
+- **Style — wire it in.** High value, high expectation (especially if it goes
+  rich-aesthetic). Worth the recommender work.
+- **Location — keep.** The one input already used.
+- **Body shape / face shape / skin tone — drop or defer** unless someone justifies them.
+
+**Onboarding redesign direction** (safe to design now; the per-input *wiring* is the
+team's call):
+- **Flow:** Welcome → Style → Location → Done → **straight into adding clothes**
+  (bulk upload, §7.5a) rather than ending on an empty wardrobe (fixes cold-start).
+  ~4 screens, down from 8.
+- **Style:** keep, designed honestly (no implied magic it doesn't do yet). Pattern
+  built to accommodate a future **rich-aesthetic taxonomy** ("old money", "emo", …);
+  the taxonomy + recommendation mapping is **research TBD**, not now.
+- **Location:** "Allow location" (device geolocation → coords → backend → weather by
+  lat/lon, which OpenWeatherMap supports) with a **manual city fallback** on deny.
+  Small backend tweak alongside KAN-82; the onboarding design is identical either way.
+- **Occasion:** dropped from onboarding — sourced from the **calendar** instead.
+- **Rich profile (body/face/skin):** parked on the canvas as an explicit **TBD
+  decision point**, pending the per-input team call.
+- **Bug fixes folded in:** surface the preference-save failure; back on step 1 must
+  not silently log you out.
+
 ---
 
 ## 2. Wardrobe scan / add
@@ -388,6 +419,21 @@ Turn the outfit reveal into a daily ritual instead of an instant render. Steer
 - Persistence needed: a "revealed today" flag (localStorage for MVP).
 
 **Effort:** M (frontend; reuses Motion + revives the discarded reasoning).
+
+**"Why this look" composition — checked against the AI prompt (2026-06-14).** Reading
+`ai/recommend.py` (`_build_prompt`): the AI's `reasoning` is a one-sentence rationale,
+but the prompt contains **only the wardrobe items (colour/fit/type) — no weather, no
+occasion, no style.** So the AI can explain *why the pieces go together*, but it
+**cannot** say "skip the jacket, it's 22°" — it doesn't have those inputs. The "why"
+is therefore a **composite (Option A, decided):**
+- **Context** (weather + occasion) = the **templated chips** already shown on the
+  outfit screen, composed by the backend from data it has.
+- **Coordination** = the **AI `reasoning`** sentence (revived from the discarded
+  field), about the items only.
+- **Option B (later):** feed weather + occasion into the AI prompt so the model writes
+  one richer sentence — needs an AI-service + Go↔Python contract change, plus a
+  **live spike** to validate prose quality (the static prompt read was enough to
+  decide A; a live run is deferred to implementation).
 
 ### 7.3 Calendar presence — connection-status pill
 Surface a selling point: a chip ("Calendar not connected" → `/calendar`, or "Synced ·
