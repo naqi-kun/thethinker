@@ -108,6 +108,14 @@ function Row({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Vertical variant of Row — label stacked above its control. Shares Row's
+// padding and divider semantics so every row in a Section lines up identically.
+function StackedRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-b border-border px-4 py-3.5 last:border-b-0">{children}</div>
+  );
+}
+
 function RowLabel({
   label,
   description,
@@ -302,7 +310,7 @@ export default function SettingsPage() {
                 token.clear();
                 navigate('/');
               }}
-              className="btn-outline btn-sm shrink-0 gap-1.5 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+              className="btn-secondary btn-sm shrink-0 gap-1.5 text-destructive border-destructive/50 hover:bg-destructive/10"
             >
               <LogOut className="h-3.5 w-3.5" />
               Sign out
@@ -320,7 +328,7 @@ export default function SettingsPage() {
               onChange={setTempUnit}
             />
           </Row>
-          <div className="border-b border-border px-4 py-3.5 last:border-b-0">
+          <StackedRow>
             <div className="flex items-center justify-between gap-4">
               <RowLabel
                 label="Default location"
@@ -334,7 +342,7 @@ export default function SettingsPage() {
                 onChange={(e) => setLocation(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && saveLocation()}
                 placeholder="e.g. London"
-                className="input w-36 text-sm"
+                className="input w-32 text-sm"
               />
             </div>
             {(location !== savedLocation || locationStatus) && (
@@ -355,8 +363,8 @@ export default function SettingsPage() {
                 )}
               </div>
             )}
-          </div>
-          <div className="border-b border-border px-4 py-3.5 last:border-b-0">
+          </StackedRow>
+          <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">
               Style preference
             </p>
@@ -365,20 +373,20 @@ export default function SettingsPage() {
               value={style}
               onChange={setStyle}
             />
-          </div>
-          <div className="px-4 py-3.5">
+          </StackedRow>
+          <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">Fit preference</p>
             <Segmented<FitPref>
               options={['Slim', 'Regular', 'Relaxed', 'Oversized']}
               value={fit}
               onChange={setFit}
             />
-          </div>
+          </StackedRow>
         </Section>
 
         {/* ── Work schedule (KAN-49) ── */}
         <Section title="Work Schedule">
-          <div className="border-b border-border px-4 py-3.5">
+          <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">Working days</p>
             <div className="flex flex-wrap gap-2">
               {WEEKDAYS.map((label, day) => {
@@ -398,8 +406,10 @@ export default function SettingsPage() {
                 );
               })}
             </div>
-          </div>
-          <Row>
+          </StackedRow>
+          {/* Stacks the time inputs below the label on narrow screens so the
+              native time picker (incl. its clock icon) is never clipped. */}
+          <div className="flex flex-col gap-2.5 border-b border-border px-4 py-3.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <RowLabel
               label="Working time"
               description="Used to recommend work outfits."
@@ -409,7 +419,7 @@ export default function SettingsPage() {
                 type="time"
                 value={workStart}
                 onChange={(e) => setWorkStart(e.target.value)}
-                className="input w-28 text-sm"
+                className="input w-32 text-sm"
                 aria-label="Work start time"
               />
               <span className="text-muted-foreground">–</span>
@@ -417,12 +427,12 @@ export default function SettingsPage() {
                 type="time"
                 value={workEnd}
                 onChange={(e) => setWorkEnd(e.target.value)}
-                className="input w-28 text-sm"
+                className="input w-32 text-sm"
                 aria-label="Work end time"
               />
             </div>
-          </Row>
-          <div className="border-b border-border px-4 py-3.5">
+          </div>
+          <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">Holidays</p>
             {holidays.length > 0 && (
               <ul className="mb-3 space-y-2">
@@ -460,8 +470,8 @@ export default function SettingsPage() {
                 Add
               </button>
             </div>
-          </div>
-          <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+          </StackedRow>
+          <Row>
             {scheduleStatus ? (
               <span className="text-xs text-muted-foreground">{scheduleStatus}</span>
             ) : (
@@ -474,7 +484,7 @@ export default function SettingsPage() {
             >
               {savingSchedule ? 'Saving…' : 'Save schedule'}
             </button>
-          </div>
+          </Row>
         </Section>
 
         {/* ── Recommendation rules ── */}
