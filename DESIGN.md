@@ -196,6 +196,104 @@ Pill-shaped labels defined in `@layer components`. All badges share base padding
 
 ---
 
+## Loading States
+
+Data-driven screens show **skeleton placeholders** while their first fetch is in
+flight — never a bare "Loading…" string. Skeletons preserve layout (no content
+shift when data lands) and read as intentional polish.
+
+### Skeleton primitive
+
+`frontend/src/shared/components/Skeleton.tsx` — a pulsing block in the muted /
+linen tone (`animate-pulse rounded-lg bg-linen`). Size and round it per use via
+`className`; it's `aria-hidden`, so mark the loading region with `aria-busy`.
+
+```tsx
+import Skeleton from '@/shared/components/Skeleton';
+
+<Skeleton className="h-28 rounded-2xl" />              // block
+<Skeleton className="aspect-4/5 rounded-2xl" />        // card tile
+<Skeleton className="h-3 w-1/3" />                     // text line
+```
+
+### Per-screen loaders
+
+Shape the skeleton to the real content so nothing jumps when it resolves:
+
+| Screen | Loader |
+|--------|--------|
+| Wardrobe | 6-tile `grid grid-cols-2 gap-3` of `aspect-4/5` card skeletons |
+| History | three `h-28` stacked block skeletons (the original pattern) |
+| Swap sheet | 3 rows: 14×14 thumbnail skeleton + two text-line skeletons |
+| Outfit | **not a skeleton** — a branded curating motif (see below) |
+
+**Guidelines**
+- Mirror the post-load layout (same grid, aspect, and count) so the page doesn't reflow.
+- Skeletons are `bg-linen` — they only read on the cream page background, not inside linen cards.
+- Wrap the loading branch in `aria-busy="true"`.
+- Use plain inline button text (e.g. "Signing in…", "Load more") for *action* spinners — skeletons are for *initial content* loads only.
+- **Skeletons only work when the content has a stable outline to mimic** (a card, a row). The Outfit screen is a single scattered flat-lay with no repeating shape, so a placeholder block reads as a random rectangle — use a branded loader there instead (next section).
+
+### Branded loader (Outfit)
+
+When there's no card outline to fake, show a small animated brand motif instead
+of a skeleton. The Outfit recommendation uses a `Sparkles` icon in a linen
+circle that gently scales + sways, with a fading "Curating your outfit…" label
+(`motion/react`, infinite ease-in-out, ~1.8s). Centered in the flat-lay canvas.
+
+---
+
+## Motion / Entrance Animations
+
+When real content replaces the skeletons, lists and grids reveal with a
+**staggered fade-up** — each item fades in (`opacity 0→1`) while rising
+(`y: 10→0`), one shortly after the next. It signals "fresh content" and softens
+the skeleton → data swap. Built on `motion/react` (Framer Motion).
+
+### Shared presets — `frontend/src/shared/motion.ts`
+
+| Export | Purpose |
+|--------|---------|
+| `ease` | Material standard curve `[0.4, 0, 0.2, 1]` — shared by all transitions |
+| `staggerContainer` | Parent variant; reveals children 0.06s apart |
+| `fadeUpItem` | Child variant; fade + 10px rise over 0.28s |
+
+```tsx
+import { motion } from 'motion/react';
+import { staggerContainer, fadeUpItem } from '@/shared/motion';
+
+<motion.div variants={staggerContainer} initial="hidden" animate="visible">
+  {items.map((it) => (
+    <motion.div key={it.id} variants={fadeUpItem}>
+      <Card … />
+    </motion.div>
+  ))}
+</motion.div>
+```
+
+### Where it's applied
+
+| Screen | Entrance |
+|--------|----------|
+| Wardrobe | card grid staggers in; `key={activeTab}` replays it on tab switch |
+| History | outfit feed staggers in (also drives the expand/collapse layout morph) |
+| Calendar | page sections (header, form, providers, note) stagger in on load |
+
+**Guidelines**
+- Key the container on the filter/tab that should *replay* the entrance; leave it stable across searches so only newly-matched items animate (no replay per keystroke).
+- Reuse the shared presets — don't redefine local `ease`/variants per screen.
+- Entrance motion is for *initial content reveal*. Keep durations short (≤0.3s) so it never gets in the way of getting dressed.
+
+### Feedback on add/remove
+
+Lists that grow or shrink from user actions wrap their items in
+`<AnimatePresence>` so additions fade/scale in and removals animate out (no
+abrupt pop). On Calendar, a newly **synced** calendar also flashes a one-shot
+green ring (`boxShadow` keyframe in the `--success` tone) to confirm the action,
+tracked via a `justAddedId` and cleared on `onAnimationComplete`.
+
+---
+
 ## Form Elements
 
 | Class | Element |
@@ -254,6 +352,9 @@ frontend/
       App.tsx              ← Route definitions
     features/              ← Vertical slices (auth, onboarding, wardrobe, …)
     shared/
+      components/
+        Skeleton.tsx       ← Loading-state placeholder (see Loading States)
+      motion.ts            ← Shared entrance presets (see Motion / Entrance)
       utils/cn.ts          ← cn() helper (clsx + tailwind-merge)
 ```
 
