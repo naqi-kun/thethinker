@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Briefcase,
   CalendarClock,
@@ -80,25 +80,44 @@ export default function OutfitPage() {
   const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
   const [showToast, setShowToast] = useState(false);
 
+  // Monotonic id of the most recent outfit request. Only that request may apply
+  // its result, so an earlier/superseded response can never overwrite a newer
+  // one (refresh races, fast navigation) — the core of the KAN-90 swap bug.
+  const latestRequestId = useRef(0);
+  // Guards the initial load against StrictMode's double-invoked mount effect,
+  // which would otherwise start two independent AI sessions (two Claude calls,
+  // one orphaned) and swap the outfit ~2s after load.
+  const didInitialFetch = useRef(false);
+
   const fetchOutfit = useCallback((sessionId?: string) => {
+    const requestId = ++latestRequestId.current;
     setLoading(true);
     setError(null);
     setEmptyWardrobe(false);
     setAccepted(false);
     setSwappingItem(null);
     getOutfit(sessionId)
-      .then(setRecommendation)
+      .then((rec) => {
+        if (latestRequestId.current !== requestId) return; // superseded
+        setRecommendation(rec);
+      })
       .catch((err: unknown) => {
+        if (latestRequestId.current !== requestId) return; // superseded
         if (err instanceof ApiError && err.status === 404) {
           setEmptyWardrobe(true);
         } else {
           setError('Unable to load outfit recommendation. Please try again.');
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (latestRequestId.current !== requestId) return; // superseded
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
+    if (didInitialFetch.current) return;
+    didInitialFetch.current = true;
     fetchOutfit();
   }, [fetchOutfit]);
 
