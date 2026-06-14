@@ -46,7 +46,7 @@ type aiRecommendation struct {
 }
 
 type startRequest struct {
-	SessionID     string               `json:"session_id,omitempty"`
+	SessionID     string                `json:"session_id,omitempty"`
 	WardrobeItems []wardrobeItemPayload `json:"wardrobe_items"`
 }
 
@@ -134,6 +134,13 @@ func (c *RecommendClient) post(ctx context.Context, path string, body, out any) 
 
 	if resp.StatusCode == http.StatusNotFound {
 		return recommendation.ErrSessionNotFound
+	}
+	if resp.StatusCode >= 500 {
+		// 5xx is recoverable: a regenerate against a session the AI lost (e.g. after
+		// a restart) can return 500/503 instead of 404. Flag it so the domain can
+		// retry with a fresh session rather than treating it as a hard failure.
+		raw, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%w: status %d: %s", recommendation.ErrAIServerError, resp.StatusCode, raw)
 	}
 	if resp.StatusCode >= 300 {
 		raw, _ := io.ReadAll(resp.Body)
