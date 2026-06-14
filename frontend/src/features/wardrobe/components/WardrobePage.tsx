@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Footprints,
-  Plus,
-  Search,
-  Shirt,
-  ShoppingBag,
-  Trash2,
-  Upload,
-  Watch,
-  X,
-} from 'lucide-react';
+import { Plus, Search, Shirt, Trash2, Upload, X } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import Select from '../../../shared/components/Select';
+import ItemThumbnail from '../../../shared/components/ItemThumbnail';
 import {
   deleteItem,
   listItems,
@@ -126,40 +117,6 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function categoryIcon(category: WardrobeCategory) {
-  switch (category) {
-    case 'Tops':
-      return <Shirt className="h-5 w-5" />;
-    case 'Bottoms':
-      return <ShoppingBag className="h-5 w-5" />;
-    case 'Shoes':
-      return <Footprints className="h-5 w-5" />;
-    case 'Outerwear':
-      return <Watch className="h-5 w-5" />;
-    case 'Accessories':
-      return <Watch className="h-5 w-5" />;
-  }
-}
-
-function colorSwatch(color: string) {
-  const map: Record<string, string> = {
-    white: '#f5f5f5',
-    black: '#1a1a1a',
-    blue: '#4a6fa5',
-    charcoal: '#4a4a4a',
-    tan: '#c9a96e',
-    navy: '#1f3a5f',
-    silver: '#a8a8b3',
-    grey: '#888888',
-    gray: '#888888',
-    red: '#c0392b',
-    green: '#27ae60',
-    brown: '#795548',
-    beige: '#d4bda8',
-  };
-  return map[color.toLowerCase()] ?? '#d4bda8';
-}
-
 function itemToFormState(item: ClothingItem): FormState {
   return {
     name: item.name ?? '',
@@ -190,11 +147,9 @@ function ItemDetailModal({
   const [pickedHex, setPickedHex] = useState<string>(hexForColor(item.color));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [imgError, setImgError] = useState(false);
   const [status, setStatus] = useState<ClothingStatus>(item.status);
   const [savingStatus, setSavingStatus] = useState(false);
 
-  const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
   const colorIsMulticolor = form.color === 'multicolor';
   const snappedSwatch = form.color ? COLOR_SWATCHES[form.color] : '';
@@ -271,27 +226,13 @@ function ItemDetailModal({
 
         <div className="px-5 py-4 space-y-5">
           {/* Image preview */}
-          <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-linen/60">
-            {item.image_url && !imgError ? (
-              <img
-                src={item.image_url}
-                alt={displayName}
-                className="h-full w-full object-contain"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
-                  {categoryIcon(category)}
-                </div>
-                <div
-                  className="h-5 w-5 rounded-full border border-border"
-                  style={{ backgroundColor: colorSwatch(item.color) }}
-                  title={item.color}
-                />
-              </div>
-            )}
-          </div>
+          <ItemThumbnail
+            item={item}
+            alt={displayName}
+            aspect="video"
+            fallbackSize="md"
+            className="rounded-xl"
+          />
 
           {/* Edit form */}
           <div className="space-y-4">
@@ -461,11 +402,9 @@ function ItemCard({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
   const tags = [item.category, item.fit].filter(Boolean) as string[];
 
@@ -517,32 +456,9 @@ function ItemCard({
       className="card-interactive flex flex-col overflow-hidden cursor-pointer"
       onClick={() => onCardClick(item)}
     >
-      {/* pt-12 keeps the contained image clear of the top controls (delete +
-          status). min-h-0 stops a tall portrait image from overriding
-          aspect-square (flex items default to min-height:auto), which would
-          otherwise make the box taller for some photos and misalign card
-          bodies across the grid. */}
-      <div className="relative flex aspect-square min-h-0 items-center justify-center bg-linen/60 pt-12">
-        {item.image_url && !imgError ? (
-          <img
-            src={item.image_url}
-            alt={displayName}
-            className="h-full w-full object-contain"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-              {categoryIcon(category)}
-            </div>
-            <div
-              className="h-4 w-4 rounded-full border border-border"
-              style={{ backgroundColor: colorSwatch(item.color) }}
-              title={item.color}
-            />
-          </div>
-        )}
-
+      {/* topInset reserves pt-12 so the contained image clears the top controls
+          (delete + status). */}
+      <ItemThumbnail item={item} alt={displayName} topInset>
         {/* Delete confirmation overlay */}
         {confirming && (
           <div
@@ -621,7 +537,7 @@ function ItemCard({
           className="hidden"
           onChange={handleFileChange}
         />
-      </div>
+      </ItemThumbnail>
 
       <div className="flex flex-col gap-1.5 p-3">
         <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
