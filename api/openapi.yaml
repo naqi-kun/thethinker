@@ -294,6 +294,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /wardrobe/items/{id}/status:
+    patch:
+      tags: [wardrobe]
+      summary: Update a clothing item's wearability status
+      description: >
+        Manually set an item's status (e.g. mark it as in the laundry).
+        The accept-outfit flow sets 'worn' automatically; this lets the user
+        drive the other transitions.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStatusRequest'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClothingItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /wardrobe/scan:
     post:
       tags: [wardrobe]
@@ -738,9 +774,17 @@ components:
           type: string
           format: uri
 
+    UpdateStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [clean, worn, in_laundry, washing, drying]
+
     ClothingItem:
       type: object
-      required: [id, category, sub_type, color]
+      required: [id, category, sub_type, color, status]
       properties:
         id:
           type: string
@@ -763,6 +807,11 @@ components:
         season:
           type: string
           enum: [all, spring_summer, autumn_winter, winter]
+        status:
+          type: string
+          enum: [clean, worn, in_laundry, washing, drying]
+          default: clean
+          description: Current wearability state. Only 'clean' items are included in outfit recommendations.
         image_url:
           type: string
           format: uri

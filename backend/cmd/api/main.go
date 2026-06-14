@@ -127,6 +127,7 @@ func main() {
 	mux.Handle("POST /wardrobe/scan", auth(http.HandlerFunc(wardrobeHandler.Scan)))
 	mux.Handle("POST /wardrobe/classify", auth(http.HandlerFunc(wardrobeHandler.Classify)))
 	mux.Handle("PUT /wardrobe/items/{id}", auth(http.HandlerFunc(wardrobeHandler.UpdateItem)))
+	mux.Handle("PATCH /wardrobe/items/{id}/status", auth(http.HandlerFunc(wardrobeHandler.UpdateStatus)))
 
 	// calendar — protected. ICS multi-calendar flow (KAN-49).
 	mux.Handle("GET /calendars", auth(http.HandlerFunc(calendarHandler.ListCalendars)))
