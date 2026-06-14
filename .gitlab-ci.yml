@@ -98,6 +98,14 @@ docker-build:
   image: docker:26
   services:
     - docker:26-dind
+  variables:
+    # Point the docker client at the dind daemon over TLS and trust the
+    # CA it generates into the shared /certs volume. Without these the push
+    # fails with: x509: certificate signed by unknown authority (docker:dind CA).
+    DOCKER_HOST: "tcp://docker:2376"
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: "/certs/client"
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
