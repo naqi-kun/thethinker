@@ -44,6 +44,7 @@ import {
   type ClothingSubType,
 } from '../options';
 import { nearestNamedColor } from '../colorMatch';
+import EyedropperImage from './EyedropperImage';
 
 type WardrobeCategory = 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
 type FilterTab = 'All' | WardrobeCategory;
@@ -191,6 +192,7 @@ function ItemDetailModal({
 }) {
   const [form, setForm] = useState<FormState>(itemToFormState(item));
   const [pickedHex, setPickedHex] = useState<string>(hexForColor(item.color));
+  const [hoverColor, setHoverColor] = useState<ClothingColor | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
@@ -200,7 +202,9 @@ function ItemDetailModal({
   const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
   const colorIsMulticolor = form.color === 'multicolor';
-  const snappedSwatch = form.color ? COLOR_SWATCHES[form.color] : '';
+  // Hovering the image previews the sampled colour; otherwise show the committed one.
+  const previewColor = hoverColor ?? form.color;
+  const previewSwatch = previewColor ? COLOR_SWATCHES[previewColor] : '';
 
   const isFormValid =
     form.category !== '' &&
@@ -276,11 +280,14 @@ function ItemDetailModal({
           {/* Image preview */}
           <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-linen/60">
             {item.image_url && !imgError ? (
-              <img
+              <EyedropperImage
                 src={item.image_url}
                 alt={displayName}
-                className="h-full w-full object-contain"
-                onError={() => setImgError(true)}
+                objectFit="contain"
+                className="h-full w-full"
+                onHover={setHoverColor}
+                onPick={(c) => handleColorPick(hexForColor(c))}
+                onImgError={() => setImgError(true)}
               />
             ) : (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -350,15 +357,15 @@ function ItemDetailModal({
                     <span
                       className="inline-block h-6 w-6 shrink-0 rounded-full border border-black/10"
                       style={
-                        snappedSwatch.startsWith('linear')
-                          ? { backgroundImage: snappedSwatch }
-                          : { backgroundColor: snappedSwatch }
+                        previewSwatch.startsWith('linear')
+                          ? { backgroundImage: previewSwatch }
+                          : { backgroundColor: previewSwatch }
                       }
                     />
                     <span className="text-sm text-muted-foreground">
                       Snaps to:{' '}
                       <span className="font-medium text-foreground">
-                        {form.color ? colorLabel(form.color) : '—'}
+                        {previewColor ? colorLabel(previewColor) : '—'}
                       </span>
                     </span>
                   </div>
