@@ -36,8 +36,7 @@ The existing `000001`–`000009` files parse to versions `1`–`9`. A timestamp 
 `20260613143000` parses to a far larger integer, so every timestamp-prefixed migration
 sorts **after** all the legacy sequential ones. We intentionally **do not rename** the
 existing files — renaming would change their version numbers and cause golang-migrate to
-re-run them on databases that already applied them. Leave history as-is; only new files use
-the new format.
+re-run them on databases that already applied them. Leave history as-is; only new files use the new format.
 
 ## Creating a new migration
 
