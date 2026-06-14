@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { listItems } from '../../wardrobe/api';
 import type { ClothingItem } from '../../../shared/api/types';
+import Skeleton from '../../../shared/components/Skeleton';
 
 type Slot = 'top' | 'bottom' | 'footwear' | 'other';
 
@@ -86,7 +87,20 @@ export default function SwapBottomSheet({
           {/* Alternatives list */}
           <div className="max-h-72 overflow-y-auto px-6 pb-8">
             {loading ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+              <div className="space-y-2" aria-busy="true">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-4 rounded-xl border border-border bg-cream p-3"
+                  >
+                    <Skeleton className="h-14 w-14 shrink-0 rounded-lg" />
+                    <div className="flex flex-1 flex-col gap-2">
+                      <Skeleton className="h-3 w-1/3" />
+                      <Skeleton className="h-2.5 w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : alternatives.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 No other {item.category} items in your wardrobe.

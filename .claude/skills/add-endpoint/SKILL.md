@@ -37,6 +37,14 @@ Wire the change through the layers, respecting the boundaries (see the `check-dd
 4. **DI** (`backend/cmd/api/main.go`) — register the route and inject dependencies. *All* wiring
    lives here.
 
+If the endpoint needs a schema change, add a migration in
+`backend/internal/infrastructure/persistence/postgres/migrations/`. **Name it with a 14-digit UTC
+timestamp prefix — `YYYYMMDDHHmmss_name.{up,down}.sql`** — never the legacy sequential `000010_*`
+scheme; timestamps prevent version collisions between branches. Always write both `.up.sql` and
+`.down.sql`. See the
+[migrations README](../../../backend/internal/infrastructure/persistence/postgres/migrations/README.md)
+for the create command and dirty-version recovery.
+
 Pick the bounded context from the existing set: `user`, `wardrobe`, `calendar`, `recommendation`,
 `weather`. If the endpoint doesn't fit one, stop and discuss with the team before inventing a new context.
 

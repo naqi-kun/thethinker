@@ -5,6 +5,7 @@ import type {
   ClassifyResult,
   ClothingCategory,
   ClothingItem,
+  ClothingStatus,
 } from '../../shared/api/types';
 
 export async function listItems(category?: ClothingCategory): Promise<ClothingItem[]> {
@@ -50,6 +51,17 @@ export async function updateItem(
   const { data } = await apiClient.PUT('/wardrobe/items/{id}', {
     params: { path: { id } },
     body: payload,
+  });
+  return data! as ClothingItem;
+}
+
+export async function updateItemStatus(
+  id: string,
+  status: ClothingStatus,
+): Promise<ClothingItem> {
+  const { data } = await apiClient.PATCH('/wardrobe/items/{id}/status', {
+    params: { path: { id } },
+    body: { status },
   });
   return data! as ClothingItem;
 }

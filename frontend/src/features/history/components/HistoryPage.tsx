@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Clock, Moon, RefreshCw, Shirt, Sun, Sunrise } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import FlatLay from '../../../shared/components/FlatLay';
+import Skeleton from '../../../shared/components/Skeleton';
+import { ease, staggerContainer, fadeUpItem } from '../../../shared/motion';
 import type {
   HistoryEntry,
   OutfitHistoryItem,
@@ -45,6 +47,7 @@ function toClothingItem(item: OutfitHistoryItem): ClothingItem {
     color: item.color as ClothingItem['color'],
     fit: (item.fit ?? undefined) as ClothingItem['fit'],
     season: (item.season ?? undefined) as ClothingItem['season'],
+    status: 'clean',
   };
 }
 
@@ -106,22 +109,6 @@ function TimeOfDayChip({
     </span>
   );
 }
-
-const containerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.06 } },
-};
-
-const ease = [0.4, 0, 0.2, 1] as [number, number, number, number];
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.28, ease },
-  },
-};
 
 const layoutTransition = { type: 'tween' as const, duration: 0.45, ease };
 
@@ -268,9 +255,9 @@ export default function HistoryPage() {
 
         {/* Feed */}
         {loading ? (
-          <div className="space-y-4">
+          <div className="space-y-4" aria-busy="true">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-28 animate-pulse rounded-2xl bg-linen" />
+              <Skeleton key={i} className="h-28 rounded-2xl" />
             ))}
           </div>
         ) : error ? (
@@ -311,7 +298,7 @@ export default function HistoryPage() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={listKey}
-                variants={containerVariants}
+                variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
                 exit={{ opacity: 0, transition: { duration: 0.12 } }}
@@ -325,7 +312,7 @@ export default function HistoryPage() {
                   return (
                     <motion.section
                       key={outfit.id}
-                      variants={itemVariants}
+                      variants={fadeUpItem}
                       layout
                       transition={{ layout: layoutTransition }}
                     >

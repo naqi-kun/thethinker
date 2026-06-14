@@ -195,6 +195,38 @@ func ParseSeason(s string) (Season, error) {
 	}
 }
 
+// Status represents the current wearability state of a clothing item.
+type Status int
+
+const (
+	StatusClean Status = iota
+	StatusWorn
+	StatusInLaundry
+	StatusWashing
+	StatusDrying
+)
+
+func (s Status) String() string {
+	return [...]string{"clean", "worn", "in_laundry", "washing", "drying"}[s]
+}
+
+func ParseStatus(s string) (Status, error) {
+	switch s {
+	case "clean":
+		return StatusClean, nil
+	case "worn":
+		return StatusWorn, nil
+	case "in_laundry":
+		return StatusInLaundry, nil
+	case "washing":
+		return StatusWashing, nil
+	case "drying":
+		return StatusDrying, nil
+	default:
+		return 0, fmt.Errorf("%w: status %q", ErrInvalidClassification, s)
+	}
+}
+
 type ClothingItem struct {
 	ID        string
 	UserID    string
@@ -204,6 +236,7 @@ type ClothingItem struct {
 	Color     Color
 	Fit       Fit
 	Season    Season
+	Status    Status
 	ImageURL  string
 	LastWorn  *time.Time
 	CreatedAt time.Time

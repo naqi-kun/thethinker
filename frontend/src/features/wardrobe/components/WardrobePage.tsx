@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import {
   Footprints,
@@ -13,13 +14,22 @@ import {
 } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import Select from '../../../shared/components/Select';
-import { deleteItem, listItems, updateItem, uploadItemImage } from '../api';
+import Skeleton from '../../../shared/components/Skeleton';
+import { staggerContainer, fadeUpItem } from '../../../shared/motion';
+import {
+  deleteItem,
+  listItems,
+  updateItem,
+  updateItemStatus,
+  uploadItemImage,
+} from '../api';
 import type {
   AddItemPayload,
   ClothingCategory,
   ClothingFit,
   ClothingItem,
   ClothingSeason,
+  ClothingStatus,
 } from '../../../shared/api/types';
 import { HexColorPicker } from 'react-colorful';
 import {
@@ -27,6 +37,7 @@ import {
   COLOR_SWATCHES,
   FITS,
   SEASONS,
+  STATUSES,
   SUB_TYPES,
   colorLabel,
   type ClothingColor,
@@ -81,7 +92,11 @@ function subTypeToCategory(subType: string): WardrobeCategory {
     )
   )
     return 'Shoes';
-  if (['jacket', 'coat', 'blazer', 'cardigan', 'outerwear'].some((t) => s.includes(t)))
+  if (
+    ['jacket', 'coat', 'blazer', 'cardigan', 'outerwear', 'suit'].some((t) =>
+      s.includes(t),
+    )
+  )
     return 'Outerwear';
   return 'Accessories';
 }
@@ -97,6 +112,17 @@ function seasonLabel(season: ClothingSeason): string {
     case 'winter':
       return 'Winter only';
   }
+}
+
+// last_worn is a full ISO date-time; show a compact friendly date on the card.
+function formatWorn(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return 'Worn recently';
+  return `Worn ${d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })}`;
 }
 
 function capitalize(s: string) {
@@ -168,6 +194,8 @@ function ItemDetailModal({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
+  const [status, setStatus] = useState<ClothingStatus>(item.status);
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
@@ -205,6 +233,22 @@ function ItemDetailModal({
       setSaveError('Failed to save changes. Please try again.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleStatusChange(next: ClothingStatus) {
+    const previous = status;
+    setStatus(next);
+    setSavingStatus(true);
+    setSaveError(null);
+    try {
+      const updated = await updateItemStatus(item.id, next);
+      onSaved(updated);
+    } catch {
+      setStatus(previous);
+      setSaveError('Failed to update status. Please try again.');
+    } finally {
+      setSavingStatus(false);
     }
   }
 
@@ -358,6 +402,20 @@ function ItemDetailModal({
                 onChange={(v) => setForm((f) => ({ ...f, season: v }))}
               />
             </div>
+
+            <div>
+              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Status
+              </p>
+              {/* Status saves immediately via its own endpoint, independent of
+                  the "Save Changes" button below. */}
+              <Select
+                options={STATUSES}
+                value={status}
+                onChange={handleStatusChange}
+                className={savingStatus ? 'opacity-60' : undefined}
+              />
+            </div>
           </div>
 
           {saveError && <p className="text-sm text-destructive">{saveError}</p>}
@@ -392,11 +450,13 @@ function ItemCard({
   item,
   onCardClick,
   onImageUploaded,
+  onStatusChanged,
   onDeleted,
 }: {
   item: ClothingItem;
   onCardClick: (item: ClothingItem) => void;
   onImageUploaded?: (id: string, imageUrl: string) => void;
+  onStatusChanged?: (updated: ClothingItem) => void;
   onDeleted?: (id: string) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -405,6 +465,8 @@ function ItemCard({
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
@@ -439,12 +501,31 @@ function ItemCard({
     }
   }
 
+  async function handleStatusChange(next: ClothingStatus) {
+    if (next === item.status) return;
+    setSavingStatus(true);
+    setStatusError(null);
+    try {
+      const updated = await updateItemStatus(item.id, next);
+      onStatusChanged?.(updated);
+    } catch {
+      setStatusError('Could not update status.');
+    } finally {
+      setSavingStatus(false);
+    }
+  }
+
   return (
     <div
       className="card-interactive flex flex-col overflow-hidden cursor-pointer"
       onClick={() => onCardClick(item)}
     >
-      <div className="relative flex aspect-square items-center justify-center bg-linen/60">
+      {/* pt-12 keeps the contained image clear of the top controls (delete +
+          status). min-h-0 stops a tall portrait image from overriding
+          aspect-square (flex items default to min-height:auto), which would
+          otherwise make the box taller for some photos and misalign card
+          bodies across the grid. */}
+      <div className="relative flex aspect-square min-h-0 items-center justify-center bg-linen/60 pt-12">
         {item.image_url && !imgError ? (
           <img
             src={item.image_url}
@@ -502,6 +583,23 @@ function ItemCard({
           <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
 
+        {/* Quick status control — top-right overlay; stops propagation so it
+            doesn't open the modal */}
+        <select
+          value={item.status}
+          disabled={savingStatus}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => handleStatusChange(e.target.value as ClothingStatus)}
+          aria-label="Item status"
+          className="absolute right-2 top-2 cursor-pointer rounded-full border border-border bg-background/90 px-2 py-1 text-[10px] text-foreground shadow-sm backdrop-blur-sm disabled:opacity-60"
+        >
+          {STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+
         {/* Upload button — stops propagation so it doesn't open the modal */}
         <button
           onClick={(e) => {
@@ -542,12 +640,13 @@ function ItemCard({
 
         <p className="text-[10px] text-muted-foreground">
           {item.last_worn
-            ? `Worn ${item.last_worn}`
+            ? formatWorn(item.last_worn)
             : item.season
               ? seasonLabel(item.season)
               : null}
         </p>
 
+        {statusError && <p className="text-[10px] text-destructive">{statusError}</p>}
         {uploadError && <p className="text-[10px] text-destructive">{uploadError}</p>}
       </div>
     </div>
@@ -680,7 +779,26 @@ export default function WardrobePage() {
         </div>
 
         {loading ? (
-          <div className="py-20 text-center helper-text">Loading…</div>
+          <div aria-busy="true">
+            {/* stats bar */}
+            <Skeleton className="mb-6 h-16 rounded-xl" />
+            {/* readiness hint */}
+            <Skeleton className="mb-6 h-17 rounded-xl" />
+            {/* search field */}
+            <Skeleton className="mb-4 h-11 rounded-md" />
+            {/* category tabs */}
+            <div className="mb-6 flex gap-2">
+              {['w-12', 'w-14', 'w-20', 'w-16', 'w-24', 'w-28'].map((w, i) => (
+                <Skeleton key={i} className={`h-7 ${w} rounded-full`} />
+              ))}
+            </div>
+            {/* card grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-4/5 rounded-2xl" />
+              ))}
+            </div>
+          </div>
         ) : error ? (
           <p className="py-20 text-center text-sm text-destructive">{error}</p>
         ) : (
@@ -714,17 +832,27 @@ export default function WardrobePage() {
             </div>
 
             {filtered.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
+              // key by tab so switching categories replays the stagger; typing
+              // in search keeps the container mounted (only new matches fade in).
+              <motion.div
+                key={activeTab}
+                className="grid grid-cols-2 gap-3"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
                 {filtered.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    onCardClick={setSelectedItem}
-                    onImageUploaded={handleImageUploaded}
-                    onDeleted={handleDeleted}
-                  />
+                  <motion.div key={item.id} variants={fadeUpItem}>
+                    <ItemCard
+                      item={item}
+                      onCardClick={setSelectedItem}
+                      onImageUploaded={handleImageUploaded}
+                      onStatusChanged={handleItemUpdated}
+                      onDeleted={handleDeleted}
+                    />
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             ) : (
               <div className="flex flex-col items-center py-20 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">

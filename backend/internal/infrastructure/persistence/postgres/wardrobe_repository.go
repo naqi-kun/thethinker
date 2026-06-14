@@ -25,9 +25,9 @@ func NewWardrobeRepository(db *pgxpool.Pool) *WardrobeRepository {
 // wardrobeRow holds the raw string values pgx returns for a wardrobe_items row,
 // before the enum columns are parsed into typed domain values.
 type wardrobeRow struct {
-	id, userID, name, category, subType, color, fit, season, imageURL string
-	lastWorn                                                          *time.Time
-	createdAt                                                         time.Time
+	id, userID, name, category, subType, color, fit, season, status, imageURL string
+	lastWorn                                                                  *time.Time
+	createdAt                                                                 time.Time
 }
 
 // toClothingItem converts the raw enum strings into the typed enum values used
@@ -54,6 +54,10 @@ func (row wardrobeRow) toClothingItem() (*wardrobe.ClothingItem, error) {
 	if err != nil {
 		return nil, err
 	}
+	st, err := wardrobe.ParseStatus(row.status)
+	if err != nil {
+		return nil, err
+	}
 	return &wardrobe.ClothingItem{
 		ID:        row.id,
 		UserID:    row.userID,
@@ -63,6 +67,7 @@ func (row wardrobeRow) toClothingItem() (*wardrobe.ClothingItem, error) {
 		Color:     col,
 		Fit:       f,
 		Season:    sea,
+		Status:    st,
 		ImageURL:  row.imageURL,
 		LastWorn:  row.lastWorn,
 		CreatedAt: row.createdAt,
@@ -89,7 +94,7 @@ func collectItems(userID string, rows []wardrobeRow) []*wardrobe.ClothingItem {
 
 func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([]*wardrobe.ClothingItem, error) {
 	rows, err := queryFromContext(ctx, r.db).Query(ctx,
-		`SELECT id, user_id, name, category, sub_type, color, fit, season, image_url, last_worn, created_at
+		`SELECT id, user_id, name, category, sub_type, color, fit, season, status, image_url, last_worn, created_at
 		 FROM wardrobe_items WHERE user_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC`,
 		userID,
 	)
@@ -101,7 +106,7 @@ func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([
 	var rawRows []wardrobeRow
 	for rows.Next() {
 		var row wardrobeRow
-		if err := rows.Scan(&row.id, &row.userID, &row.name, &row.category, &row.subType, &row.color, &row.fit, &row.season, &row.imageURL, &row.lastWorn, &row.createdAt); err != nil {
+		if err := rows.Scan(&row.id, &row.userID, &row.name, &row.category, &row.subType, &row.color, &row.fit, &row.season, &row.status, &row.imageURL, &row.lastWorn, &row.createdAt); err != nil {
 			return nil, err
 		}
 		rawRows = append(rawRows, row)
@@ -115,10 +120,10 @@ func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([
 func (r *WardrobeRepository) FindByID(ctx context.Context, id string) (*wardrobe.ClothingItem, error) {
 	var row wardrobeRow
 	err := queryFromContext(ctx, r.db).QueryRow(ctx,
-		`SELECT id, user_id, name, category, sub_type, color, fit, season, image_url, last_worn, created_at
+		`SELECT id, user_id, name, category, sub_type, color, fit, season, status, image_url, last_worn, created_at
 		 FROM wardrobe_items WHERE id = $1 AND deleted_at IS NULL`,
 		id,
-	).Scan(&row.id, &row.userID, &row.name, &row.category, &row.subType, &row.color, &row.fit, &row.season, &row.imageURL, &row.lastWorn, &row.createdAt)
+	).Scan(&row.id, &row.userID, &row.name, &row.category, &row.subType, &row.color, &row.fit, &row.season, &row.status, &row.imageURL, &row.lastWorn, &row.createdAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -130,8 +135,8 @@ func (r *WardrobeRepository) FindByID(ctx context.Context, id string) (*wardrobe
 
 func (r *WardrobeRepository) Save(ctx context.Context, item *wardrobe.ClothingItem) error {
 	_, err := r.db.Exec(ctx,
-		`INSERT INTO wardrobe_items (id, user_id, name, category, sub_type, color, fit, season, image_url, last_worn, created_at)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		`INSERT INTO wardrobe_items (id, user_id, name, category, sub_type, color, fit, season, status, image_url, last_worn, created_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		 ON CONFLICT (id) DO UPDATE SET
 		   name      = EXCLUDED.name,
 		   category  = EXCLUDED.category,
@@ -139,11 +144,12 @@ func (r *WardrobeRepository) Save(ctx context.Context, item *wardrobe.ClothingIt
 		   color     = EXCLUDED.color,
 		   fit       = EXCLUDED.fit,
 		   season    = EXCLUDED.season,
+		   status    = EXCLUDED.status,
 		   image_url = EXCLUDED.image_url,
 		   last_worn = EXCLUDED.last_worn`,
 		item.ID, item.UserID, item.Name,
 		item.Category.String(), item.SubType.String(), item.Color.String(),
-		item.Fit.String(), item.Season.String(),
+		item.Fit.String(), item.Season.String(), item.Status.String(),
 		item.ImageURL, item.LastWorn, item.CreatedAt,
 	)
 	return err
@@ -153,6 +159,14 @@ func (r *WardrobeRepository) UpdateImageURL(ctx context.Context, id, imageURL st
 	_, err := r.db.Exec(ctx,
 		`UPDATE wardrobe_items SET image_url = $1 WHERE id = $2`,
 		imageURL, id,
+	)
+	return err
+}
+
+func (r *WardrobeRepository) UpdateStatus(ctx context.Context, id string, status wardrobe.Status) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE wardrobe_items SET status = $1 WHERE id = $2 AND deleted_at IS NULL`,
+		status.String(), id,
 	)
 	return err
 }
@@ -167,7 +181,7 @@ func (r *WardrobeRepository) Delete(ctx context.Context, id string) error {
 
 func (r *WardrobeRepository) MarkWorn(ctx context.Context, userID string, itemIDs []string, wornAt time.Time) error {
 	_, err := queryFromContext(ctx, r.db).Exec(ctx,
-		`UPDATE wardrobe_items SET last_worn = $1 WHERE user_id = $2 AND id::text = ANY($3) AND deleted_at IS NULL`,
+		`UPDATE wardrobe_items SET last_worn = $1, status = 'worn' WHERE user_id = $2 AND id::text = ANY($3) AND deleted_at IS NULL`,
 		wornAt, userID, itemIDs,
 	)
 	return err

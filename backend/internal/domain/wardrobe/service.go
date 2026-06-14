@@ -122,6 +122,25 @@ func (s *Service) UpdateItem(ctx context.Context, itemID, userID string, fields 
 	return existing, nil
 }
 
+// UpdateItemStatus sets the wearability status of an item owned by userID.
+func (s *Service) UpdateItemStatus(ctx context.Context, itemID, userID string, status Status) (*ClothingItem, error) {
+	existing, err := s.repo.FindByID(ctx, itemID)
+	if err != nil {
+		return nil, fmt.Errorf("wardrobe: find item: %w", err)
+	}
+	if existing == nil {
+		return nil, ErrNotFound
+	}
+	if existing.UserID != userID {
+		return nil, ErrForbidden
+	}
+	if err := s.repo.UpdateStatus(ctx, itemID, status); err != nil {
+		return nil, fmt.Errorf("wardrobe: update status: %w", err)
+	}
+	existing.Status = status
+	return existing, nil
+}
+
 // ClassifyOnly runs the AI classifier and returns its raw result without saving anything.
 // Use this for the review step before the user confirms the item.
 func (s *Service) ClassifyOnly(ctx context.Context, imageBytes []byte, contentType string) (*ClassifyResult, error) {

@@ -19,6 +19,7 @@ func validRow(id string) wardrobeRow {
 		color:     "grey",
 		fit:       "regular",
 		season:    "all",
+		status:    "clean",
 		imageURL:  "https://example.test/" + id + ".png",
 		createdAt: time.Now(),
 	}

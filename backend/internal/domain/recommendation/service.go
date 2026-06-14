@@ -71,6 +71,18 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		return nil, ErrEmptyWardrobe
 	}
 
+	// Only suggest items that are currently clean.
+	clean := items[:0]
+	for _, item := range items {
+		if item.Status == wardrobe.StatusClean {
+			clean = append(clean, item)
+		}
+	}
+	items = clean
+	if len(items) == 0 {
+		return nil, ErrEmptyWardrobe
+	}
+
 	// Best-effort prefs + weather lookup — neither blocks the recommendation.
 	var conditions *weather.Conditions
 	useAI := true
@@ -91,11 +103,13 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 			sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
 		} else {
 			rec, err = s.aiRecommender.Regenerate(ctx, sessionID)
-			if err != nil {
-				// Session expired (AI service restarted) — start a new one instead.
-				if isSessionNotFound(err) {
-					sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
-				}
+			if err != nil && sessionRecoverable(err) {
+				// The session is unusable — the AI lost it (404) or errored on it
+				// (5xx, commonly after a restart). Discard it and start a fresh
+				// session; if that also fails we fall through to the rule-based
+				// fallback below rather than surfacing an error to the client.
+				log.Printf("recommendation: regenerate failed for user %s (%v); starting a fresh AI session", userID, err)
+				sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
 			}
 		}
 		if err == nil {
@@ -196,6 +210,15 @@ func (s *Service) AcceptAndRecord(ctx context.Context, userID, sessionID string,
 
 func isSessionNotFound(err error) bool {
 	return errors.Is(err, ErrSessionNotFound)
+}
+
+// sessionRecoverable reports whether a failed Regenerate should be retried with a
+// fresh AI session. A 404 means the session is gone; a 5xx means the AI errored on
+// this specific session (commonly after a restart) and a brand-new session may
+// still succeed. Transport timeouts and 4xx contract errors are not retried here —
+// they fall through to the rule-based fallback instead.
+func sessionRecoverable(err error) bool {
+	return errors.Is(err, ErrSessionNotFound) || errors.Is(err, ErrAIServerError)
 }
 
 // ── item selection helpers ─────────────────────────────────────────────────────

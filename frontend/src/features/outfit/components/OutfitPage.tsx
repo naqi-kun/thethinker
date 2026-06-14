@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Briefcase,
   CalendarClock,
@@ -6,9 +6,11 @@ import {
   MapPin,
   RefreshCw,
   Shirt,
+  Sparkles,
   Sun,
   X,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import TopNav from '../../../shared/components/TopNav';
 import { ApiError } from '../../../shared/api/client';
@@ -78,25 +80,44 @@ export default function OutfitPage() {
   const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
   const [showToast, setShowToast] = useState(false);
 
+  // Monotonic id of the most recent outfit request. Only that request may apply
+  // its result, so an earlier/superseded response can never overwrite a newer
+  // one (refresh races, fast navigation) — the core of the KAN-90 swap bug.
+  const latestRequestId = useRef(0);
+  // Guards the initial load against StrictMode's double-invoked mount effect,
+  // which would otherwise start two independent AI sessions (two Claude calls,
+  // one orphaned) and swap the outfit ~2s after load.
+  const didInitialFetch = useRef(false);
+
   const fetchOutfit = useCallback((sessionId?: string) => {
+    const requestId = ++latestRequestId.current;
     setLoading(true);
     setError(null);
     setEmptyWardrobe(false);
     setAccepted(false);
     setSwappingItem(null);
     getOutfit(sessionId)
-      .then(setRecommendation)
+      .then((rec) => {
+        if (latestRequestId.current !== requestId) return; // superseded
+        setRecommendation(rec);
+      })
       .catch((err: unknown) => {
+        if (latestRequestId.current !== requestId) return; // superseded
         if (err instanceof ApiError && err.status === 404) {
           setEmptyWardrobe(true);
         } else {
           setError('Unable to load outfit recommendation. Please try again.');
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (latestRequestId.current !== requestId) return; // superseded
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
+    if (didInitialFetch.current) return;
+    didInitialFetch.current = true;
     fetchOutfit();
   }, [fetchOutfit]);
 
@@ -237,9 +258,25 @@ export default function OutfitPage() {
         )}
 
         {loading ? (
-          <p className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-            Curating your outfit…
-          </p>
+          <div
+            className="flex flex-1 flex-col items-center justify-center gap-4"
+            aria-busy="true"
+          >
+            <motion.div
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-linen text-terracotta"
+              animate={{ scale: [1, 1.1, 1], rotate: [0, -8, 8, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Sparkles className="h-7 w-7" />
+            </motion.div>
+            <motion.p
+              className="text-sm text-muted-foreground"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              Curating your outfit…
+            </motion.p>
+          </div>
         ) : emptyWardrobe ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <Shirt className="mb-4 h-10 w-10 text-muted-foreground" />
@@ -267,7 +304,7 @@ export default function OutfitPage() {
             {/* Editorial flat-lay canvas — fills the remaining viewport height */}
             <div className="flex min-h-0 flex-1 justify-center">
               <div
-                className="relative h-full max-w-full overflow-hidden rounded-2xl bg-cream"
+                className="relative h-full max-w-full rounded-2xl bg-cream"
                 style={{ aspectRatio: '3/4' }}
               >
                 {displayItems.map((item, i) => {
@@ -336,14 +373,18 @@ export default function OutfitPage() {
       </main>
 
       {/* CTA in normal flow at the bottom of the viewport column — the canvas
-          above is height-bounded, so items can never slide underneath it. */}
-      {recommendation && (
+          above is height-bounded, so items can never slide underneath it.
+          Stays put while curating, just muted + disabled so a not-yet-ready
+          outfit can't be accepted. */}
+      {(loading || recommendation) && (
         <div className="shrink-0 border-t border-border bg-background/95">
           <div className="mx-auto w-full max-w-xl px-6 py-3">
             <button
               onClick={handleAccept}
-              disabled={accepted || accepting}
-              className="btn-primary btn-lg w-full gap-2"
+              disabled={loading || accepted || accepting}
+              className={`btn-lg w-full gap-2 ${
+                loading ? 'btn-secondary cursor-not-allowed opacity-70' : 'btn-primary'
+              }`}
             >
               {accepted ? 'Saved for today' : accepting ? 'Saving…' : 'Wear This Today'}
               <Check className="h-5 w-5" />
