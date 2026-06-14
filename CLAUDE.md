@@ -211,6 +211,18 @@ To validate the spec locally:
 npx @redocly/cli lint api/openapi.yaml
 ```
 
+### Database Migrations
+
+SQL migrations live in `backend/internal/infrastructure/persistence/postgres/migrations/`,
+are embedded in the binary, and run on startup via golang-migrate.
+
+**New migrations use a 14-digit UTC timestamp prefix — `YYYYMMDDHHmmss_name.{up,down}.sql`** —
+not the legacy sequential `000010_*` scheme. Timestamps avoid version-number collisions when
+two branches add migrations independently. Do not rename the existing `000001`–`000009`
+files. Always write both `.up.sql` and `.down.sql`. See
+[migrations/README.md](backend/internal/infrastructure/persistence/postgres/migrations/README.md)
+for the create command and recovery steps.
+
 ### Go Version Management
 
 Go version is pinned to `1.25.0` in `backend/.go-version`.

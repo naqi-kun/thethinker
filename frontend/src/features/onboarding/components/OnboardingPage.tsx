@@ -203,6 +203,7 @@ export default function OnboardingPage() {
     climate: '',
   });
   const [showBodyGuide, setShowBodyGuide] = useState(false);
+  const [locationTouched, setLocationTouched] = useState(false);
 
   const progress = ((step + 1) / TOTAL_STEPS) * 100;
   const [displayProgress, setDisplayProgress] = useState(0);
@@ -220,7 +221,7 @@ export default function OnboardingPage() {
     answers.bodyShape !== '' && answers.height !== '',
     true, // face shape is optional
     answers.palette !== '',
-    answers.location.trim() !== '' || answers.climate !== '',
+    answers.location.trim() !== '', // location is required for weather-aware recommendations
   ][step];
 
   async function handleNext() {
@@ -763,9 +764,14 @@ export default function OnboardingPage() {
 
           {/* Location input */}
           <div className="mb-8">
-            <p className="text-[12px] font-semibold uppercase tracking-wider text-[#87736b] mb-3">
-              City or Region
-            </p>
+            <div className="flex items-center gap-2 mb-3">
+              <p className="text-[12px] font-semibold uppercase tracking-wider text-[#87736b]">
+                City or Region
+              </p>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#8e4925] bg-[#ffeade] px-2 py-0.5 rounded-full">
+                Required
+              </span>
+            </div>
             <div className="relative">
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#87736b]" />
               <input
@@ -775,9 +781,22 @@ export default function OnboardingPage() {
                   setAnswers((a) => ({ ...a, location: e.target.value }))
                 }
                 placeholder="e.g. New York, London, Tokyo"
-                className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-[#fff1ea] border border-[#d9c2b8] text-[15px] text-[#28180d] placeholder:text-[#b8a49a] focus:outline-none focus:border-[#8e4925] transition-colors"
+                aria-required="true"
+                aria-invalid={answers.location.trim() === ''}
+                className={`w-full pl-10 pr-4 py-3.5 rounded-xl bg-[#fff1ea] border text-[15px] text-[#28180d] placeholder:text-[#b8a49a] focus:outline-none transition-colors ${
+                  locationTouched && answers.location.trim() === ''
+                    ? 'border-[#c0392b] focus:border-[#c0392b]'
+                    : 'border-[#d9c2b8] focus:border-[#8e4925]'
+                }`}
+                onBlur={() => setLocationTouched(true)}
               />
             </div>
+            {locationTouched && answers.location.trim() === '' && (
+              <p className="mt-2 text-[12px] text-[#c0392b]">
+                Please enter your city or region — it's required for weather-based
+                recommendations.
+              </p>
+            )}
           </div>
 
           {/* Climate */}
