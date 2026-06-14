@@ -41,7 +41,7 @@ export default function TopNav() {
           TheThinker
         </Link>
 
-        <nav className="flex items-center gap-6 text-sm">
+        <nav className="hidden items-center gap-6 text-sm md:flex">
           {navItems.map(({ to, label }) => (
             <NavLink
               key={to}
@@ -72,6 +72,20 @@ export default function TopNav() {
 
           {open && (
             <div className="absolute right-0 top-11 z-30 min-w-[176px] overflow-hidden rounded-xl border border-border bg-background shadow-lg">
+              {/* Nav destinations — shown here only on narrow viewports where the
+                  horizontal nav is hidden. */}
+              <div className="md:hidden">
+                {navItems.map(({ to, label }) => (
+                  <button
+                    key={to}
+                    onClick={() => go(to)}
+                    className="flex w-full items-center px-4 py-3 text-left text-sm text-foreground hover:bg-secondary"
+                  >
+                    {label}
+                  </button>
+                ))}
+                <div className="my-1 h-px bg-border" />
+              </div>
               <button
                 onClick={() => go('/settings')}
                 className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-sm text-foreground hover:bg-secondary"
