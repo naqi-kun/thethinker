@@ -6,6 +6,11 @@ export async function getProfile(): Promise<UserProfile> {
   return data!;
 }
 
+export async function updateProfile(name: string): Promise<UserProfile> {
+  const { data } = await apiClient.PUT('/users/me', { body: { name } });
+  return data!;
+}
+
 export async function getPreferences(): Promise<Preferences> {
   const { data } = await apiClient.GET('/users/me/preferences');
   return data!;
