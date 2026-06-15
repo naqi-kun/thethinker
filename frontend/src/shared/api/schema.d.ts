@@ -1267,6 +1267,12 @@ export interface components {
             description: string;
             /** @example London */
             location?: string;
+            /**
+             * Format: date-time
+             * @description When this reading was actually observed from the weather provider. May be older than the request when a cached last-known-good reading is served after a live lookup fails. Absent for legacy snapshots.
+             * @example 2026-06-15T08:30:00Z
+             */
+            observed_at?: string;
         };
         Error: {
             code: string;

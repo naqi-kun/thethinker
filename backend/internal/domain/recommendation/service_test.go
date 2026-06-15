@@ -11,6 +11,14 @@ import (
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/weather"
 )
 
+// emptyWeatherCache is a do-nothing weather.Cache: it stores nothing and never
+// hits, so weather.NewService with a nil client always reports ErrUnavailable —
+// exercising the nil-conditions (month-heuristic) recommendation path.
+type emptyWeatherCache struct{}
+
+func (emptyWeatherCache) Get(string) (*weather.Conditions, bool) { return nil, false }
+func (emptyWeatherCache) Put(string, *weather.Conditions)        {}
+
 func TestDeriveTimeOfDay(t *testing.T) {
 	cases := []struct {
 		hour int
@@ -110,7 +118,7 @@ func TestAcceptAndRecord_EmptyItemIDs(t *testing.T) {
 		&stubWardrobeRepo{},
 		&stubCalendarRepo{},
 		nil,
-		weather.NewService(nil),
+		weather.NewService(nil, emptyWeatherCache{}),
 		&stubAIRecommender{},
 		&stubHistoryRepo{},
 		&stubTransactor{},

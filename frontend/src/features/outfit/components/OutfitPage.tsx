@@ -31,6 +31,23 @@ const today = new Date().toLocaleDateString('en-US', {
   day: 'numeric',
 });
 
+const WEATHER_STALE_AFTER_MS = 60 * 60 * 1000; // ~1h
+
+// A weather reading older than ~1h is likely a cached last-known-good value
+// served after a live lookup failed — surface an "as of" hint so the badge
+// doesn't present stale conditions as current. Returns null for fresh readings
+// or ones without an observed_at timestamp (e.g. legacy responses).
+function staleWeatherHint(observedAt: string | undefined): string | null {
+  if (!observedAt) return null;
+  const observed = new Date(observedAt).getTime();
+  if (Number.isNaN(observed)) return null;
+  const ageMs = Date.now() - observed;
+  if (ageMs < WEATHER_STALE_AFTER_MS) return null;
+  const hours = Math.round(ageMs / (60 * 60 * 1000));
+  if (hours < 24) return `as of ${hours}h ago`;
+  return `as of ${Math.round(hours / 24)}d ago`;
+}
+
 // Editorial flat-lay slots — a tight collage with slight overlaps, like a
 // styled magazine board. top/left/width as % of canvas, rotate in degrees.
 // Keep top% + width% ≤ ~92 so items never reach the canvas bottom edge.
@@ -178,6 +195,9 @@ export default function OutfitPage() {
 
   const displayItems: ClothingItem[] = recommendation?.items.slice(0, MAX_ITEMS) ?? [];
   const hashtags = recommendation ? deriveHashtags(recommendation) : [];
+  const weatherHint = recommendation?.weather
+    ? staleWeatherHint(recommendation.weather.observed_at)
+    : null;
 
   return (
     // Fixed viewport-height column: header, canvas (flex-1), CTA — no page scroll.
@@ -202,6 +222,11 @@ export default function OutfitPage() {
                   <Sun className="h-3.5 w-3.5 text-warning" />
                   {recommendation.weather.temperature}°C ·{' '}
                   {recommendation.weather.description}
+                  {weatherHint && (
+                    <span className="text-muted-foreground">
+                      · {weatherHint}
+                    </span>
+                  )}
                 </span>
               )}
               {recommendation.occasion && (
