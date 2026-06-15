@@ -288,10 +288,10 @@ export default function OnboardingPage() {
                 <button
                   key={label}
                   onClick={() => setAnswers((a) => ({ ...a, style: label }))}
-                  className={`relative flex flex-col items-start p-5 rounded-xl transition-all duration-200 text-left active:scale-[0.98] shadow-[0_4px_12px_rgba(61,43,31,0.05)] ${
+                  className={`relative flex flex-col items-start p-5 rounded-xl border-2 transition-all duration-200 text-left active:scale-[0.98] shadow-[0_4px_12px_rgba(61,43,31,0.05)] ${
                     selected
-                      ? 'border-2 border-[#8e4925] ring-2 ring-[#8e4925] bg-[#ffeade]'
-                      : 'border border-transparent bg-[#fff1ea] hover:bg-[#ffeade]'
+                      ? 'border-[#8e4925] bg-[#ffeade]'
+                      : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
                   }`}
                 >
                   <div className="w-10 h-10 rounded-full bg-[#fbddca] flex items-center justify-center mb-4">
@@ -348,9 +348,9 @@ export default function OnboardingPage() {
                 <button
                   key={label}
                   onClick={() => toggleOccasion(label)}
-                  className={`flex flex-col p-4 rounded-xl border transition-all duration-200 text-left active:scale-[0.98] ${
+                  className={`flex flex-col p-4 rounded-xl border-2 transition-all duration-200 text-left active:scale-[0.98] ${
                     selected
-                      ? 'border-[#8e4925] bg-[#fbddca]'
+                      ? 'border-[#8e4925] bg-[#ffeade]'
                       : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
                   }`}
                 >
@@ -406,9 +406,9 @@ export default function OnboardingPage() {
                 <button
                   key={label}
                   onClick={() => toggleInspiration(label)}
-                  className={`flex flex-col p-4 rounded-xl border transition-all duration-200 text-left active:scale-[0.98] ${
+                  className={`flex flex-col p-4 rounded-xl border-2 transition-all duration-200 text-left active:scale-[0.98] ${
                     selected
-                      ? 'border-[#8e4925] bg-[#fbddca]'
+                      ? 'border-[#8e4925] bg-[#ffeade]'
                       : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
                   }`}
                 >
@@ -713,7 +713,7 @@ export default function OnboardingPage() {
                   onClick={() => setAnswers((a) => ({ ...a, palette: label }))}
                   className={`p-5 rounded-xl text-left transition-all duration-200 border-2 shadow-[0_4px_12px_rgba(61,43,31,0.05)] active:scale-[0.98] ${
                     selected
-                      ? 'border-[#8e4925] bg-[#fbddca]'
+                      ? 'border-[#8e4925] bg-[#ffeade]'
                       : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
                   }`}
                 >
@@ -819,7 +819,7 @@ export default function OnboardingPage() {
                     className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 active:scale-[0.98] ${
                       selected
                         ? 'border-[#8e4925] bg-[#ffeade]'
-                        : 'border-[#d9c2b8] bg-[#fff1ea] hover:shadow-sm'
+                        : 'border-transparent bg-[#fff1ea] hover:border-[#d9c2b8]'
                     }`}
                   >
                     <Icon className="w-6 h-6 text-[#8e4925] mb-2" />
