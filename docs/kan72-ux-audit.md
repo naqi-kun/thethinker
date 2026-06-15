@@ -181,6 +181,102 @@ team's call):
 - **Bug fixes folded in:** surface the preference-save failure; back on step 1 must
   not silently log you out.
 
+#### Decision (2026-06-16, grilling) — sequencing & the "must steer the output" rule
+This refines the per-input reframe above into an **order of operations** the team agreed
+to, and is the deliverable for **KAN-104** ("Identify Correct Recommendation
+attributes — which come from Onboarding vs. other parts of the application").
+
+**KAN-104 deliverable — attribute → source map.** Which signals the recommendation AI
+uses, and where each comes from:
+
+| Attribute | Feeds rec? | Source |
+|---|---|---|
+| Garment data (color, fit, type, season) | ✅ today | **Wardrobe scan** |
+| Weather / temperature | ✅ today | **Device location → weather API** (lat/lon), not a typed answer |
+| Occasion / formality | hardcoded `"casual"` today → make dynamic | **Calendar events** — *not* onboarding |
+| Aesthetic taste (minimalist / street / classic) | ⏳ wire first | **Onboarding** |
+| Body shape | ⏳ after aesthetic; gated on garment metadata | **Onboarding** (capture) |
+| Skin tone | ⛔ parked (sensitive, needs metric) | **Onboarding** (capture) — deferred |
+| Face shape, height, palette, climate | ❌ unused | **Drop** — collect-and-ignore |
+
+Net: onboarding's job shrinks to **aesthetic taste now** (+ body shape / skin tone *only
+when wired*); **occasion moves to the calendar**, **weather to device location**, and
+**garment data stays with the scan.** The "location" step becomes a permission prompt,
+not a survey question.
+
+**Terminology fix — "style" is two different onboarding steps, decide them separately:**
+- **Step 1 "What's your style?"** (`Casual / Events / Outdoor`,
+  `OnboardingPage.tsx:40`) = **formality/occasion**. The calendar covers this better
+  than a signup answer → **drop it.** (Settled — not part of the fork below.)
+- **The "inspiration" step** (`Minimalist / Street Style / Classic …`,
+  `OnboardingPage.tsx:57`) = **aesthetic taste**. The calendar can *never* infer this
+  (a "wedding" says *formal*, not *classic-formal vs street-formal*). Decide its fate
+  **on its own merits** — don't let it get cut as collateral from the formality call.
+
+**Cost finding — the three personalization signals cost the same to plumb.** Aesthetic
+taste, body shape, and skin tone all flow through the *same* path: inject a line into
+`_build_prompt` (`ai/recommend.py:108`). The recommender is an LLM doing tool-use
+selection over owned items — **nothing is trained, no ML/dataset.** So the choice is
+**value vs. risk, not cost.**
+
+**Depth finding — aesthetic is the *cheaper* one to make real; body type has a hidden
+data cost:**
+- **Aesthetic taste** plays to the LLM's strongest prior (it already knows what
+  "minimalist" means) and acts on the `color`/`fit`/`type` the items *already carry* →
+  one prompt line, decent immediately. (The expensive "match a mood-board by visual
+  similarity" version is **not** what we're building.)
+- **Body type** styling rules are about **silhouette/cut**, but items only store
+  `color`/`fit`/`sub_type`/`season` (`recommend.py:17`) — **no cut, rise, neckline, or
+  silhouette.** So body type can only act through the coarse `fit` proxy → cosmetic
+  until garment metadata is enriched (richer scan tagging or CV on item images). *That*
+  is the real research/data work — and it's on the body-type side, not aesthetic.
+
+**The agreed ladder (each signal must earn its slot):**
+1. **Ship aesthetic** into the prompt.
+2. **Verify it steers the output** — *Bar 1 (cheap, the ship gate):* same wardrobe,
+   swap the label (`Minimalist` vs `Street Style`) → a meaningfully different, on-brief
+   pick. If both labels return the same outfit, the prompt is ignoring the signal →
+   refine until it steers. *Bar 2 (better, not just different)* needs a metric we don't
+   have yet (see below).
+3. **Then body type**, same verify loop. Expect Bar 1 to **barely move** the pick (the
+   `fit` proxy is too weak) — **that failed verification is the green light** to invest
+   in garment metadata, not a surprise.
+4. **Skin tone stays parked last**, gated behind (a) a real rec-quality metric and (b) a
+   sensitivity review of the colour advice. Most sensitive field, hardest to validate.
+
+**The rule this establishes (three legs — all required).** A signal earns a slot in
+onboarding **only if** it is:
+1. **Asked** — in the onboarding flow.
+2. **Taken into account** — actually consumed by the recommender, and *demonstrably
+   steers the output* (Bar 1 above) before it ships.
+3. **Editable later** — exposed in Settings as a real control that **persists and
+   reloads**, on the **same taxonomy** as the onboarding question.
+
+(Naqi, 2026-06-16: "every onboarding question should be something asked *and* taken into
+account, but also changeable in preferences — I hate not having that option.") This is
+the discipline that stops collect-and-ignore from recurring: capture *only* what you'll
+wire, verify, **and** make editable this cycle.
+
+**Current-state gap (verified in code) — leg 3 is mostly unmet today.** The Settings
+page (`SettingsPage.tsx`) *looks* like it edits the profile but mostly doesn't:
+- **Style** and **Fit** preference pickers (`SettingsPage.tsx:359`) are **cosmetic** —
+  local React state, never loaded from `getPreferences`, never saved via
+  `updatePreferences`. The load effect (`:172`) reads only `location` + `use_ai`.
+- The Settings style taxonomy (`Minimal / Classic / Streetwear / Sporty / Formal`)
+  **doesn't match** onboarding's (`Minimalist / Street Style / Business / Casual Chic /
+  Athletic / Classic`). Pick one shared list.
+- Only **location**, **use_ai**, and **work schedule** truly persist + reload.
+
+**Implication:** wiring a signal is a *vertical slice* of three edits, not one —
+onboarding question → recommender prompt → **Settings control that persists**. So
+aesthetic taste's first cut includes making the Settings "Style preference" control real
+(load + save `styles`/`answers`) on a single shared taxonomy, not just the prompt line.
+
+**Missing piece — measurement.** There is no way today to tell if any signal improves
+recs (only `accept`/`regenerate` exists, and it's untracked). Bar 2 above is blocked on
+adding this loop; until then, ship on Bar 1 ("it demonstrably steers") and treat
+"is it *better*" as a follow-up.
+
 ---
 
 ## 2. Wardrobe scan / add
