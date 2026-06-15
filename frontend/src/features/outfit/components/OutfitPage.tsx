@@ -223,9 +223,7 @@ export default function OutfitPage() {
                   {recommendation.weather.temperature}°C ·{' '}
                   {recommendation.weather.description}
                   {weatherHint && (
-                    <span className="text-muted-foreground">
-                      · {weatherHint}
-                    </span>
+                    <span className="text-muted-foreground">· {weatherHint}</span>
                   )}
                 </span>
               )}
