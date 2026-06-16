@@ -130,7 +130,10 @@ func (c *RecommendClient) post(ctx context.Context, path string, body, out any) 
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("ai: http: %w", err)
+		// A transport failure (connection refused, EOF, timeout) — commonly a
+		// cold-start race where the AI container is up but uvicorn isn't serving
+		// yet. Flag it as transient so the domain can retry before falling back.
+		return fmt.Errorf("%w: %v", recommendation.ErrAIUnavailable, err)
 	}
 	defer resp.Body.Close()
 
