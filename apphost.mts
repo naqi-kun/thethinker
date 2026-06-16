@@ -15,7 +15,8 @@ const dbUri = await db.uriExpression();
 // JWT signing secret — Aspire prompts once on first start
 const jwtSecret = builder.addParameter("jwtSecret", { secret: true });
 
-// Anthropic API key for the AI stylist engine — Aspire prompts once on first start
+// Anthropic API key for the AI stylist engine and image classifier — Aspire
+// prompts once on first start
 const anthropicApiKey = builder.addParameter("anthropicApiKey", {
   secret: true,
 });
@@ -37,9 +38,6 @@ if (!isPublish) {
   await gcs.withHttpEndpoint({ port: 4443, targetPort: 4443, isProxied: false });
 }
 
-// Google API key for Gemini 2.5 Flash — Aspire prompts once on first start
-const googleApiKey = builder.addParameter("googleApiKey", { secret: true });
-
 // OpenWeatherMap API key — optional. When absent the backend serves the
 // last-known-good cached reading per location (within max-age) and otherwise
 // omits weather entirely — no fabricated values. Supply a real key via the
@@ -54,7 +52,6 @@ const weatherApiKey = builder.addParameter("weatherApiKey", {
 const ai = await builder.addDockerfile("ai", "./ai");
 await ai.withHttpEndpoint({ port: 8001, targetPort: 8001, name: "http" });
 await ai.withEnvironment("ANTHROPIC_API_KEY", anthropicApiKey);
-await ai.withEnvironment("GOOGLE_API_KEY", googleApiKey);
 
 // Go backend — runs `go run ./cmd/api` from ./backend
 const backend = await builder.addGoApp("backend", "./backend", {

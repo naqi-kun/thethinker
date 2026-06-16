@@ -1,13 +1,12 @@
 import asyncio
+import base64
 import io
-import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 
+import anthropic
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
-from google import genai
-from google.genai import types
 import pillow_avif  # noqa: F401 — registers AVIF codec in Pillow (phone uploads, seed images)
 from PIL import Image
 from pydantic import BaseModel
@@ -15,22 +14,79 @@ from rembg import new_session, remove
 
 router = APIRouter(tags=["classify"])
 
-_client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 _executor = ThreadPoolExecutor(max_workers=4)
 
-_MODEL = "gemini-2.5-flash"
+_MODEL = "claude-sonnet-4-6"
+
+# Largest edge (px) we send to the vision model. Garment classification doesn't
+# need full phone resolution — downscaling cuts tokens, latency, and keeps the
+# base64 payload well under Anthropic's image limits.
+_MAX_EDGE = 1024
 
 # Load u2net session once at startup — reused across all /remove-bg requests.
 rembg_session = new_session("u2net")
 
-_PROMPT = """Analyze this clothing item and return ONLY a JSON object with these exact keys and allowed values:
-- category: one of ["formal", "casual", "sport"]
-- sub_type: one of ["shirt", "t-shirt", "sweater", "hoodie", "jacket", "coat", "pants", "jeans", "shorts", "skirt", "dress", "shoes", "sneakers", "boots", "suit", "blazer"]
-- color: one of ["black", "white", "grey", "navy blue", "blue", "light blue", "red", "burgundy", "green", "olive", "beige", "brown", "yellow", "orange", "pink", "purple", "multicolor"]
-- fit: one of ["slim", "regular", "relaxed", "oversized"]
-- season: one of ["spring_summer", "autumn_winter", "winter", "all"]
+# Allowed enum values, shared by the tool schema and kept in sync with the Go
+# domain layer (internal/domain/wardrobe/entity.go).
+_CATEGORIES = ["formal", "casual", "sport"]
+_SUB_TYPES = [
+    "shirt", "t-shirt", "sweater", "hoodie", "jacket", "coat", "pants", "jeans",
+    "shorts", "skirt", "dress", "shoes", "sneakers", "boots", "suit", "blazer",
+]
+_COLORS = [
+    "black", "white", "grey", "navy blue", "blue", "light blue", "red",
+    "burgundy", "green", "olive", "beige", "brown", "yellow", "orange", "pink",
+    "purple", "multicolor",
+]
+_FITS = ["slim", "regular", "relaxed", "oversized"]
+_SEASONS = ["spring_summer", "autumn_winter", "winter", "all"]
 
-Return ONLY valid JSON with no explanation, no markdown fences."""
+# Forcing a tool call with an enum-constrained schema guarantees the model
+# returns one of the allowed values for every field (no free-text parsing).
+_CLASSIFY_TOOL = {
+    "name": "classify_item",
+    "description": "Record the classification of the scanned image.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "is_clothing": {
+                "type": "boolean",
+                "description": (
+                    "True only if the image shows a single wearable garment or pair "
+                    "of footwear. False for people wearing outfits, accessories (bags, "
+                    "watches, jewellery, hats), food, animals, furniture, or empty scenes."
+                ),
+            },
+            "category": {"type": "string", "enum": _CATEGORIES},
+            "sub_type": {"type": "string", "enum": _SUB_TYPES},
+            "color": {"type": "string", "enum": _COLORS},
+            "fit": {"type": "string", "enum": _FITS},
+            "season": {"type": "string", "enum": _SEASONS},
+            "confidence": {
+                "type": "number",
+                "description": (
+                    "Your honest confidence from 0.0 to 1.0 that the category, "
+                    "sub_type, color, fit and season are correct. Use the full range: "
+                    "lower it when the garment is ambiguous, partially visible, or "
+                    "poorly lit; raise it for a clear, well-lit, unambiguous item."
+                ),
+            },
+        },
+        "required": ["is_clothing", "category", "sub_type", "color", "fit", "season", "confidence"],
+    },
+}
+
+_PROMPT = (
+    "You are a wardrobe classifier. Decide whether the image shows a single article "
+    "of clothing or footwear that a person could wear.\n"
+    "- If it does NOT (a person wearing an outfit, an accessory such as a bag or watch, "
+    "food, an animal, furniture, or an empty scene), set is_clothing to false. Still "
+    "provide best-guess values for the other fields — they will be ignored.\n"
+    "- If it does, set is_clothing to true and classify it accurately.\n"
+    "Always report your real confidence — do not default to a fixed value.\n"
+    "Call the classify_item tool with your answer."
+)
 
 
 class ClassifyResponse(BaseModel):
@@ -39,22 +95,33 @@ class ClassifyResponse(BaseModel):
     color: str
     fit: str
     season: str
+    confidence_score: float
 
 
 def _classify_sync(image_bytes: bytes) -> dict:
-    response = _client.models.generate_content(
+    b64 = base64.standard_b64encode(image_bytes).decode("ascii")
+    response = _client.messages.create(
         model=_MODEL,
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
-            _PROMPT,
+        max_tokens=512,
+        tools=[_CLASSIFY_TOOL],
+        tool_choice={"type": "tool", "name": "classify_item"},
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": "image/jpeg", "data": b64},
+                    },
+                    {"type": "text", "text": _PROMPT},
+                ],
+            }
         ],
     )
-    text = response.text.strip()
-    if "```" in text:
-        text = text.split("```")[1]
-        if text.startswith("json"):
-            text = text[4:]
-    return json.loads(text.strip())
+    tool_block = next((b for b in response.content if b.type == "tool_use"), None)
+    if tool_block is None:
+        raise ValueError("Claude did not call the classify_item tool")
+    return dict(tool_block.input)
 
 
 @router.post("/classify", response_model=ClassifyResponse)
@@ -65,20 +132,32 @@ async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
     except Exception:
         raise HTTPException(status_code=422, detail="cannot decode image")
 
+    pil_image.thumbnail((_MAX_EDGE, _MAX_EDGE))
     buf = io.BytesIO()
     pil_image.save(buf, format="JPEG", quality=85)
 
     loop = asyncio.get_running_loop()
     try:
         parsed = await loop.run_in_executor(_executor, _classify_sync, buf.getvalue())
-        return ClassifyResponse(**parsed)
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"parse error: {e}")
+    except anthropic.RateLimitError:
+        raise HTTPException(status_code=503, detail="AI quota exhausted — please try again later")
     except Exception as e:
-        msg = str(e)
-        if "429" in msg or "RESOURCE_EXHAUSTED" in msg or "quota" in msg.lower():
-            raise HTTPException(status_code=503, detail="AI quota exhausted — please try again later")
         raise HTTPException(status_code=500, detail=f"classification failed: {e}")
+
+    if not parsed.get("is_clothing", False):
+        raise HTTPException(
+            status_code=422,
+            detail="not a clothing item — scan a single garment or pair of shoes",
+        )
+
+    return ClassifyResponse(
+        category=parsed["category"],
+        sub_type=parsed["sub_type"],
+        color=parsed["color"],
+        fit=parsed["fit"],
+        season=parsed["season"],
+        confidence_score=float(parsed["confidence"]),
+    )
 
 
 
