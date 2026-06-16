@@ -48,6 +48,17 @@ const weatherApiKey = builder.addParameter("weatherApiKey", {
   value: process.env.WEATHER_API_KEY ?? "",
 });
 
+// Google OAuth (KAN-97) — "Sign in with Google" + Google Calendar sync. Aspire
+// prompts once on first start and remembers them (same as the JWT/Anthropic
+// secrets above), so the only command anyone needs is `aspire run`. The client
+// ID is also handed to the frontend (it is public; the secret stays
+// backend-only). Register http://localhost:5173/auth/google/callback as an
+// authorized redirect URI for the OAuth client in Google Cloud Console.
+const googleClientId = builder.addParameter("googleClientId");
+const googleClientSecret = builder.addParameter("googleClientSecret", {
+  secret: true,
+});
+
 // Python AI classification service — built from ./ai/Dockerfile
 const ai = await builder.addDockerfile("ai", "./ai");
 await ai.withHttpEndpoint({ port: 8001, targetPort: 8001, name: "http" });
@@ -69,6 +80,8 @@ if (!isPublish && gcs) {
   await backend.waitFor(gcs);
 }
 await backend.withEnvironment("WEATHER_API_KEY", weatherApiKey);
+await backend.withEnvironment("GOOGLE_CLIENT_ID", googleClientId);
+await backend.withEnvironment("GOOGLE_CLIENT_SECRET", googleClientSecret);
 await backend.waitFor(db);
 await backend.waitFor(ai);
 
@@ -107,8 +120,18 @@ await pgServer.withCommand(
 // React + Vite frontend — VITE_BACKEND_URL drives the dev-server proxy target
 const frontend = await builder.addViteApp("frontend", "./frontend");
 await frontend.withNpm();
-await frontend.withHttpEndpoint({ env: "PORT" });
+// Pinned to 5173 (not a dynamic port) so the browser origin is stable: the
+// Google OAuth redirect URI (http://localhost:5173/auth/google/callback) must
+// exactly match what is registered for the OAuth client (KAN-97). Non-proxied
+// so the dev server is reached directly on 5173, matching the documented port.
+await frontend.withHttpEndpoint({
+  port: 5173,
+  targetPort: 5173,
+  isProxied: false,
+  env: "PORT",
+});
 await frontend.withEnvironment("VITE_BACKEND_URL", backend.getEndpoint("http"));
+await frontend.withEnvironment("VITE_GOOGLE_CLIENT_ID", googleClientId);
 await frontend.withExternalHttpEndpoints();
 await frontend.waitFor(backend);
 

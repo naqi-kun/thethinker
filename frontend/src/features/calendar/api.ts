@@ -23,6 +23,14 @@ export async function removeCalendar(id: string): Promise<void> {
   });
 }
 
+// Re-fetches a calendar's events from its source (Google API or ICS feed).
+export async function syncCalendar(id: string): Promise<Calendar> {
+  const { data } = await apiClient.POST('/calendars/{id}/sync', {
+    params: { path: { id } },
+  });
+  return data!;
+}
+
 export async function getTodayEvents(): Promise<CalendarEvent[]> {
   const { data } = await apiClient.GET('/calendars/events');
   return data ?? [];

@@ -167,6 +167,36 @@ func (h *CalendarHandler) TodayEvents(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// Sync re-fetches a calendar's events from its source (Google API or ICS feed).
+func (h *CalendarHandler) Sync(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	id := r.PathValue("id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "calendar id is required")
+		return
+	}
+
+	cal, err := h.svc.SyncCalendar(r.Context(), userID, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, calendar.ErrCalendarNotFound):
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "calendar not found")
+		case errors.Is(err, calendar.ErrFetchFailed):
+			writeError(w, http.StatusBadGateway, "SYNC_FAILED", "could not fetch calendar events")
+		default:
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to sync calendar")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, toCalendarResponse(cal))
+}
+
 // IgnoreEvent hides an event from the home screen and recommendations.
 func (h *CalendarHandler) IgnoreEvent(w http.ResponseWriter, r *http.Request) {
 	h.setIgnored(w, r, true)

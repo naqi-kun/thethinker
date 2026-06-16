@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, Check, ExternalLink, Link2, Plus, Trash2 } from 'lucide-react';
+import {
+  Calendar,
+  Check,
+  ExternalLink,
+  Link2,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 import type { Calendar as CalendarType } from '../../../shared/api/types';
-import { addCalendar, listCalendars, removeCalendar } from '../api';
+import { addCalendar, listCalendars, removeCalendar, syncCalendar } from '../api';
 import { ease, staggerContainer, fadeUpItem } from '../../../shared/motion';
 
 type Provider = {
@@ -54,6 +62,7 @@ export default function CalendarPage() {
   const [icsUrl, setIcsUrl] = useState('');
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The most recently added calendar — gets a one-shot highlight on entry.
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
@@ -68,6 +77,11 @@ export default function CalendarPage() {
       .then(setCalendars)
       .catch(() => setError('Failed to load your calendars.'));
   }, []);
+
+  // Check if a calendar with the provider's name already exists (by name, not source)
+  function hasProviderConnected(providerName: string): boolean {
+    return calendars.some((cal) => cal.name === providerName);
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -108,6 +122,19 @@ export default function CalendarPage() {
     setError(null);
     setProviderUrl('');
     setOpenProvider((prev) => (prev === id ? null : id));
+  }
+
+  async function handleSync(id: string) {
+    setSyncingId(id);
+    setError(null);
+    try {
+      const updated = await syncCalendar(id);
+      setCalendars((prev) => prev.map((c) => (c.id === id ? updated : c)));
+    } catch {
+      setError('Could not re-sync that calendar. Please try again.');
+    } finally {
+      setSyncingId(null);
+    }
   }
 
   async function handleRemove(id: string) {
@@ -218,8 +245,18 @@ export default function CalendarPage() {
                       </p>
                     </div>
                     <button
+                      onClick={() => handleSync(cal.id)}
+                      disabled={syncingId === cal.id || removingId === cal.id}
+                      className="btn-link shrink-0 text-sm font-medium text-muted-foreground hover:text-terracotta disabled:opacity-50"
+                      aria-label={`Re-sync ${cal.name || 'calendar'}`}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 ${syncingId === cal.id ? 'animate-spin' : ''}`}
+                      />
+                    </button>
+                    <button
                       onClick={() => handleRemove(cal.id)}
-                      disabled={removingId === cal.id}
+                      disabled={removingId === cal.id || syncingId === cal.id}
                       className="btn-link shrink-0 text-sm font-medium text-muted-foreground hover:text-destructive disabled:opacity-50"
                       aria-label={`Remove ${cal.name || 'calendar'}`}
                     >
@@ -241,71 +278,73 @@ export default function CalendarPage() {
               More sync options
             </p>
             <div className="mb-8 space-y-3">
-              {providers.map((provider) => {
-                const isOpen = openProvider === provider.id;
-                return (
-                  <div
-                    key={provider.id}
-                    className="rounded-xl border border-border bg-card/60 p-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-terracotta">
-                        <Calendar className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-sans font-semibold text-foreground">
-                          {provider.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {provider.subtitle}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => toggleProvider(provider.id)}
-                        className="btn-primary btn-sm shrink-0"
-                      >
-                        {isOpen ? 'Cancel' : 'Connect'}
-                      </button>
-                    </div>
-
-                    {isOpen && (
-                      <div className="mt-4 border-t border-border pt-4">
-                        <ol className="mb-3 list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
-                          {provider.steps.map((step) => (
-                            <li key={step}>{step}</li>
-                          ))}
-                        </ol>
-                        <a
-                          href={provider.helpUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-terracotta hover:underline"
-                        >
-                          Open {provider.name}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                        <div className="space-y-3">
-                          <input
-                            type="text"
-                            value={providerUrl}
-                            onChange={(e) => setProviderUrl(e.target.value)}
-                            placeholder="Paste your calendar link here"
-                            className="input w-full"
-                          />
-                          <button
-                            onClick={() => handleConnectProvider(provider)}
-                            disabled={connecting || !providerUrl.trim()}
-                            className="btn-primary btn-sm w-full gap-2 disabled:opacity-50"
-                          >
-                            <Plus className="h-4 w-4" />
-                            {connecting ? 'Connecting…' : `Connect ${provider.name}`}
-                          </button>
+              {providers
+                .filter((provider) => !hasProviderConnected(provider.name))
+                .map((provider) => {
+                  const isOpen = openProvider === provider.id;
+                  return (
+                    <div
+                      key={provider.id}
+                      className="rounded-xl border border-border bg-card/60 p-4"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-terracotta">
+                          <Calendar className="h-5 w-5" />
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-sans font-semibold text-foreground">
+                            {provider.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {provider.subtitle}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => toggleProvider(provider.id)}
+                          className="btn-primary btn-sm shrink-0"
+                        >
+                          {isOpen ? 'Cancel' : 'Connect'}
+                        </button>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+
+                      {isOpen && (
+                        <div className="mt-4 border-t border-border pt-4">
+                          <ol className="mb-3 list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                            {provider.steps.map((step) => (
+                              <li key={step}>{step}</li>
+                            ))}
+                          </ol>
+                          <a
+                            href={provider.helpUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-terracotta hover:underline"
+                          >
+                            Open {provider.name}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              value={providerUrl}
+                              onChange={(e) => setProviderUrl(e.target.value)}
+                              placeholder="Paste your calendar link here"
+                              className="input w-full"
+                            />
+                            <button
+                              onClick={() => handleConnectProvider(provider)}
+                              disabled={connecting || !providerUrl.trim()}
+                              className="btn-primary btn-sm w-full gap-2 disabled:opacity-50"
+                            >
+                              <Plus className="h-4 w-4" />
+                              {connecting ? 'Connecting…' : `Connect ${provider.name}`}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </motion.div>
 

@@ -24,9 +24,9 @@ func NewCalendarRepository(db *pgxpool.Pool) *CalendarRepository {
 func (r *CalendarRepository) FindConnection(ctx context.Context, userID string) (*calendar.CalendarConnection, error) {
 	conn := &calendar.CalendarConnection{}
 	err := r.db.QueryRow(ctx,
-		`SELECT user_id, provider, token, expires_at FROM calendar_connections WHERE user_id = $1`,
+		`SELECT user_id, provider, token, refresh_token, expires_at FROM calendar_connections WHERE user_id = $1`,
 		userID,
-	).Scan(&conn.UserID, &conn.Provider, &conn.Token, &conn.ExpiresAt)
+	).Scan(&conn.UserID, &conn.Provider, &conn.Token, &conn.RefreshToken, &conn.ExpiresAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -38,13 +38,14 @@ func (r *CalendarRepository) FindConnection(ctx context.Context, userID string) 
 
 func (r *CalendarRepository) SaveConnection(ctx context.Context, conn *calendar.CalendarConnection) error {
 	_, err := r.db.Exec(ctx,
-		`INSERT INTO calendar_connections (user_id, provider, token, expires_at)
-		 VALUES ($1, $2, $3, $4)
+		`INSERT INTO calendar_connections (user_id, provider, token, refresh_token, expires_at)
+		 VALUES ($1, $2, $3, $4, $5)
 		 ON CONFLICT (user_id) DO UPDATE SET
-		   provider   = EXCLUDED.provider,
-		   token      = EXCLUDED.token,
-		   expires_at = EXCLUDED.expires_at`,
-		conn.UserID, conn.Provider, conn.Token, conn.ExpiresAt,
+		   provider      = EXCLUDED.provider,
+		   token         = EXCLUDED.token,
+		   refresh_token = EXCLUDED.refresh_token,
+		   expires_at    = EXCLUDED.expires_at`,
+		conn.UserID, conn.Provider, conn.Token, conn.RefreshToken, conn.ExpiresAt,
 	)
 	return err
 }

@@ -20,13 +20,23 @@ type Calendar struct {
 	CreatedAt time.Time
 }
 
-// CalendarConnection is the legacy single OAuth connection (provider + token).
-// Retained for the not-yet-implemented /calendar/connect flow.
+// CalendarConnection holds a user's OAuth tokens for a provider (one per user).
+// Used by the Google integration (KAN-97) to refresh access without re-consent.
 type CalendarConnection struct {
-	UserID    string
-	Provider  string // "google" | "apple"
-	Token     string // OAuth access token
-	ExpiresAt time.Time
+	UserID       string
+	Provider     string // SourceGoogle | SourceApple
+	Token        string // OAuth access token
+	RefreshToken string // OAuth refresh token; used to mint new access tokens
+	ExpiresAt    time.Time
+}
+
+// GoogleToken is the set of OAuth tokens needed to call the Google Calendar API.
+// It crosses the domain↔infrastructure boundary: infrastructure mints/refreshes
+// it, the service stores it.
+type GoogleToken struct {
+	AccessToken  string
+	RefreshToken string
+	Expiry       time.Time
 }
 
 type Event struct {

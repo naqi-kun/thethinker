@@ -20,6 +20,7 @@ import (
 	aiinfra "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/ai"
 	calendarext "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
+	googleext "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/google"
 	weatherinfra "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/weather"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/memory"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
@@ -48,6 +49,13 @@ func main() {
 	aiServiceURL := requireEnv("AI_SERVICE_URL")
 	gcsBucket := getEnvOrDefault("GCS_BUCKET", "wardrobe-images")
 	weatherAPIKey := os.Getenv("WEATHER_API_KEY") // optional; without it weather is served from cache only, else omitted
+	// Google OAuth (KAN-97). Optional: when unset, /auth/google returns 401 at
+	// call time, but the server still starts so other devs/CI are unaffected.
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	if googleClientID == "" || googleClientSecret == "" {
+		log.Print("WARNING: GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET unset — Google sign-in disabled")
+	}
 
 	if err := postgres.RunMigrations(databaseURL); err != nil {
 		log.Fatalf("migrations: %v", err)
@@ -85,7 +93,8 @@ func main() {
 	userSvc := user.NewService(userRepo, jwtSecret)
 	classifierClient := classifier.NewClient(aiServiceURL)
 	wardrobeSvc := wardrobe.NewService(wardrobeRepo, classifierClient, imageStore, classifierClient)
-	calendarSvc := calendar.NewService(calendarRepo, calendarext.NewICSFetcher())
+	googleClient := googleext.NewClient(googleClientID, googleClientSecret)
+	calendarSvc := calendar.NewService(calendarRepo, calendarext.NewICSFetcher(), googleClient)
 	workScheduleSvc := workschedule.NewService(workScheduleRepo)
 	var weatherClient weather.Client
 	if weatherAPIKey != "" {
@@ -99,6 +108,7 @@ func main() {
 
 	// handlers
 	userHandler := handlers.NewUserHandler(userSvc)
+	googleAuthHandler := handlers.NewGoogleAuthHandler(googleClient, userSvc, calendarSvc)
 	wardrobeHandler := handlers.NewWardrobeHandler(wardrobeSvc)
 	calendarHandler := handlers.NewCalendarHandler(calendarSvc)
 	workScheduleHandler := handlers.NewWorkScheduleHandler(workScheduleSvc)
@@ -114,6 +124,7 @@ func main() {
 	// auth — public
 	mux.HandleFunc("POST /auth/register", userHandler.Register)
 	mux.HandleFunc("POST /auth/login", userHandler.Login)
+	mux.HandleFunc("POST /auth/google", googleAuthHandler.Authenticate)
 
 	// user — protected
 	mux.Handle("GET /users/me", auth(http.HandlerFunc(userHandler.GetMe)))
@@ -137,6 +148,7 @@ func main() {
 	mux.Handle("GET /calendars", auth(http.HandlerFunc(calendarHandler.ListCalendars)))
 	mux.Handle("POST /calendars", auth(http.HandlerFunc(calendarHandler.AddCalendar)))
 	mux.Handle("DELETE /calendars/{id}", auth(http.HandlerFunc(calendarHandler.RemoveCalendar)))
+	mux.Handle("POST /calendars/{id}/sync", auth(http.HandlerFunc(calendarHandler.Sync)))
 	mux.Handle("GET /calendars/events", auth(http.HandlerFunc(calendarHandler.TodayEvents)))
 	mux.Handle("POST /calendars/events/{id}/ignore", auth(http.HandlerFunc(calendarHandler.IgnoreEvent)))
 	mux.Handle("DELETE /calendars/events/{id}/ignore", auth(http.HandlerFunc(calendarHandler.UnignoreEvent)))

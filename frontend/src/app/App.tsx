@@ -1,6 +1,11 @@
 import { Routes, Route } from 'react-router-dom';
 import { LandingPage } from '../features/landing';
-import { LoginPage, RegisterPage, ProtectedRoute } from '../features/auth';
+import {
+  LoginPage,
+  RegisterPage,
+  GoogleCallbackPage,
+  ProtectedRoute,
+} from '../features/auth';
 import { OnboardingPage } from '../features/onboarding';
 import { WardrobePage, AddItemPage, BulkAddPage } from '../features/wardrobe';
 import ReviewItemPage from '../features/wardrobe/components/ReviewItemPage';
@@ -16,6 +21,7 @@ export function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
       <Route
         path="/onboarding"
         element={

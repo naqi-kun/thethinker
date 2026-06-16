@@ -36,6 +36,7 @@ type authRequest struct {
 type authResponse struct {
 	Token  string `json:"token"`
 	UserID string `json:"user_id"`
+	IsNew  bool   `json:"is_new,omitempty"`
 }
 
 type preferencesRequest struct {
