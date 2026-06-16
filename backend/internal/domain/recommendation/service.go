@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"sort"
+	"strings"
 	"time"
 
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/calendar"
@@ -16,7 +17,7 @@ import (
 
 // AIRecommender is implemented by the infrastructure AI client.
 type AIRecommender interface {
-	StartSession(ctx context.Context, items []*wardrobe.ClothingItem) (sessionID string, rec AIRec, err error)
+	StartSession(ctx context.Context, items []*wardrobe.ClothingItem, brief RecBrief) (sessionID string, rec AIRec, err error)
 	Regenerate(ctx context.Context, sessionID string) (AIRec, error)
 	Accept(ctx context.Context, sessionID string) error
 }
@@ -62,7 +63,7 @@ func NewService(
 // regenerate (the AI will avoid the previously rejected combination).
 // If the user has disabled AI (use_ai=false) or the AI service is unavailable,
 // a rule-based fallback is used instead.
-func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, sessionID string) (*OutfitRecommendation, error) {
+func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, sessionID, occasionParam, eventID string) (*OutfitRecommendation, error) {
 	items, err := s.wardrobeRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -86,8 +87,10 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 	// Best-effort prefs + weather lookup — neither blocks the recommendation.
 	var conditions *weather.Conditions
 	useAI := true
+	var aesthetic string
 	if prefs, err := s.userPrefsRepo.FindPreferences(ctx, userID); err == nil && prefs != nil {
 		useAI = prefs.UseAI
+		aesthetic = readAesthetic(prefs)
 		if loc := prefs.Answers["location"]; loc != "" {
 			if cond, err := s.weatherSvc.GetConditions(ctx, loc); err == nil {
 				conditions = cond
@@ -95,12 +98,17 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		}
 	}
 
+	// Resolve the occasion to dress for: an explicitly chosen event or occasion,
+	// else the day's most-formal calendar event, else everyday wear.
+	occasion, occasionLabel := s.resolveOccasion(ctx, userID, date, eventID, occasionParam)
+	brief := RecBrief{Occasion: occasion, EventName: occasionLabel, Aesthetic: aesthetic}
+
 	var selected []*wardrobe.ClothingItem
 	recommender := RecommenderRuleBased
 	if useAI {
 		var rec AIRec
 		if sessionID == "" {
-			sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
+			sessionID, rec, err = s.aiRecommender.StartSession(ctx, items, brief)
 		} else {
 			rec, err = s.aiRecommender.Regenerate(ctx, sessionID)
 			if err != nil && sessionRecoverable(err) {
@@ -109,7 +117,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 				// session; if that also fails we fall through to the rule-based
 				// fallback below rather than surfacing an error to the client.
 				log.Printf("recommendation: regenerate failed for user %s (%v); starting a fresh AI session", userID, err)
-				sessionID, rec, err = s.aiRecommender.StartSession(ctx, items)
+				sessionID, rec, err = s.aiRecommender.StartSession(ctx, items, brief)
 			}
 		}
 		if err == nil {
@@ -132,11 +140,102 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		UserID:      userID,
 		Date:        date,
 		Items:       selected,
-		Occasion:    "casual",
+		Occasion:    occasionLabel,
 		Weather:     conditions,
 		Recommender: recommender,
 		CreatedAt:   time.Now(),
 	}, nil
+}
+
+// ── occasion + aesthetic resolution ─────────────────────────────────────────────
+
+// readAesthetic pulls the user's chosen aesthetic/vibe out of saved preferences.
+// The current onboarding stores it under "aesthetic"; older data (and the legacy
+// multi-select inspiration step) used "inspiration" as a comma-joined list, so we
+// fall back to the first entry there.
+func readAesthetic(prefs *user.Preferences) string {
+	if a := strings.TrimSpace(prefs.Answers["aesthetic"]); a != "" {
+		return a
+	}
+	if insp := prefs.Answers["inspiration"]; insp != "" {
+		if first := strings.TrimSpace(strings.Split(insp, ",")[0]); first != "" {
+			return first
+		}
+	}
+	return ""
+}
+
+// eventOccasion maps a calendar Event.Type onto a wardrobe occasion category.
+func eventOccasion(eventType string) string {
+	switch eventType {
+	case "meeting":
+		return "formal"
+	case "sport":
+		return "sport"
+	default:
+		return "casual"
+	}
+}
+
+// occasionFormality ranks occasions so the default can pick the most-formal event
+// of the day — the user is never left underdressed.
+func occasionFormality(occasion string) int {
+	switch occasion {
+	case "formal":
+		return 3
+	case "casual":
+		return 2
+	case "sport":
+		return 1
+	default:
+		return 0
+	}
+}
+
+// resolveOccasion decides what occasion to dress for and a human-readable label
+// for it. Precedence: an explicitly chosen event_id, then an explicit occasion
+// override, then the day's most-formal calendar event, then everyday wear.
+// The calendar lookup is best-effort — a failure degrades to everyday wear.
+func (s *Service) resolveOccasion(ctx context.Context, userID string, date time.Time, eventID, occasionParam string) (occasion, label string) {
+	events, _ := s.calendarRepo.FindEventsByDate(ctx, userID, date)
+
+	// 1. A specific event the user chose to dress for.
+	if eventID != "" {
+		for _, ev := range events {
+			if ev.ID == eventID {
+				return eventOccasion(ev.Type), ev.Title
+			}
+		}
+	}
+
+	// 2. An explicit occasion override (the "Everyday"/manual path).
+	if occasionParam != "" {
+		return occasionParam, titleCase(occasionParam)
+	}
+
+	// 3. Default: dress for the most-formal (non-ignored) event of the day.
+	var best *calendar.Event
+	for _, ev := range events {
+		if ev.Ignored {
+			continue
+		}
+		if best == nil || occasionFormality(eventOccasion(ev.Type)) > occasionFormality(eventOccasion(best.Type)) {
+			best = ev
+		}
+	}
+	if best != nil {
+		return eventOccasion(best.Type), best.Title
+	}
+
+	// 4. Nothing on the calendar — everyday wear.
+	return "everyday", "Everyday"
+}
+
+func titleCase(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 // AcceptSession signals to the AI service that the user accepted the current
