@@ -48,6 +48,10 @@ dist/
 .aspire/
 aspire-output/
 
+# Secrets / credentials — never commit
+gcs-key.json
+*-key.json
+
 # Playwright
 /test-results/
 /playwright-report/
