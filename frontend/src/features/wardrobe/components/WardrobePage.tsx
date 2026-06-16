@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import Select from '../../../shared/components/Select';
+import ItemThumbnail from '../../../shared/components/ItemThumbnail';
 import Skeleton from '../../../shared/components/Skeleton';
 import { staggerContainer, fadeUpItem } from '../../../shared/motion';
 import {
@@ -130,6 +131,9 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// Used by the item-detail modal's no-image fallback. The wardrobe card renders
+// its fallback through <ItemThumbnail>, which keeps its own copy of this logic;
+// the modal stays on EyedropperImage (colour sampling) so it keeps these here.
 function categoryIcon(category: WardrobeCategory) {
   switch (category) {
     case 'Tops':
@@ -471,11 +475,9 @@ function ItemCard({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
   const tags = [item.category, item.fit].filter(Boolean) as string[];
 
@@ -527,32 +529,9 @@ function ItemCard({
       className="card-interactive flex flex-col overflow-hidden cursor-pointer"
       onClick={() => onCardClick(item)}
     >
-      {/* pt-12 keeps the contained image clear of the top controls (delete +
-          status). min-h-0 stops a tall portrait image from overriding
-          aspect-square (flex items default to min-height:auto), which would
-          otherwise make the box taller for some photos and misalign card
-          bodies across the grid. */}
-      <div className="relative flex aspect-square min-h-0 items-center justify-center bg-linen/60 pt-12">
-        {item.image_url && !imgError ? (
-          <img
-            src={item.image_url}
-            alt={displayName}
-            className="h-full w-full object-contain"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 text-muted-foreground">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-              {categoryIcon(category)}
-            </div>
-            <div
-              className="h-4 w-4 rounded-full border border-border"
-              style={{ backgroundColor: colorSwatch(item.color) }}
-              title={item.color}
-            />
-          </div>
-        )}
-
+      {/* topInset reserves pt-12 so the contained image clears the top controls
+          (delete + status). */}
+      <ItemThumbnail item={item} alt={displayName} topInset>
         {/* Delete confirmation overlay */}
         {confirming && (
           <div
@@ -631,7 +610,7 @@ function ItemCard({
           className="hidden"
           onChange={handleFileChange}
         />
-      </div>
+      </ItemThumbnail>
 
       <div className="flex flex-col gap-1.5 p-3">
         <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
