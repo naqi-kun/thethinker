@@ -978,6 +978,10 @@ components:
           type: string
           enum: [ai, rule_based]
           description: Which recommender produced this outfit — "ai" (LangGraph stylist) or "rule_based" (season-aware fallback).
+        reasoning:
+          type: string
+          description: One-sentence AI styling rationale for why this outfit was chosen. Present only for "ai" recommendations; omitted for the rule-based fallback.
+          example: The neutral navy top balances the slim beige chinos for a relaxed smart-casual look.
         occasion:
           type: string
           example: business meeting

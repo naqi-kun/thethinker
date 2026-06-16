@@ -436,6 +436,28 @@ export default function OutfitPage() {
               </motion.div>
             </div>
 
+            {/* "Why this look" — the AI's one-sentence rationale (KAN-101).
+                Lands with the other context after the garments settle. Absent
+                for the rule-based fallback, so the card simply doesn't render. */}
+            {recommendation.reasoning && (
+              <motion.div
+                className="mt-3 flex shrink-0 items-start gap-2 rounded-xl border border-border bg-card/60 px-3 py-2.5"
+                initial={ceremony ? { opacity: 0, y: 8 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease, delay: whyDelay }}
+              >
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-terracotta" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Why this look
+                  </p>
+                  <p className="mt-0.5 text-sm leading-snug text-foreground">
+                    {recommendation.reasoning}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
             {/* Hashtags + shuffle on one compact row. Hashtags land after the
                 garments settle during the reveal ceremony. */}
             <div className="mt-3 flex shrink-0 items-center justify-between gap-3">

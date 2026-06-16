@@ -96,6 +96,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 	}
 
 	var selected []*wardrobe.ClothingItem
+	var reasoning string
 	recommender := RecommenderRuleBased
 	if useAI {
 		var rec AIRec
@@ -114,6 +115,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		}
 		if err == nil {
 			selected = pickItemsByID(items, rec)
+			reasoning = rec.Reasoning
 			recommender = RecommenderAI
 		} else {
 			log.Printf("recommendation: AI unavailable for user %s, falling back to rule-based: %v", userID, err)
@@ -135,6 +137,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		Occasion:    "casual",
 		Weather:     conditions,
 		Recommender: recommender,
+		Reasoning:   reasoning,
 		CreatedAt:   time.Now(),
 	}, nil
 }

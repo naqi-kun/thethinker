@@ -86,9 +86,10 @@ func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.Cl
 	}
 
 	return resp.SessionID, recommendation.AIRec{
-		TopID:    resp.Recommendation.TopID,
-		BottomID: resp.Recommendation.BottomID,
-		ShoesID:  resp.Recommendation.ShoesID,
+		TopID:     resp.Recommendation.TopID,
+		BottomID:  resp.Recommendation.BottomID,
+		ShoesID:   resp.Recommendation.ShoesID,
+		Reasoning: resp.Recommendation.Reasoning,
 	}, nil
 }
 
@@ -101,9 +102,10 @@ func (c *RecommendClient) Regenerate(ctx context.Context, sessionID string) (rec
 		return recommendation.AIRec{}, fmt.Errorf("ai: regenerate returned no recommendation")
 	}
 	return recommendation.AIRec{
-		TopID:    resp.Recommendation.TopID,
-		BottomID: resp.Recommendation.BottomID,
-		ShoesID:  resp.Recommendation.ShoesID,
+		TopID:     resp.Recommendation.TopID,
+		BottomID:  resp.Recommendation.BottomID,
+		ShoesID:   resp.Recommendation.ShoesID,
+		Reasoning: resp.Recommendation.Reasoning,
 	}, nil
 }
 

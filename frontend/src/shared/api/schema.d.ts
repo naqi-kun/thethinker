@@ -1255,6 +1255,11 @@ export interface components {
              * @enum {string}
              */
             recommender: "ai" | "rule_based";
+            /**
+             * @description One-sentence AI styling rationale for why this outfit was chosen. Present only for "ai" recommendations; omitted for the rule-based fallback.
+             * @example The neutral navy top balances the slim beige chinos for a relaxed smart-casual look.
+             */
+            reasoning?: string;
             /** @example business meeting */
             occasion?: string;
             weather?: components["schemas"]["WeatherSnapshot"];
