@@ -29,12 +29,12 @@ func NewClient(baseURL string) *Client {
 }
 
 type classifyResponse struct {
-	Category        string  `json:"category"`
-	SubType         string  `json:"sub_type"`
-	Color           string  `json:"color"`
-	Fit             string  `json:"fit"`
-	Season          string  `json:"season"`
-	ConfidenceScore float64 `json:"confidence_score,omitempty"`
+	Category        string   `json:"category"`
+	SubType         string   `json:"sub_type"`
+	Color           string   `json:"color"`
+	Fit             string   `json:"fit"`
+	Season          string   `json:"season"`
+	ConfidenceScore *float64 `json:"confidence_score"`
 }
 
 func (c *Client) Classify(ctx context.Context, imageBytes []byte, contentType string) (*wardrobe.ClassifyResult, error) {
@@ -77,9 +77,12 @@ func (c *Client) Classify(ctx context.Context, imageBytes []byte, contentType st
 		return nil, fmt.Errorf("classifier: decode: %w", err)
 	}
 
-	score := result.ConfidenceScore
-	if score == 0 {
-		score = 0.85
+	// Use the model's real confidence. Only fall back when the field is
+	// genuinely absent — a returned 0.0 is a valid (very low) confidence and
+	// must not be overwritten, or ambiguous scans would look highly confident.
+	score := 0.85
+	if result.ConfidenceScore != nil {
+		score = *result.ConfidenceScore
 	}
 
 	return &wardrobe.ClassifyResult{
