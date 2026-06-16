@@ -102,8 +102,11 @@ backend-build:
 # traffic to a new deploy until it passes its healthcheck; a broken build leaves
 # the previous healthy deploy serving instead of crashing the service.
 #
-# --detach is intentionally omitted so a failed build/deploy fails the pipeline
-# (visible red) instead of passing silently.
+# `railway up` deploys the CURRENT directory, so we cd into each service (where
+# its railway.json lives) and run it there. Passing the dir as a positional PATH
+# (`railway up backend`) trips the CLI's "prefix not found" indexing bug, which
+# is what failed the first deploy. --ci streams build logs then exits with the
+# build's status, so a failed build fails the pipeline (red) instead of hanging.
 deploy-railway:
   stage: deploy
   image: node:22
@@ -111,9 +114,9 @@ deploy-railway:
     # Pin the CLI so an upstream release can't change deploy behavior unannounced.
     - npm install -g @railway/cli@5.12.1
   script:
-    - railway up backend  --service backend
-    - railway up ai       --service ai
-    - railway up frontend --service frontend
+    - (cd backend  && railway up --service backend  --ci)
+    - (cd ai       && railway up --service ai       --ci)
+    - (cd frontend && railway up --service frontend --ci)
   only:
     - main
   variables:
