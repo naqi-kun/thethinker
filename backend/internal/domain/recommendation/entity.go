@@ -33,10 +33,11 @@ type AIRec struct {
 }
 
 // RecBrief carries the situational signals the stylist should dress for, beyond
-// the wardrobe itself. All fields are optional — an empty field means "no
+// the wardrobe itself. All fields are optional — an empty/nil field means "no
 // constraint" and the stylist falls back to general styling.
 type RecBrief struct {
-	Occasion  string // wardrobe occasion category: "casual" | "formal" | "sport" | "everyday"
-	EventName string // human label of the chosen calendar event, for prompt context
-	Aesthetic string // the user's chosen aesthetic/vibe, e.g. "minimalist"
+	Occasion  string              // wardrobe occasion category: "casual" | "formal" | "sport" | "everyday"
+	EventName string              // human label of the chosen calendar event, for prompt context
+	Aesthetic string              // the user's chosen aesthetic/vibe, e.g. "minimalist"
+	Weather   *weather.Conditions // current conditions to dress for; nil when location/weather is unknown
 }

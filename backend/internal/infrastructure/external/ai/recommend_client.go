@@ -51,6 +51,10 @@ type startRequest struct {
 	Occasion      string                `json:"occasion,omitempty"`
 	EventName     string                `json:"event_name,omitempty"`
 	Aesthetic     string                `json:"aesthetic,omitempty"`
+	// Weather is sent as pointers so 0°C is distinguishable from "no reading".
+	TemperatureC *float64 `json:"temperature_c,omitempty"`
+	FeelsLikeC   *float64 `json:"feels_like_c,omitempty"`
+	Weather      string   `json:"weather,omitempty"` // conditions description, e.g. "light rain"
 }
 
 type startResponse struct {
@@ -89,6 +93,13 @@ func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.Cl
 		Occasion:      brief.Occasion,
 		EventName:     brief.EventName,
 		Aesthetic:     brief.Aesthetic,
+	}
+	if brief.Weather != nil {
+		temp := brief.Weather.Temperature
+		feels := brief.Weather.FeelsLike
+		req.TemperatureC = &temp
+		req.FeelsLikeC = &feels
+		req.Weather = brief.Weather.Description
 	}
 	if err := c.post(ctx, "/recommend/start", req, &resp); err != nil {
 		return "", recommendation.AIRec{}, err

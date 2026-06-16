@@ -101,7 +101,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 	// Resolve the occasion to dress for: an explicitly chosen event or occasion,
 	// else the day's most-formal calendar event, else everyday wear.
 	occasion, occasionLabel := s.resolveOccasion(ctx, userID, date, eventID, occasionParam)
-	brief := RecBrief{Occasion: occasion, EventName: occasionLabel, Aesthetic: aesthetic}
+	brief := RecBrief{Occasion: occasion, EventName: occasionLabel, Aesthetic: aesthetic, Weather: conditions}
 
 	var selected []*wardrobe.ClothingItem
 	recommender := RecommenderRuleBased

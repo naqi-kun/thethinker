@@ -36,6 +36,9 @@ class StartRequest(BaseModel):
     occasion: str | None = None       # wardrobe occasion category to dress for
     event_name: str | None = None     # human label of the chosen calendar event
     aesthetic: str | None = None      # the user's chosen aesthetic/vibe
+    temperature_c: float | None = None  # current temperature in °C
+    feels_like_c: float | None = None   # "feels like" temperature in °C
+    weather: str | None = None          # conditions description, e.g. "light rain"
 
 
 class StartResponse(BaseModel):
@@ -67,6 +70,9 @@ class RecommendationState(TypedDict):
     occasion: str | None
     event_name: str | None
     aesthetic: str | None
+    temperature_c: float | None
+    feels_like_c: float | None
+    weather: str | None
 
 
 # ── Claude client ──────────────────────────────────────────────────────────────
@@ -114,7 +120,8 @@ def filter_closet(state: RecommendationState) -> dict:
 def _build_prompt(state: RecommendationState) -> str:
     def fmt(items: list[dict]) -> str:
         return "\n".join(
-            f"  id={i['id']}  color={i['color']}  fit={i.get('fit', 'regular')}  type={i['sub_type']}"
+            f"  id={i['id']}  color={i['color']}  fit={i.get('fit', 'regular')}"
+            f"  type={i['sub_type']}  season={i.get('season', 'all')}"
             for i in items
         )
 
@@ -124,6 +131,20 @@ def _build_prompt(state: RecommendationState) -> str:
         brief_lines.append(
             f"- Aesthetic / vibe: {aesthetic}. Let this steer the overall look — "
             "favor items and combinations that read as this style."
+        )
+    temp = state.get("temperature_c")
+    if temp is not None:
+        feels = state.get("feels_like_c")
+        weather_desc = (state.get("weather") or "").strip()
+        reading = f"{temp:.0f}°C"
+        if feels is not None and abs(feels - temp) >= 3:
+            reading += f" (feels like {feels:.0f}°C)"
+        if weather_desc:
+            reading += f", {weather_desc}"
+        brief_lines.append(
+            f"- Weather: {reading}. Dress for it — prefer warm layers and closed shoes "
+            "when it's cold or wet, and light, breathable pieces when it's hot. Use each "
+            "item's season tag as a guide."
         )
     occasion = (state.get("occasion") or "").strip()
     event_name = (state.get("event_name") or "").strip()
@@ -258,6 +279,9 @@ async def recommend_start(body: StartRequest) -> StartResponse:
         "occasion": body.occasion,
         "event_name": body.event_name,
         "aesthetic": body.aesthetic,
+        "temperature_c": body.temperature_c,
+        "feels_like_c": body.feels_like_c,
+        "weather": body.weather,
     }
 
     try:
