@@ -33,6 +33,9 @@ class Recommendation(BaseModel):
 class StartRequest(BaseModel):
     session_id: str | None = None
     wardrobe_items: list[WardrobeItem]
+    occasion: str | None = None       # wardrobe occasion category to dress for
+    event_name: str | None = None     # human label of the chosen calendar event
+    aesthetic: str | None = None      # the user's chosen aesthetic/vibe
 
 
 class StartResponse(BaseModel):
@@ -61,6 +64,9 @@ class RecommendationState(TypedDict):
     current_recommendation: dict | None
     disliked_combinations: list[dict]
     user_action: str | None
+    occasion: str | None
+    event_name: str | None
+    aesthetic: str | None
 
 
 # ── Claude client ──────────────────────────────────────────────────────────────
@@ -112,6 +118,26 @@ def _build_prompt(state: RecommendationState) -> str:
             for i in items
         )
 
+    brief_lines = []
+    aesthetic = (state.get("aesthetic") or "").strip()
+    if aesthetic:
+        brief_lines.append(
+            f"- Aesthetic / vibe: {aesthetic}. Let this steer the overall look — "
+            "favor items and combinations that read as this style."
+        )
+    occasion = (state.get("occasion") or "").strip()
+    event_name = (state.get("event_name") or "").strip()
+    if occasion and occasion != "everyday":
+        if event_name:
+            brief_lines.append(f"- Dress for: {event_name} — a {occasion} occasion. Match this formality.")
+        else:
+            brief_lines.append(f"- Dress for a {occasion} occasion. Match this formality.")
+    elif occasion == "everyday":
+        brief_lines.append("- Everyday wear — comfortable, no specific event to match.")
+    brief_section = ""
+    if brief_lines:
+        brief_section = "STYLING BRIEF (prioritize this):\n" + "\n".join(brief_lines) + "\n\n"
+
     blocklist = state.get("disliked_combinations") or []
     blocklist_section = ""
     if blocklist:
@@ -129,6 +155,7 @@ def _build_prompt(state: RecommendationState) -> str:
 
     return (
         "You are a personal stylist. Select one complete outfit from the wardrobe below.\n\n"
+        f"{brief_section}"
         "STYLING RULES:\n"
         "1. Avoid clashing colors (e.g. bright red top + bright green bottom).\n"
         "2. Match formality: casual tops with casual bottoms; formal with formal.\n"
@@ -228,6 +255,9 @@ async def recommend_start(body: StartRequest) -> StartResponse:
         "current_recommendation": None,
         "disliked_combinations": [],
         "user_action": None,
+        "occasion": body.occasion,
+        "event_name": body.event_name,
+        "aesthetic": body.aesthetic,
     }
 
     try:

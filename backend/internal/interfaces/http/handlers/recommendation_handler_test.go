@@ -19,7 +19,7 @@ type mockRecommendationSvc struct {
 	acceptErr error
 }
 
-func (m *mockRecommendationSvc) GetOutfit(_ context.Context, _ string, _ time.Time, _ string) (*recommendation.OutfitRecommendation, error) {
+func (m *mockRecommendationSvc) GetOutfit(_ context.Context, _ string, _ time.Time, _, _, _ string) (*recommendation.OutfitRecommendation, error) {
 	return m.outfit, m.err
 }
 
