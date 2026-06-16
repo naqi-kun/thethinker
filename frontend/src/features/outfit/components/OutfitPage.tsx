@@ -205,6 +205,9 @@ export default function OutfitPage() {
       if (!recommendation || !swappingItem) return;
       setRecommendation({
         ...recommendation,
+        // The user hand-picked this piece, so the AI's "why this look" rationale
+        // no longer describes the outfit on screen — drop it (KAN-101).
+        reasoning: undefined,
         items: recommendation.items.map((i) =>
           i.id === swappingItem.id ? replacement : i,
         ),
