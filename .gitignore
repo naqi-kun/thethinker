@@ -20,6 +20,10 @@ frontend/playwright-report
 frontend/blob-report
 frontend/playwright/.cache
 
+# Python (ai service)
+__pycache__/
+*.pyc
+
 # Go build output
 server
 backend/server
