@@ -23,6 +23,7 @@ vi.mock('../../calendar/api', () => ({
 }));
 
 import OutfitPage from './OutfitPage';
+import { markRevealedToday } from '../revealStore';
 
 function makeRec(sessionId: string, occasion: string): OutfitRecommendation {
   return {
@@ -46,9 +47,14 @@ beforeEach(() => {
   mocks.acceptOutfit.mockReset();
   mocks.getTodayEvents.mockReset();
   mocks.getTodayEvents.mockResolvedValue([]);
+  localStorage.clear();
 });
 
 describe('OutfitPage outfit loading (KAN-90)', () => {
+  // These exercise request behaviour, not the reveal ceremony — start past the
+  // seal so the flat-lay renders immediately.
+  beforeEach(() => markRevealedToday());
+
   it('issues exactly one outfit request on initial load under StrictMode', async () => {
     // Before the fix, StrictMode's double-invoked mount effect started two
     // independent AI sessions and the page swapped to the second result ~2s
@@ -82,11 +88,11 @@ describe('OutfitPage outfit loading (KAN-90)', () => {
 
     expect(await screen.findByText('#Work')).toBeTruthy();
 
-    await userEvent.click(screen.getByRole('button', { name: /refresh/i }));
+    await userEvent.click(screen.getByRole('button', { name: /shuffle/i }));
 
     expect(await screen.findByText('#Gym')).toBeTruthy();
     expect(mocks.getOutfit).toHaveBeenCalledTimes(2);
-    // Refresh reuses the current session rather than starting a new one.
+    // Shuffle reuses the current session rather than starting a new one.
     expect(mocks.getOutfit).toHaveBeenNthCalledWith(2, 'a');
   });
 
@@ -100,5 +106,40 @@ describe('OutfitPage outfit loading (KAN-90)', () => {
     );
 
     expect(await screen.findByText(/your wardrobe is empty/i)).toBeTruthy();
+  });
+});
+
+describe('OutfitPage daily reveal ceremony (KAN-100)', () => {
+  it('seals the outfit on the first open of the day until Reveal is tapped', async () => {
+    mocks.getOutfit.mockResolvedValue(makeRec('a', 'Work'));
+
+    render(
+      <MemoryRouter>
+        <OutfitPage />
+      </MemoryRouter>,
+    );
+
+    // Sealed wrapper is shown; the flat-lay / hashtags stay hidden.
+    const reveal = await screen.findByRole('button', { name: /reveal/i });
+    expect(screen.queryByText('#Work')).toBeNull();
+
+    await userEvent.click(reveal);
+
+    // Bloom resolves and the flat-lay takes over.
+    expect(await screen.findByText('#Work')).toBeTruthy();
+  });
+
+  it('skips the seal when the outfit was already revealed earlier today', async () => {
+    markRevealedToday();
+    mocks.getOutfit.mockResolvedValue(makeRec('a', 'Work'));
+
+    render(
+      <MemoryRouter>
+        <OutfitPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('#Work')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /reveal/i })).toBeNull();
   });
 });
