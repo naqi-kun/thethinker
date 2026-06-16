@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Download, Trash2, AlertTriangle, Plus, X } from 'lucide-react';
+import { LogOut, Download, Trash2, AlertTriangle, Plus, X, Pencil } from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import { token } from '../../../shared/api/token';
 import {
@@ -8,6 +8,7 @@ import {
   getProfile,
   getWorkSchedule,
   updatePreferences,
+  updateProfile,
   updateWorkSchedule,
 } from '../api';
 
@@ -108,6 +109,14 @@ function Row({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Vertical variant of Row — label stacked above its control. Shares Row's
+// padding and divider semantics so every row in a Section lines up identically.
+function StackedRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-b border-border px-4 py-3.5 last:border-b-0">{children}</div>
+  );
+}
+
 function RowLabel({
   label,
   description,
@@ -138,6 +147,10 @@ export default function SettingsPage() {
 
   // Account — fetched from the authenticated user's profile
   const [name, setName] = useState('');
+  const [savedName, setSavedName] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [savingName, setSavingName] = useState(false);
+  const [nameStatus, setNameStatus] = useState<string | null>(null);
   const [email, setEmail] = useState('');
 
   // Preferences
@@ -162,12 +175,46 @@ export default function SettingsPage() {
     getProfile()
       .then((p) => {
         setEmail(p.email);
-        setName(displayNameFromEmail(p.email));
+        // Use the stored name; fall back to an email-derived name when unset.
+        const display = p.name?.trim() ? p.name : displayNameFromEmail(p.email);
+        setName(display);
+        setSavedName(display);
       })
       .catch(() => {
         /* best-effort; account fields stay empty */
       });
   }, []);
+
+  function startEditName() {
+    setNameStatus(null);
+    setEditingName(true);
+  }
+
+  function cancelEditName() {
+    setName(savedName);
+    setNameStatus(null);
+    setEditingName(false);
+  }
+
+  async function saveName() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSavingName(true);
+    setNameStatus(null);
+    try {
+      const updated = await updateProfile(trimmed);
+      const display = updated.name?.trim() ? updated.name : trimmed;
+      setName(display);
+      setSavedName(display);
+      setEditingName(false);
+      setNameStatus('Saved!');
+    } catch {
+      setNameStatus('Could not save. Please try again.');
+    } finally {
+      setSavingName(false);
+      setTimeout(() => setNameStatus(null), 3000);
+    }
+  }
 
   useEffect(() => {
     getPreferences()
@@ -282,10 +329,65 @@ export default function SettingsPage() {
 
         {/* ── Account ── */}
         <Section title="Account">
-          <Row>
-            <RowLabel label="Name" />
-            <span className="text-sm text-muted-foreground">{name || '—'}</span>
-          </Row>
+          {editingName ? (
+            <StackedRow>
+              <div className="flex items-center justify-between gap-4">
+                <RowLabel label="Name" htmlFor="name-input" />
+                <input
+                  id="name-input"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveName();
+                    if (e.key === 'Escape') cancelEditName();
+                  }}
+                  placeholder="Your name"
+                  maxLength={100}
+                  autoFocus
+                  className="input w-40 text-sm"
+                />
+              </div>
+              <div className="mt-2.5 flex items-center justify-end gap-3">
+                {nameStatus && (
+                  <span className="text-xs text-muted-foreground">{nameStatus}</span>
+                )}
+                <button
+                  onClick={cancelEditName}
+                  disabled={savingName}
+                  className="btn-secondary btn-sm shrink-0"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveName}
+                  disabled={savingName || !name.trim()}
+                  className="btn-primary btn-sm shrink-0 disabled:opacity-50"
+                >
+                  {savingName ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </StackedRow>
+          ) : (
+            <Row>
+              <RowLabel label="Name" />
+              <div className="flex items-center gap-3">
+                {nameStatus && (
+                  <span className="text-xs text-muted-foreground">{nameStatus}</span>
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {savedName || '—'}
+                </span>
+                <button
+                  onClick={startEditName}
+                  aria-label="Edit name"
+                  className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </Row>
+          )}
           <Row>
             <RowLabel label="Email" />
             <span className="truncate text-sm text-muted-foreground">
@@ -302,7 +404,7 @@ export default function SettingsPage() {
                 token.clear();
                 navigate('/');
               }}
-              className="btn-outline btn-sm shrink-0 gap-1.5 text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+              className="btn-secondary btn-sm shrink-0 gap-1.5 text-destructive border-destructive/50 hover:bg-destructive/10"
             >
               <LogOut className="h-3.5 w-3.5" />
               Sign out
@@ -320,7 +422,7 @@ export default function SettingsPage() {
               onChange={setTempUnit}
             />
           </Row>
-          <div className="border-b border-border px-4 py-3.5 last:border-b-0">
+          <StackedRow>
             <div className="flex items-center justify-between gap-4">
               <RowLabel
                 label="Default location"
@@ -334,7 +436,7 @@ export default function SettingsPage() {
                 onChange={(e) => setLocation(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && saveLocation()}
                 placeholder="e.g. London"
-                className="input w-36 text-sm"
+                className="input w-32 text-sm"
               />
             </div>
             {(location !== savedLocation || locationStatus) && (
@@ -355,8 +457,8 @@ export default function SettingsPage() {
                 )}
               </div>
             )}
-          </div>
-          <div className="border-b border-border px-4 py-3.5 last:border-b-0">
+          </StackedRow>
+          <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">
               Style preference
             </p>
@@ -365,20 +467,20 @@ export default function SettingsPage() {
               value={style}
               onChange={setStyle}
             />
-          </div>
-          <div className="px-4 py-3.5">
+          </StackedRow>
+          <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">Fit preference</p>
             <Segmented<FitPref>
               options={['Slim', 'Regular', 'Relaxed', 'Oversized']}
               value={fit}
               onChange={setFit}
             />
-          </div>
+          </StackedRow>
         </Section>
 
         {/* ── Work schedule (KAN-49) ── */}
         <Section title="Work Schedule">
-          <div className="border-b border-border px-4 py-3.5">
+          <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">Working days</p>
             <div className="flex flex-wrap gap-2">
               {WEEKDAYS.map((label, day) => {
@@ -398,8 +500,10 @@ export default function SettingsPage() {
                 );
               })}
             </div>
-          </div>
-          <Row>
+          </StackedRow>
+          {/* Stacks the time inputs below the label on narrow screens so the
+              native time picker (incl. its clock icon) is never clipped. */}
+          <div className="flex flex-col gap-2.5 border-b border-border px-4 py-3.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <RowLabel
               label="Working time"
               description="Used to recommend work outfits."
@@ -409,7 +513,7 @@ export default function SettingsPage() {
                 type="time"
                 value={workStart}
                 onChange={(e) => setWorkStart(e.target.value)}
-                className="input w-28 text-sm"
+                className="input w-32 text-sm"
                 aria-label="Work start time"
               />
               <span className="text-muted-foreground">–</span>
@@ -417,12 +521,12 @@ export default function SettingsPage() {
                 type="time"
                 value={workEnd}
                 onChange={(e) => setWorkEnd(e.target.value)}
-                className="input w-28 text-sm"
+                className="input w-32 text-sm"
                 aria-label="Work end time"
               />
             </div>
-          </Row>
-          <div className="border-b border-border px-4 py-3.5">
+          </div>
+          <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">Holidays</p>
             {holidays.length > 0 && (
               <ul className="mb-3 space-y-2">
@@ -460,8 +564,8 @@ export default function SettingsPage() {
                 Add
               </button>
             </div>
-          </div>
-          <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+          </StackedRow>
+          <Row>
             {scheduleStatus ? (
               <span className="text-xs text-muted-foreground">{scheduleStatus}</span>
             ) : (
@@ -474,7 +578,7 @@ export default function SettingsPage() {
             >
               {savingSchedule ? 'Saving…' : 'Save schedule'}
             </button>
-          </div>
+          </Row>
         </Section>
 
         {/* ── Recommendation rules ── */}

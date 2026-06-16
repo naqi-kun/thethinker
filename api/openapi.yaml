@@ -78,7 +78,7 @@ paths:
   /users/me:
     get:
       tags: [users]
-      summary: Get the authenticated user's account profile (id, email)
+      summary: Get the authenticated user's account profile (id, email, name)
       responses:
         '200':
           description: The authenticated user's profile
@@ -86,6 +86,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [users]
+      summary: Update the authenticated user's display name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -690,16 +710,28 @@ components:
 
     UserProfile:
       type: object
-      required: [id, email, created_at]
+      required: [id, email, name, created_at]
       properties:
         id:
           type: string
         email:
           type: string
           format: email
+        name:
+          type: string
+          description: User-editable display name. May be empty until the user sets one.
         created_at:
           type: string
           format: date-time
+
+    UpdateProfileRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: New display name for the account.
 
     Preferences:
       type: object
@@ -1036,6 +1068,14 @@ components:
         location:
           type: string
           example: London
+        observed_at:
+          type: string
+          format: date-time
+          description: >-
+            When this reading was actually observed from the weather provider.
+            May be older than the request when a cached last-known-good reading
+            is served after a live lookup fails. Absent for legacy snapshots.
+          example: '2026-06-15T08:30:00Z'
 
     Error:
       type: object

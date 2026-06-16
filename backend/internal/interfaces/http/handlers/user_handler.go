@@ -15,6 +15,7 @@ type userSvc interface {
 	Register(ctx context.Context, email, password string) (*user.AuthResult, error)
 	Login(ctx context.Context, email, password string) (*user.AuthResult, error)
 	GetProfile(ctx context.Context, userID string) (*user.User, error)
+	UpdateProfile(ctx context.Context, userID, name string) (*user.User, error)
 	GetPreferences(ctx context.Context, userID string) (*user.Preferences, error)
 	SavePreferences(ctx context.Context, p *user.Preferences) error
 }
@@ -52,7 +53,12 @@ type preferencesResponse struct {
 type profileResponse struct {
 	ID        string `json:"id"`
 	Email     string `json:"email"`
+	Name      string `json:"name"`
 	CreatedAt string `json:"created_at"`
+}
+
+type updateProfileRequest struct {
+	Name string `json:"name"`
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +129,38 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, profileResponse{
 		ID:        u.ID,
 		Email:     u.Email,
+		Name:      u.Name,
+		CreatedAt: u.CreatedAt.Format(time.RFC3339),
+	})
+}
+
+func (h *UserHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "missing user context")
+		return
+	}
+
+	var req updateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "invalid JSON")
+		return
+	}
+
+	u, err := h.svc.UpdateProfile(r.Context(), userID, req.Name)
+	if err != nil {
+		if errors.Is(err, user.ErrInvalidName) {
+			writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to update profile")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, profileResponse{
+		ID:        u.ID,
+		Email:     u.Email,
+		Name:      u.Name,
 		CreatedAt: u.CreatedAt.Format(time.RFC3339),
 	})
 }

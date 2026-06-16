@@ -30,6 +30,7 @@ type weatherResponse struct {
 	FeelsLike   float64 `json:"feels_like"`
 	Description string  `json:"description"`
 	Location    string  `json:"location,omitempty"`
+	ObservedAt  string  `json:"observed_at,omitempty"`
 }
 
 type outfitResponse struct {
@@ -87,6 +88,9 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 			FeelsLike:   rec.Weather.FeelsLike,
 			Description: rec.Weather.Description,
 			Location:    rec.Weather.Location,
+		}
+		if !rec.Weather.ObservedAt.IsZero() {
+			wr.ObservedAt = rec.Weather.ObservedAt.UTC().Format(time.RFC3339)
 		}
 	}
 

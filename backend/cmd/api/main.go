@@ -21,6 +21,7 @@ import (
 	calendarext "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/classifier"
 	weatherinfra "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/external/weather"
+	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/memory"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/persistence/postgres"
 	gcsclient "school-gitlab.xsolla.dev/team3/thethinker/internal/infrastructure/storage/gcs"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/interfaces/http/handlers"
@@ -46,7 +47,7 @@ func main() {
 	jwtSecret := requireEnv("JWT_SECRET")
 	aiServiceURL := requireEnv("AI_SERVICE_URL")
 	gcsBucket := getEnvOrDefault("GCS_BUCKET", "wardrobe-images")
-	weatherAPIKey := os.Getenv("WEATHER_API_KEY") // optional; falls back to stub when empty
+	weatherAPIKey := os.Getenv("WEATHER_API_KEY") // optional; without it weather is served from cache only, else omitted
 
 	if err := postgres.RunMigrations(databaseURL); err != nil {
 		log.Fatalf("migrations: %v", err)
@@ -89,8 +90,10 @@ func main() {
 	var weatherClient weather.Client
 	if weatherAPIKey != "" {
 		weatherClient = weatherinfra.NewClient(weatherAPIKey)
+	} else {
+		log.Print("WARNING: WEATHER_API_KEY unset — weather served from last-known-good cache only, omitted until a live reading is cached")
 	}
-	weatherSvc := weather.NewService(weatherClient)
+	weatherSvc := weather.NewService(weatherClient, memory.NewWeatherCache())
 	aiRecommendClient := aiinfra.NewRecommendClient(aiServiceURL)
 	recommendSvc := recommendation.NewService(wardrobeRepo, calendarRepo, userRepo, weatherSvc, aiRecommendClient, historyRepo, transactor)
 
@@ -114,6 +117,7 @@ func main() {
 
 	// user — protected
 	mux.Handle("GET /users/me", auth(http.HandlerFunc(userHandler.GetMe)))
+	mux.Handle("PUT /users/me", auth(http.HandlerFunc(userHandler.UpdateMe)))
 	mux.Handle("GET /users/me/preferences", auth(http.HandlerFunc(userHandler.GetPreferences)))
 	mux.Handle("PUT /users/me/preferences", auth(http.HandlerFunc(userHandler.UpdatePreferences)))
 	mux.Handle("GET /users/me/work-schedule", auth(http.HandlerFunc(workScheduleHandler.Get)))

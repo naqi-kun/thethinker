@@ -1,9 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Shirt, Trash2, Upload, X } from 'lucide-react';
+import {
+  Footprints,
+  Plus,
+  Search,
+  Shirt,
+  ShoppingBag,
+  Trash2,
+  Upload,
+  Watch,
+  X,
+} from 'lucide-react';
 import TopNav from '../../../shared/components/TopNav';
 import Select from '../../../shared/components/Select';
 import ItemThumbnail from '../../../shared/components/ItemThumbnail';
+import Skeleton from '../../../shared/components/Skeleton';
+import { staggerContainer, fadeUpItem } from '../../../shared/motion';
 import {
   deleteItem,
   listItems,
@@ -32,6 +45,7 @@ import {
   type ClothingSubType,
 } from '../options';
 import { nearestNamedColor } from '../colorMatch';
+import EyedropperImage from './EyedropperImage';
 
 type WardrobeCategory = 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
 type FilterTab = 'All' | WardrobeCategory;
@@ -117,6 +131,43 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// Used by the item-detail modal's no-image fallback. The wardrobe card renders
+// its fallback through <ItemThumbnail>, which keeps its own copy of this logic;
+// the modal stays on EyedropperImage (colour sampling) so it keeps these here.
+function categoryIcon(category: WardrobeCategory) {
+  switch (category) {
+    case 'Tops':
+      return <Shirt className="h-5 w-5" />;
+    case 'Bottoms':
+      return <ShoppingBag className="h-5 w-5" />;
+    case 'Shoes':
+      return <Footprints className="h-5 w-5" />;
+    case 'Outerwear':
+      return <Watch className="h-5 w-5" />;
+    case 'Accessories':
+      return <Watch className="h-5 w-5" />;
+  }
+}
+
+function colorSwatch(color: string) {
+  const map: Record<string, string> = {
+    white: '#f5f5f5',
+    black: '#1a1a1a',
+    blue: '#4a6fa5',
+    charcoal: '#4a4a4a',
+    tan: '#c9a96e',
+    navy: '#1f3a5f',
+    silver: '#a8a8b3',
+    grey: '#888888',
+    gray: '#888888',
+    red: '#c0392b',
+    green: '#27ae60',
+    brown: '#795548',
+    beige: '#d4bda8',
+  };
+  return map[color.toLowerCase()] ?? '#d4bda8';
+}
+
 function itemToFormState(item: ClothingItem): FormState {
   return {
     name: item.name ?? '',
@@ -145,14 +196,19 @@ function ItemDetailModal({
 }) {
   const [form, setForm] = useState<FormState>(itemToFormState(item));
   const [pickedHex, setPickedHex] = useState<string>(hexForColor(item.color));
+  const [hoverColor, setHoverColor] = useState<ClothingColor | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [imgError, setImgError] = useState(false);
   const [status, setStatus] = useState<ClothingStatus>(item.status);
   const [savingStatus, setSavingStatus] = useState(false);
 
+  const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
   const colorIsMulticolor = form.color === 'multicolor';
-  const snappedSwatch = form.color ? COLOR_SWATCHES[form.color] : '';
+  // Hovering the image previews the sampled colour; otherwise show the committed one.
+  const previewColor = hoverColor ?? form.color;
+  const previewSwatch = previewColor ? COLOR_SWATCHES[previewColor] : '';
 
   const isFormValid =
     form.category !== '' &&
@@ -226,13 +282,30 @@ function ItemDetailModal({
 
         <div className="px-5 py-4 space-y-5">
           {/* Image preview */}
-          <ItemThumbnail
-            item={item}
-            alt={displayName}
-            aspect="video"
-            fallbackSize="md"
-            className="rounded-xl"
-          />
+          <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-linen/60">
+            {item.image_url && !imgError ? (
+              <EyedropperImage
+                src={item.image_url}
+                alt={displayName}
+                objectFit="contain"
+                className="h-full w-full"
+                onHover={setHoverColor}
+                onPick={(c) => handleColorPick(hexForColor(c))}
+                onImgError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary">
+                  {categoryIcon(category)}
+                </div>
+                <div
+                  className="h-5 w-5 rounded-full border border-border"
+                  style={{ backgroundColor: colorSwatch(item.color) }}
+                  title={item.color}
+                />
+              </div>
+            )}
+          </div>
 
           {/* Edit form */}
           <div className="space-y-4">
@@ -288,15 +361,15 @@ function ItemDetailModal({
                     <span
                       className="inline-block h-6 w-6 shrink-0 rounded-full border border-black/10"
                       style={
-                        snappedSwatch.startsWith('linear')
-                          ? { backgroundImage: snappedSwatch }
-                          : { backgroundColor: snappedSwatch }
+                        previewSwatch.startsWith('linear')
+                          ? { backgroundImage: previewSwatch }
+                          : { backgroundColor: previewSwatch }
                       }
                     />
                     <span className="text-sm text-muted-foreground">
                       Snaps to:{' '}
                       <span className="font-medium text-foreground">
-                        {form.color ? colorLabel(form.color) : '—'}
+                        {previewColor ? colorLabel(previewColor) : '—'}
                       </span>
                     </span>
                   </div>
@@ -692,7 +765,26 @@ export default function WardrobePage() {
         </div>
 
         {loading ? (
-          <div className="py-20 text-center helper-text">Loading…</div>
+          <div aria-busy="true">
+            {/* stats bar */}
+            <Skeleton className="mb-6 h-16 rounded-xl" />
+            {/* readiness hint */}
+            <Skeleton className="mb-6 h-17 rounded-xl" />
+            {/* search field */}
+            <Skeleton className="mb-4 h-11 rounded-md" />
+            {/* category tabs */}
+            <div className="mb-6 flex gap-2">
+              {['w-12', 'w-14', 'w-20', 'w-16', 'w-24', 'w-28'].map((w, i) => (
+                <Skeleton key={i} className={`h-7 ${w} rounded-full`} />
+              ))}
+            </div>
+            {/* card grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-4/5 rounded-2xl" />
+              ))}
+            </div>
+          </div>
         ) : error ? (
           <p className="py-20 text-center text-sm text-destructive">{error}</p>
         ) : (
@@ -726,18 +818,27 @@ export default function WardrobePage() {
             </div>
 
             {filtered.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
+              // key by tab so switching categories replays the stagger; typing
+              // in search keeps the container mounted (only new matches fade in).
+              <motion.div
+                key={activeTab}
+                className="grid grid-cols-2 gap-3"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
                 {filtered.map((item) => (
-                  <ItemCard
-                    key={item.id}
-                    item={item}
-                    onCardClick={setSelectedItem}
-                    onImageUploaded={handleImageUploaded}
-                    onStatusChanged={handleItemUpdated}
-                    onDeleted={handleDeleted}
-                  />
+                  <motion.div key={item.id} variants={fadeUpItem}>
+                    <ItemCard
+                      item={item}
+                      onCardClick={setSelectedItem}
+                      onImageUploaded={handleImageUploaded}
+                      onStatusChanged={handleItemUpdated}
+                      onDeleted={handleDeleted}
+                    />
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             ) : (
               <div className="flex flex-col items-center py-20 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">

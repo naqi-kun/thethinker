@@ -22,6 +22,7 @@ import {
   type ClothingSubType,
 } from '../options';
 import { nearestNamedColor, suggestName } from '../colorMatch';
+import EyedropperImage from './EyedropperImage';
 
 type FormState = {
   name: string;
@@ -74,6 +75,8 @@ export default function ReviewItemPage() {
   const [pickedHex, setPickedHex] = useState<string>(
     hexForColor(classifyResult?.color ?? ''),
   );
+  // Live colour under the cursor while hovering the image; null reverts to committed.
+  const [hoverColor, setHoverColor] = useState<ClothingColor | null>(null);
   // Once the user edits the name we stop auto-suggesting from colour + type.
   const [nameTouched, setNameTouched] = useState(false);
 
@@ -135,7 +138,10 @@ export default function ReviewItemPage() {
   if (!state?.classifyResult) return null;
 
   const colorIsMulticolor = form.color === 'multicolor';
-  const snappedSwatch = form.color ? COLOR_SWATCHES[form.color] : '';
+  // While hovering the image the indicator previews the sampled colour, otherwise
+  // it shows the last committed colour.
+  const previewColor = hoverColor ?? form.color;
+  const previewSwatch = previewColor ? COLOR_SWATCHES[previewColor] : '';
 
   return (
     <div className="min-h-screen-safe bg-background pb-24">
@@ -153,15 +159,16 @@ export default function ReviewItemPage() {
           <div className="h-11 w-11" />
         </div>
 
-        {/* Scanned image */}
+        {/* Scanned image — hover to sample the garment colour, click to commit. */}
         {imageUrl && (
-          <div className="mb-6 aspect-square overflow-hidden rounded-2xl">
-            <img
-              src={imageUrl}
-              alt="Scanned item"
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <EyedropperImage
+            src={imageUrl}
+            alt="Scanned item"
+            objectFit="cover"
+            className="mb-6 aspect-square overflow-hidden rounded-2xl"
+            onHover={setHoverColor}
+            onPick={(c) => handleColorPick(hexForColor(c))}
+          />
         )}
 
         {/* Confidence badge */}
@@ -233,15 +240,15 @@ export default function ReviewItemPage() {
                   <span
                     className="inline-block h-6 w-6 shrink-0 rounded-full border border-black/10"
                     style={
-                      snappedSwatch.startsWith('linear')
-                        ? { backgroundImage: snappedSwatch }
-                        : { backgroundColor: snappedSwatch }
+                      previewSwatch.startsWith('linear')
+                        ? { backgroundImage: previewSwatch }
+                        : { backgroundColor: previewSwatch }
                     }
                   />
                   <span className="text-sm text-muted-foreground">
                     Snaps to:{' '}
                     <span className="font-medium text-foreground">
-                      {form.color ? colorLabel(form.color) : '—'}
+                      {previewColor ? colorLabel(previewColor) : '—'}
                     </span>
                   </span>
                 </div>

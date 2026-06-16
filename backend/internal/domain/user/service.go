@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,9 @@ import (
 
 var ErrEmailTaken = errors.New("email already registered")
 var ErrInvalidCredentials = errors.New("invalid email or password")
+var ErrInvalidName = errors.New("name must be 1–100 characters")
+
+const maxNameLen = 100
 
 type AuthResult struct {
 	Token  string
@@ -87,6 +91,29 @@ func (s *Service) GetProfile(ctx context.Context, userID string) (*User, error) 
 	}
 	if u == nil {
 		return nil, ErrInvalidCredentials
+	}
+	return u, nil
+}
+
+// UpdateProfile updates the user's editable display name and returns the
+// updated profile. The name is trimmed; empty or over-long names are rejected.
+func (s *Service) UpdateProfile(ctx context.Context, userID, name string) (*User, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > maxNameLen {
+		return nil, ErrInvalidName
+	}
+
+	u, err := s.repo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if u == nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	u.Name = name
+	if err := s.repo.Save(ctx, u); err != nil {
+		return nil, err
 	}
 	return u, nil
 }

@@ -59,7 +59,7 @@ func newTestService(prefs *user.Preferences, ai recommendation.AIRecommender) *r
 		&fakeWardrobeRepo{items: testWardrobe()},
 		&stubCalendarRepo{},
 		&fakePrefsRepo{prefs: prefs},
-		weather.NewService(nil),
+		weather.NewService(nil, emptyWeatherCache{}),
 		ai,
 		&stubHistoryRepo{},
 		&stubTransactor{},
@@ -83,6 +83,29 @@ func TestGetOutfit_UseAIDisabled_UsesRuleBased(t *testing.T) {
 	}
 	if len(rec.Items) == 0 {
 		t.Error("expected rule-based items, got none")
+	}
+}
+
+func TestGetOutfit_NoKeyEmptyCache_OmitsWeatherButStillRecommends(t *testing.T) {
+	// A location is configured, but with no API key and an empty cache the
+	// weather service must omit weather entirely (no fabricated 22°C stub) while
+	// the rule-based recommender still produces a seasonally-sane outfit via the
+	// month heuristic.
+	prefs := &user.Preferences{UserID: "u1", UseAI: false, Answers: map[string]string{"location": "London"}}
+	svc := newTestService(prefs, &fakeAI{})
+
+	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if rec.Weather != nil {
+		t.Errorf("expected weather to be omitted, got %+v", rec.Weather)
+	}
+	if rec.Recommender != recommendation.RecommenderRuleBased {
+		t.Errorf("recommender = %q, want %q", rec.Recommender, recommendation.RecommenderRuleBased)
+	}
+	if len(rec.Items) == 0 {
+		t.Error("expected a rule-based outfit, got no items")
 	}
 }
 

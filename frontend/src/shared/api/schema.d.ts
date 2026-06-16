@@ -95,7 +95,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get the authenticated user's account profile (id, email) */
+        /** Get the authenticated user's account profile (id, email, name) */
         get: {
             parameters: {
                 query?: never;
@@ -117,7 +117,33 @@ export interface paths {
                 401: components["responses"]["Unauthorized"];
             };
         };
-        put?: never;
+        /** Update the authenticated user's display name */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateProfileRequest"];
+                };
+            };
+            responses: {
+                /** @description Updated profile */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserProfile"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -1053,8 +1079,14 @@ export interface components {
             id: string;
             /** Format: email */
             email: string;
+            /** @description User-editable display name. May be empty until the user sets one. */
+            name: string;
             /** Format: date-time */
             created_at: string;
+        };
+        UpdateProfileRequest: {
+            /** @description New display name for the account. */
+            name: string;
         };
         Preferences: {
             /** @description Preferred clothing styles */
@@ -1267,6 +1299,12 @@ export interface components {
             description: string;
             /** @example London */
             location?: string;
+            /**
+             * Format: date-time
+             * @description When this reading was actually observed from the weather provider. May be older than the request when a cached last-known-good reading is served after a live lookup fails. Absent for legacy snapshots.
+             * @example 2026-06-15T08:30:00Z
+             */
+            observed_at?: string;
         };
         Error: {
             code: string;

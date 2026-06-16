@@ -40,10 +40,15 @@ if (!isPublish) {
 // Google API key for Gemini 2.5 Flash — Aspire prompts once on first start
 const googleApiKey = builder.addParameter("googleApiKey", { secret: true });
 
-// OpenWeatherMap API key — optional. When absent the backend falls back to a
-// 22°C/clear stub so the weather badge still renders without a real key.
-// Get a free key at https://home.openweathermap.org/users/sign_up
-const weatherApiKey = builder.addParameter("weatherApiKey", { secret: true, value: "" });
+// OpenWeatherMap API key — optional. When absent the backend serves the
+// last-known-good cached reading per location (within max-age) and otherwise
+// omits weather entirely — no fabricated values. Supply a real key via the
+// WEATHER_API_KEY env var (e.g. `$env:WEATHER_API_KEY = "..."; aspire run`) to
+// get live weather. Get a free key at https://home.openweathermap.org/users/sign_up
+const weatherApiKey = builder.addParameter("weatherApiKey", {
+  secret: true,
+  value: process.env.WEATHER_API_KEY ?? "",
+});
 
 // Python AI classification service — built from ./ai/Dockerfile
 const ai = await builder.addDockerfile("ai", "./ai");

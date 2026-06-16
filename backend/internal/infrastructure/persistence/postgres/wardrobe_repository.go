@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -21,51 +22,74 @@ func NewWardrobeRepository(db *pgxpool.Pool) *WardrobeRepository {
 	return &WardrobeRepository{db: db}
 }
 
-// scanRow reads the raw string values that pgx returns for enum columns and
-// converts them to the typed enum values used by the domain.
-func scanRow(
-	id, userID, name, category, subType, color, fit, season, status, imageURL *string,
-	lastWorn *time.Time,
-	createdAt *time.Time,
-) (*wardrobe.ClothingItem, error) {
-	cat, err := wardrobe.ParseCategory(*category)
+// wardrobeRow holds the raw string values pgx returns for a wardrobe_items row,
+// before the enum columns are parsed into typed domain values.
+type wardrobeRow struct {
+	id, userID, name, category, subType, color, fit, season, status, imageURL string
+	lastWorn                                                                  *time.Time
+	createdAt                                                                 time.Time
+}
+
+// toClothingItem converts the raw enum strings into the typed enum values used
+// by the domain. It returns ErrInvalidClassification (wrapped) if any stored
+// enum value is unrecognized.
+func (row wardrobeRow) toClothingItem() (*wardrobe.ClothingItem, error) {
+	cat, err := wardrobe.ParseCategory(row.category)
 	if err != nil {
 		return nil, err
 	}
-	sub, err := wardrobe.ParseSubType(*subType)
+	sub, err := wardrobe.ParseSubType(row.subType)
 	if err != nil {
 		return nil, err
 	}
-	col, err := wardrobe.ParseColor(*color)
+	col, err := wardrobe.ParseColor(row.color)
 	if err != nil {
 		return nil, err
 	}
-	f, err := wardrobe.ParseFit(*fit)
+	f, err := wardrobe.ParseFit(row.fit)
 	if err != nil {
 		return nil, err
 	}
-	sea, err := wardrobe.ParseSeason(*season)
+	sea, err := wardrobe.ParseSeason(row.season)
 	if err != nil {
 		return nil, err
 	}
-	st, err := wardrobe.ParseStatus(*status)
+	st, err := wardrobe.ParseStatus(row.status)
 	if err != nil {
 		return nil, err
 	}
 	return &wardrobe.ClothingItem{
-		ID:        *id,
-		UserID:    *userID,
-		Name:      *name,
+		ID:        row.id,
+		UserID:    row.userID,
+		Name:      row.name,
 		Category:  cat,
 		SubType:   sub,
 		Color:     col,
 		Fit:       f,
 		Season:    sea,
 		Status:    st,
-		ImageURL:  *imageURL,
-		LastWorn:  lastWorn,
-		CreatedAt: *createdAt,
+		ImageURL:  row.imageURL,
+		LastWorn:  row.lastWorn,
+		CreatedAt: row.createdAt,
 	}, nil
+}
+
+// collectItems maps scanned rows to domain items, skipping (and logging) any row
+// whose stored enum values are unrecognized. A single malformed row — e.g. a
+// classifier emitting "dark grey" or "slim-fit" — must not fail the entire
+// wardrobe read, so bad rows are dropped rather than aborting the scan. Always
+// returns a non-nil slice so an all-bad wardrobe serializes as [] rather than null.
+func collectItems(userID string, rows []wardrobeRow) []*wardrobe.ClothingItem {
+	items := make([]*wardrobe.ClothingItem, 0, len(rows))
+	for _, row := range rows {
+		item, err := row.toClothingItem()
+		if err != nil {
+			log.Printf("wardrobe: skipping malformed item %s for user %s: %v", row.id, userID, err)
+			continue
+		}
+		items = append(items, item)
+	}
+	return items
 }
 
 func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([]*wardrobe.ClothingItem, error) {
@@ -79,43 +103,34 @@ func (r *WardrobeRepository) FindByUserID(ctx context.Context, userID string) ([
 	}
 	defer rows.Close()
 
-	var items []*wardrobe.ClothingItem
+	var rawRows []wardrobeRow
 	for rows.Next() {
-		var (
-			id, uid, name, category, subType, color, fit, season, status, imageURL string
-			lastWorn                                                                *time.Time
-			createdAt                                                               time.Time
-		)
-		if err := rows.Scan(&id, &uid, &name, &category, &subType, &color, &fit, &season, &status, &imageURL, &lastWorn, &createdAt); err != nil {
+		var row wardrobeRow
+		if err := rows.Scan(&row.id, &row.userID, &row.name, &row.category, &row.subType, &row.color, &row.fit, &row.season, &row.status, &row.imageURL, &row.lastWorn, &row.createdAt); err != nil {
 			return nil, err
 		}
-		item, err := scanRow(&id, &uid, &name, &category, &subType, &color, &fit, &season, &status, &imageURL, lastWorn, &createdAt)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, item)
+		rawRows = append(rawRows, row)
 	}
-	return items, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return collectItems(userID, rawRows), nil
 }
 
 func (r *WardrobeRepository) FindByID(ctx context.Context, id string) (*wardrobe.ClothingItem, error) {
-	var (
-		rid, uid, name, category, subType, color, fit, season, status, imageURL string
-		lastWorn                                                                 *time.Time
-		createdAt                                                                time.Time
-	)
+	var row wardrobeRow
 	err := queryFromContext(ctx, r.db).QueryRow(ctx,
 		`SELECT id, user_id, name, category, sub_type, color, fit, season, status, image_url, last_worn, created_at
 		 FROM wardrobe_items WHERE id = $1 AND deleted_at IS NULL`,
 		id,
-	).Scan(&rid, &uid, &name, &category, &subType, &color, &fit, &season, &status, &imageURL, &lastWorn, &createdAt)
+	).Scan(&row.id, &row.userID, &row.name, &row.category, &row.subType, &row.color, &row.fit, &row.season, &row.status, &row.imageURL, &row.lastWorn, &row.createdAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-	return scanRow(&rid, &uid, &name, &category, &subType, &color, &fit, &season, &status, &imageURL, lastWorn, &createdAt)
+	return row.toClothingItem()
 }
 
 func (r *WardrobeRepository) Save(ctx context.Context, item *wardrobe.ClothingItem) error {
