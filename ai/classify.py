@@ -169,8 +169,22 @@ async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
 @router.post("/remove-bg")
 async def remove_bg(image: UploadFile = File(...)) -> Response:
     data = await image.read()
+
+    # Downscale before u2net the same way /classify does. Full phone-resolution
+    # images make onnxruntime allocate multiple full-size float32 arrays, which
+    # OOM-kills the container. Background-removed wardrobe thumbnails don't need
+    # more than _MAX_EDGE px.
     try:
-        output = remove(data, session=rembg_session)
+        pil_image = Image.open(io.BytesIO(data)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=422, detail="cannot decode image")
+
+    pil_image.thumbnail((_MAX_EDGE, _MAX_EDGE))
+    buf = io.BytesIO()
+    pil_image.save(buf, format="JPEG", quality=90)
+
+    try:
+        output = remove(buf.getvalue(), session=rembg_session)
     except Exception:
         raise HTTPException(status_code=422, detail="cannot process image")
     return Response(content=output, media_type="image/png")
