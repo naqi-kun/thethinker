@@ -12,7 +12,6 @@ import {
   Watch,
   X,
 } from 'lucide-react';
-import TopNav from '../../../shared/components/TopNav';
 import Select from '../../../shared/components/Select';
 import ItemThumbnail from '../../../shared/components/ItemThumbnail';
 import Skeleton from '../../../shared/components/Skeleton';
@@ -746,9 +745,7 @@ export default function WardrobePage() {
   });
 
   return (
-    <div className="min-h-screen-safe bg-background pb-24">
-      <TopNav />
-
+    <div className="pb-28 md:pb-8">
       <main className="container-app py-8">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>

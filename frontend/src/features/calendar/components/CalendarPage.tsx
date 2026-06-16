@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar, Check, ExternalLink, Link2, Plus, Trash2 } from 'lucide-react';
-import TopNav from '../../../shared/components/TopNav';
 import type { Calendar as CalendarType } from '../../../shared/api/types';
 import { addCalendar, listCalendars, removeCalendar } from '../api';
 import { ease, staggerContainer, fadeUpItem } from '../../../shared/motion';
@@ -125,9 +124,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="min-h-screen-safe bg-background">
-      <TopNav />
-
+    <div className="pb-28 md:pb-8">
       <main className="mx-auto max-w-xl px-6 py-12">
         <motion.div variants={staggerContainer} initial="hidden" animate="visible">
           <motion.div variants={fadeUpItem} className="mb-8 text-center">
