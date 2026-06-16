@@ -20,6 +20,18 @@ export async function addItem(payload: AddItemPayload): Promise<ClothingItem> {
   return data! as ClothingItem;
 }
 
+/**
+ * Create a wardrobe item and attach its image in one call. Used by the bulk
+ * add flow where many reviewed items are committed together.
+ */
+export async function addItemWithImage(
+  payload: AddItemPayload,
+  file: File,
+): Promise<ClothingItem> {
+  const created = await addItem(payload);
+  return uploadItemImage(created.id, file);
+}
+
 export async function scanItem(image: Blob): Promise<ClothingItem> {
   const { data } = await apiClient.POST('/wardrobe/scan', {
     body: { image: image as unknown as string },

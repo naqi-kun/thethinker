@@ -149,7 +149,7 @@ export default function ReviewItemPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <button
-            onClick={() => navigate('/wardrobe/add')}
+            onClick={() => navigate('/wardrobe/add/camera')}
             className="btn-ghost btn-icon"
             aria-label="Go back"
           >
@@ -305,7 +305,7 @@ export default function ReviewItemPage() {
 
           <button
             type="button"
-            onClick={() => navigate('/wardrobe/add')}
+            onClick={() => navigate('/wardrobe/add/camera')}
             className="btn-outline btn-lg w-full gap-2"
           >
             <RotateCcw className="h-4 w-4" />

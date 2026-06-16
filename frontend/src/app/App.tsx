@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { LandingPage } from '../features/landing';
 import { LoginPage, RegisterPage, ProtectedRoute } from '../features/auth';
 import { OnboardingPage } from '../features/onboarding';
-import { WardrobePage, AddItemPage } from '../features/wardrobe';
+import { WardrobePage, AddItemPage, BulkAddPage } from '../features/wardrobe';
 import ReviewItemPage from '../features/wardrobe/components/ReviewItemPage';
 import { OutfitPage } from '../features/outfit';
 import { CalendarPage } from '../features/calendar';
@@ -33,6 +33,14 @@ export function App() {
       />
       <Route
         path="/wardrobe/add"
+        element={
+          <ProtectedRoute>
+            <BulkAddPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wardrobe/add/camera"
         element={
           <ProtectedRoute>
             <AddItemPage />

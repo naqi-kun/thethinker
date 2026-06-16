@@ -131,7 +131,7 @@ export default function AddItemPage() {
         <div className="mb-8 flex items-center justify-between">
           <button
             onClick={() =>
-              pageState === 'camera' ? navigate('/wardrobe') : restartCamera()
+              pageState === 'camera' ? navigate('/wardrobe/add') : restartCamera()
             }
             className="btn-ghost btn-icon"
             aria-label="Go back"
