@@ -2,13 +2,11 @@ stages:
   - lint
   - test
   - build
-  - docker
   - deploy
 
 variables:
   NODE_VERSION: "22.16.0"
   GO_VERSION: "1.25"
-  IMAGE_NAME: $CI_REGISTRY_IMAGE
 
 # ── Frontend ────────────────────────────────────────────────
 
@@ -93,40 +91,29 @@ backend-build:
       - backend/server
     expire_in: 1 hour
 
-docker-build:
-  stage: docker
-  image: docker:26
-  services:
-    - docker:26-dind
-  variables:
-    # Talk to the dind daemon over plain TCP (no TLS). TLS dind requires the
-    # runner to share the /certs/client volume between the service and the
-    # build container; the shared school runner isn't configured for that, so
-    # the client reads a CA that doesn't match the daemon's cert and the
-    # handshake fails with: x509: certificate signed by unknown authority
-    # (docker:dind CA). Empty DOCKER_TLS_CERTDIR makes dind listen on 2375
-    # without TLS. The daemon is only reachable on the isolated per-job
-    # network, so plain TCP is acceptable here.
-    DOCKER_HOST: "tcp://docker:2375"
-    DOCKER_TLS_CERTDIR: ""
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - docker build -t $IMAGE_NAME:$CI_COMMIT_SHA -t $IMAGE_NAME:latest backend/
-    - docker push $IMAGE_NAME:$CI_COMMIT_SHA
-    - docker push $IMAGE_NAME:latest
-  only:
-    - main
-
 # ── Deploy ──────────────────────────────────────────────────
 
+# Source-build deploys: `railway up` uploads each service directory and Railway
+# builds its Dockerfile (pinned via <svc>/railway.json -> builder: DOCKERFILE).
+# No image registry is involved, so there is no image tag to mis-point — that
+# missing-tag mistake is what took the backend down (cyrileo/...:fix1).
+#
+# Each <svc>/railway.json also sets a healthcheckPath, so Railway will NOT shift
+# traffic to a new deploy until it passes its healthcheck; a broken build leaves
+# the previous healthy deploy serving instead of crashing the service.
+#
+# --detach is intentionally omitted so a failed build/deploy fails the pipeline
+# (visible red) instead of passing silently.
 deploy-railway:
   stage: deploy
   image: node:22
+  before_script:
+    # Pin the CLI so an upstream release can't change deploy behavior unannounced.
+    - npm install -g @railway/cli@5.12.1
   script:
-    - npm install -g @railway/cli
-    - (cd frontend && railway up --service frontend)
-    - (cd backend && railway up --service backend)
+    - railway up backend  --service backend
+    - railway up ai       --service ai
+    - railway up frontend --service frontend
   only:
     - main
   variables:
