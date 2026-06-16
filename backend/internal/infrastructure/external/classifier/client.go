@@ -62,6 +62,11 @@ func (c *Client) Classify(ctx context.Context, imageBytes []byte, contentType st
 	}
 	defer resp.Body.Close()
 
+	// The AI service returns 422 when the image is not a recognizable clothing
+	// item. Surface it as a domain error so the handler responds 422, not 500.
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		return nil, fmt.Errorf("%w: image is not a recognizable clothing item", wardrobe.ErrInvalidClassification)
+	}
 	if resp.StatusCode != http.StatusOK {
 		raw, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("classifier: status %d: %s", resp.StatusCode, raw)

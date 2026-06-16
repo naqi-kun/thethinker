@@ -1114,8 +1114,8 @@ export interface components {
             season: "all" | "spring_summer" | "autumn_winter" | "winter";
             /**
              * Format: float
-             * @description Overall AI confidence (0–1). Defaults to 0.85 if the AI service omits it.
-             * @example 0.85
+             * @description Overall AI confidence (0–1) reported by the classifier. Falls back to 0.85 only if the AI service omits it.
+             * @example 0.92
              */
             confidence_score: number;
         };

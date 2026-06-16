@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, ImagePlus, RotateCcw, Scan } from 'lucide-react';
 import { classifyItem } from '../api';
+import { ApiError } from '../../../shared/api/client';
 
 type PageState = 'camera' | 'camera-preview' | 'busy';
 
@@ -92,8 +93,14 @@ export default function AddItemPage() {
       navigate('/wardrobe/add/review', {
         state: { classifyResult: result, imageBlob: image },
       });
-    } catch {
-      setError('Scan failed. Please try again.');
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 422) {
+        setError(
+          "That doesn't look like a clothing item. Try a photo of a single garment or pair of shoes.",
+        );
+      } else {
+        setError('Scan failed. Please try again.');
+      }
       setPageState(capturedUrl ? 'camera-preview' : 'camera');
     }
   }
