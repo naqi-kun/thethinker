@@ -33,6 +33,8 @@ _CATEGORIES = ["formal", "casual", "sport"]
 _SUB_TYPES = [
     "shirt", "t-shirt", "sweater", "hoodie", "jacket", "coat", "pants", "jeans",
     "shorts", "skirt", "dress", "shoes", "sneakers", "boots", "suit", "blazer",
+    # accessories
+    "watch", "bag", "belt", "hat", "scarf", "sunglasses", "tie",
 ]
 _COLORS = [
     "black", "white", "grey", "navy blue", "blue", "light blue", "red",
@@ -50,12 +52,13 @@ _CLASSIFY_TOOL = {
     "input_schema": {
         "type": "object",
         "properties": {
-            "is_clothing": {
+            "is_wearable": {
                 "type": "boolean",
                 "description": (
-                    "True only if the image shows a single wearable garment or pair "
-                    "of footwear. False for people wearing outfits, accessories (bags, "
-                    "watches, jewellery, hats), food, animals, furniture, or empty scenes."
+                    "True if the image shows a single wearable item: a garment, a pair "
+                    "of footwear, or an accessory (bag, watch, belt, hat, scarf, "
+                    "sunglasses, tie). False for people wearing full outfits, food, "
+                    "animals, furniture, or empty scenes."
                 ),
             },
             "category": {"type": "string", "enum": _CATEGORIES},
@@ -73,17 +76,19 @@ _CLASSIFY_TOOL = {
                 ),
             },
         },
-        "required": ["is_clothing", "category", "sub_type", "color", "fit", "season", "confidence"],
+        "required": ["is_wearable", "category", "sub_type", "color", "fit", "season", "confidence"],
     },
 }
 
 _PROMPT = (
-    "You are a wardrobe classifier. Decide whether the image shows a single article "
-    "of clothing or footwear that a person could wear.\n"
-    "- If it does NOT (a person wearing an outfit, an accessory such as a bag or watch, "
-    "food, an animal, furniture, or an empty scene), set is_clothing to false. Still "
-    "provide best-guess values for the other fields — they will be ignored.\n"
-    "- If it does, set is_clothing to true and classify it accurately.\n"
+    "You are a wardrobe classifier. Decide whether the image shows a single wearable "
+    "item — a garment, a pair of footwear, or an accessory (bag, watch, belt, hat, "
+    "scarf, sunglasses, tie).\n"
+    "- If it does NOT (a person wearing a full outfit, food, an animal, furniture, or "
+    "an empty scene), set is_wearable to false. Still provide best-guess values for "
+    "the other fields — they will be ignored.\n"
+    "- If it does, set is_wearable to true and classify it accurately. Pick the closest "
+    "sub_type; for accessories the category/fit/season fields may be approximate.\n"
     "Always report your real confidence — do not default to a fixed value.\n"
     "Call the classify_item tool with your answer."
 )
@@ -144,10 +149,10 @@ async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"classification failed: {e}")
 
-    if not parsed.get("is_clothing", False):
+    if not parsed.get("is_wearable", False):
         raise HTTPException(
             status_code=422,
-            detail="not a clothing item — scan a single garment or pair of shoes",
+            detail="not a wearable item — scan a single garment, pair of shoes, or accessory",
         )
 
     return ClassifyResponse(
