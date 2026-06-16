@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Download, Trash2, AlertTriangle, Plus, X, Pencil } from 'lucide-react';
-import TopNav from '../../../shared/components/TopNav';
 import { token } from '../../../shared/api/token';
 import {
   AESTHETICS,
@@ -349,9 +348,7 @@ export default function SettingsPage() {
   const [eventReminder, setEventReminder] = useState(true);
 
   return (
-    <div className="min-h-screen-safe bg-background pb-12">
-      <TopNav />
-
+    <div className="pb-28 md:pb-8">
       <main className="mx-auto max-w-xl px-4 py-8 md:px-6">
         <div className="mb-8">
           <h2 className="mb-1">Settings</h2>

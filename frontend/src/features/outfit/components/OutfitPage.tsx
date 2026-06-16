@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import TopNav from '../../../shared/components/TopNav';
 import { ApiError } from '../../../shared/api/client';
 import type {
   CalendarEvent,
@@ -221,10 +220,10 @@ export default function OutfitPage() {
     : null;
 
   return (
-    // Fixed viewport-height column: header, canvas (flex-1), CTA — no page scroll.
-    <div className="flex h-screen-safe flex-col overflow-hidden bg-background">
-      <TopNav />
-
+    // Fills the app shell's content region as a column — canvas (flex-1) + CTA,
+    // no inner scroll. Bottom padding clears the mobile floating tab bar (gone
+    // on desktop, where the side rail takes over).
+    <div className="flex h-full flex-col overflow-hidden pb-24 md:pb-4">
       {/* Save toast */}
       {showToast && (
         <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-espresso px-5 py-2.5 text-sm font-medium text-cream shadow-lg">

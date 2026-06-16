@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Moon, RefreshCw, Shirt, Sun, Sunrise } from 'lucide-react';
-import TopNav from '../../../shared/components/TopNav';
 import FlatLay from '../../../shared/components/FlatLay';
 import Skeleton from '../../../shared/components/Skeleton';
 import { ease, staggerContainer, fadeUpItem } from '../../../shared/motion';
@@ -180,9 +179,7 @@ export default function HistoryPage() {
   const hasActiveFilters = customRange !== null || tod !== '';
 
   return (
-    <div className="min-h-screen-safe bg-background pb-10">
-      <TopNav />
-
+    <div className="pb-28 md:pb-8">
       <main className="mx-auto max-w-xl px-6 py-8">
         {/* Header */}
         <div className="mb-6">
