@@ -277,6 +277,25 @@ recs (only `accept`/`regenerate` exists, and it's untracked). Bar 2 above is blo
 adding this loop; until then, ship on Bar 1 ("it demonstrably steers") and treat
 "is it *better*" as a follow-up.
 
+**Design pass (2026-06-16) — finalized taxonomy + user-selected occasion.** Designed in
+Pencil (`design/thethinker-design.pen`) and split across two tickets:
+- **Aesthetic taxonomy (final, single-select)** — one shared list across onboarding
+  (KAN-94), Settings, and the recommender prompt: **Basic** (plain-language default —
+  "just keep it simple", the honest answer for users who don't care about fashion) +
+  **Minimalist, Classic, Old Money, Streetwear, Y2K, Coquette, Cottagecore, Boho,
+  Parisian, Athleisure, Grunge, Preppy.** Replaces the old menswear-leaning inspiration
+  set and the formality-flavoured Settings list. Single-select, for a clean and testable
+  steer (Bar 1).
+- **Occasion is user-selected, not inferred** — a compact **dropdown on the daily-reveal
+  Wrapped page** lists the day's calendar events; **default = the most-formal event**
+  (never underdressed), **"Everyday"** when there are none, and changing it
+  **regenerates** the look. `Event.Type → formal / casual / sport` (matches wardrobe
+  `Category`). Adds an optional **`occasion` / `event_id`** parameter to
+  `GET /recommendations/outfit` (**spec-first**).
+- **Build split:** **KAN-92** wires occasion + aesthetic into the recommender (and makes
+  the Settings control real); **KAN-94** is the onboarding overhaul that asks the
+  aesthetic on the shared taxonomy.
+
 ---
 
 ## 2. Wardrobe scan / add
@@ -513,6 +532,10 @@ Turn the outfit reveal into a daily ritual instead of an instant render. Steer
   reroll tool stays **unlimited** and never blocks a rushed user.
 - **B (streaks/persistence)** deferred to a later pass.
 - Persistence needed: a "revealed today" flag (localStorage for MVP).
+- **Occasion comes from a user-selected event (2026-06-16)** — the wrapped state shows a
+  **"Dressing for" dropdown** of the day's calendar events (default = most-formal,
+  "Everyday" when none); the choice drives both the look and the "why" context, and
+  switching it regenerates. Wired in **KAN-92** (designed in Pencil).
 
 **Effort:** M (frontend; reuses Motion + revives the discarded reasoning).
 
