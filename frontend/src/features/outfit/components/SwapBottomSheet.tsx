@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { listItems } from '../../wardrobe/api';
 import type { ClothingItem } from '../../../shared/api/types';
@@ -65,10 +66,25 @@ export default function SwapBottomSheet({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} />
+      <motion.div
+        className="fixed inset-0 z-40 bg-black/40"
+        onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      />
 
-      {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl border-t border-border bg-background shadow-xl">
+      {/* Sheet — springs up from the bottom on open, slides back down on close */}
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Swap ${item.sub_type}`}
+        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl border-t border-border bg-background shadow-xl"
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+      >
         <div className="mx-auto max-w-xl">
           {/* Handle + header */}
           <div className="flex items-center justify-between px-6 pb-3 pt-4">
@@ -140,7 +156,7 @@ export default function SwapBottomSheet({
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

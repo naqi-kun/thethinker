@@ -6,11 +6,12 @@ import {
   MapPin,
   RefreshCw,
   Shirt,
+  Shuffle,
   Sparkles,
   Sun,
   X,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../../../shared/api/client';
 import type {
@@ -18,9 +19,13 @@ import type {
   ClothingItem,
   OutfitRecommendation,
 } from '../../../shared/api/types';
+import { ease } from '../../../shared/motion';
 import { getTodayEvents, ignoreEvent } from '../../calendar/api';
 import { acceptOutfit, getOutfit, type OutfitOptions } from '../api';
+import { hasRevealedToday, markRevealedToday } from '../revealStore';
+import { SETTLE_STAGGER_S, settleSpring } from '../revealMotion';
 import SwapBottomSheet from './SwapBottomSheet';
+import WrappedCard from './WrappedCard';
 
 const MAX_ITEMS = 10;
 
@@ -94,6 +99,7 @@ function formatEventTime(event: CalendarEvent): string {
 
 export default function OutfitPage() {
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(
     null,
   );
@@ -106,6 +112,22 @@ export default function OutfitPage() {
   const [accepting, setAccepting] = useState(false);
   const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
   const [showToast, setShowToast] = useState(false);
+
+  // Reveal ceremony (KAN-100). On the first open of the day the outfit is sealed
+  // behind WrappedCard; tapping Reveal plays the staggered settle once. Returning
+  // the same day skips straight to the flat-lay. Shuffles never replay the
+  // ceremony — they just cross-fade in the new outfit.
+  const [phase, setPhase] = useState<'wrapped' | 'revealed'>(() =>
+    hasRevealedToday() ? 'revealed' : 'wrapped',
+  );
+  const [ceremony, setCeremony] = useState(false);
+  const [shuffleKey, setShuffleKey] = useState(0);
+
+  const handleReveal = useCallback(() => {
+    markRevealedToday();
+    setCeremony(!prefersReducedMotion);
+    setPhase('revealed');
+  }, [prefersReducedMotion]);
 
   // Monotonic id of the most recent outfit request. Only that request may apply
   // its result, so an earlier/superseded response can never overwrite a newer
@@ -213,11 +235,23 @@ export default function OutfitPage() {
     [recommendation, swappingItem],
   );
 
+  // Shuffle reuses the session to regenerate. It replays the staggered garment
+  // settle (same as the reveal) but skips the seal — bumping the canvas key
+  // forces the items to remount so the animation runs even when the new outfit
+  // reuses some of the same item ids (KAN-100).
+  const handleShuffle = useCallback(() => {
+    setCeremony(!prefersReducedMotion);
+    setShuffleKey((k) => k + 1);
+    fetchOutfit(recommendation?.session_id, dressingFor);
+  }, [fetchOutfit, recommendation, prefersReducedMotion, dressingFor]);
+
   const displayItems: ClothingItem[] = recommendation?.items.slice(0, MAX_ITEMS) ?? [];
   const hashtags = recommendation ? deriveHashtags(recommendation) : [];
   const weatherHint = recommendation?.weather
     ? staleWeatherHint(recommendation.weather.observed_at)
     : null;
+  // During the ceremony the context "why" lands after the garments settle.
+  const whyDelay = ceremony ? displayItems.length * SETTLE_STAGGER_S + 0.15 : 0;
 
   return (
     // Fills the app shell's content region as a column — canvas (flex-1) + CTA,
@@ -235,8 +269,13 @@ export default function OutfitPage() {
         <div className="mb-3 shrink-0 text-center">
           <h2 className="mb-2">{today}</h2>
 
-          {recommendation && (
-            <div className="flex flex-wrap justify-center gap-2">
+          {recommendation && phase === 'revealed' && (
+            <motion.div
+              className="flex flex-wrap justify-center gap-2"
+              initial={ceremony ? { opacity: 0, y: 8 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease, delay: whyDelay }}
+            >
               {recommendation.weather && (
                 <span className="badge-default gap-1.5">
                   <Sun className="h-3.5 w-3.5 text-warning" />
@@ -259,11 +298,11 @@ export default function OutfitPage() {
                   AI unavailable · using rule-based
                 </span>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
 
-        {events.length > 0 && (
+        {events.length > 0 && phase === 'revealed' && (
           <div className="mb-3 flex shrink-0 items-center justify-center gap-2 text-sm">
             <label htmlFor="dressing-for" className="text-muted-foreground">
               Dressing for
@@ -286,7 +325,7 @@ export default function OutfitPage() {
           </div>
         )}
 
-        {events.length > 0 && (
+        {events.length > 0 && phase === 'revealed' && (
           <div className="mb-3 max-h-28 shrink-0 overflow-y-auto rounded-xl border border-border bg-card/60 p-3">
             <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               <CalendarClock className="h-3.5 w-3.5 text-terracotta" />
@@ -323,27 +362,7 @@ export default function OutfitPage() {
           </div>
         )}
 
-        {loading ? (
-          <div
-            className="flex flex-1 flex-col items-center justify-center gap-4"
-            aria-busy="true"
-          >
-            <motion.div
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-linen text-terracotta"
-              animate={{ scale: [1, 1.1, 1], rotate: [0, -8, 8, 0] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <Sparkles className="h-7 w-7" />
-            </motion.div>
-            <motion.p
-              className="text-sm text-muted-foreground"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              Curating your outfit…
-            </motion.p>
-          </div>
-        ) : emptyWardrobe ? (
+        {emptyWardrobe ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <Shirt className="mb-4 h-10 w-10 text-muted-foreground" />
             <p className="mb-1 font-medium">Your wardrobe is empty</p>
@@ -365,27 +384,70 @@ export default function OutfitPage() {
               Try Again
             </button>
           </div>
+        ) : phase === 'wrapped' ? (
+          <WrappedCard
+            loading={loading}
+            prefersReducedMotion={!!prefersReducedMotion}
+            onReveal={handleReveal}
+          />
+        ) : loading ? (
+          <div
+            className="flex flex-1 flex-col items-center justify-center gap-4"
+            aria-busy="true"
+          >
+            <motion.div
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-linen text-terracotta"
+              animate={{ scale: [1, 1.1, 1], rotate: [0, -8, 8, 0] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Sparkles className="h-7 w-7" />
+            </motion.div>
+            <motion.p
+              className="text-sm text-muted-foreground"
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              Curating your outfit…
+            </motion.p>
+          </div>
         ) : recommendation ? (
           <>
-            {/* Editorial flat-lay canvas — fills the remaining viewport height */}
+            {/* Editorial flat-lay canvas — fills the remaining viewport height.
+                Keyed by shuffleKey so a shuffle remounts the items and replays
+                the staggered settle (the reveal animation, without the seal). */}
             <div className="flex min-h-0 flex-1 justify-center">
-              <div
+              <motion.div
+                key={shuffleKey}
                 className="relative h-full max-w-full rounded-2xl bg-cream"
                 style={{ aspectRatio: '3/4' }}
+                initial={ceremony ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.35, ease }}
               >
                 {displayItems.map((item, i) => {
                   const slot = FLAT_LAY_SLOTS[i % FLAT_LAY_SLOTS.length];
                   return (
-                    <button
+                    <motion.button
                       key={item.id}
-                      className="group absolute rounded-xl transition-transform duration-200 hover:scale-105"
+                      className="group absolute rounded-xl"
                       style={{
                         top: slot.top,
                         left: slot.left,
                         width: slot.width,
-                        transform: `rotate(${slot.rotate}deg)`,
                         zIndex: i + 1,
                       }}
+                      initial={
+                        ceremony
+                          ? { opacity: 0, scale: 0.9, y: 18, rotate: slot.rotate - 6 }
+                          : false
+                      }
+                      animate={{ opacity: 1, scale: 1, y: 0, rotate: slot.rotate }}
+                      transition={
+                        ceremony
+                          ? { ...settleSpring, delay: i * SETTLE_STAGGER_S }
+                          : { duration: 0 }
+                      }
+                      whileHover={{ scale: 1.05 }}
                       onClick={() => setSwappingItem(item)}
                       aria-label={`Swap ${item.color} ${item.sub_type}`}
                     >
@@ -411,27 +473,33 @@ export default function OutfitPage() {
                         {item.color} {item.sub_type} · {item.category}
                         {item.fit ? ` · ${item.fit}` : ''}
                       </span>
-                    </button>
+                    </motion.button>
                   );
                 })}
-              </div>
+              </motion.div>
             </div>
 
-            {/* Hashtags + refresh on one compact row */}
+            {/* Hashtags + shuffle on one compact row. Hashtags land after the
+                garments settle during the reveal ceremony. */}
             <div className="mt-3 flex shrink-0 items-center justify-between gap-3">
-              <div className="flex min-w-0 flex-wrap gap-2 overflow-hidden">
+              <motion.div
+                className="flex min-w-0 flex-wrap gap-2 overflow-hidden"
+                initial={ceremony ? { opacity: 0, y: 8 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease, delay: whyDelay }}
+              >
                 {hashtags.map((tag) => (
                   <span key={tag} className="text-sm text-muted-foreground">
                     #{tag}
                   </span>
                 ))}
-              </div>
+              </motion.div>
               <button
-                onClick={() => fetchOutfit(recommendation?.session_id, dressingFor)}
+                onClick={handleShuffle}
                 className="btn-outline btn-sm shrink-0 gap-2"
               >
-                <RefreshCw className="h-4 w-4" />
-                Refresh
+                <Shuffle className="h-4 w-4" />
+                Shuffle
               </button>
             </div>
           </>
@@ -441,8 +509,8 @@ export default function OutfitPage() {
       {/* CTA in normal flow at the bottom of the viewport column — the canvas
           above is height-bounded, so items can never slide underneath it.
           Stays put while curating, just muted + disabled so a not-yet-ready
-          outfit can't be accepted. */}
-      {(loading || recommendation) && (
+          outfit can't be accepted. Hidden while the outfit is still sealed. */}
+      {phase === 'revealed' && (loading || recommendation) && (
         <div className="shrink-0 border-t border-border bg-background/95">
           <div className="mx-auto w-full max-w-xl px-6 py-3">
             <button
@@ -459,14 +527,17 @@ export default function OutfitPage() {
         </div>
       )}
 
-      {swappingItem && (
-        <SwapBottomSheet
-          item={swappingItem}
-          outfitItemIds={displayItems.map((i) => i.id)}
-          onSwap={handleSwap}
-          onClose={() => setSwappingItem(null)}
-        />
-      )}
+      <AnimatePresence>
+        {swappingItem && (
+          <SwapBottomSheet
+            key={swappingItem.id}
+            item={swappingItem}
+            outfitItemIds={displayItems.map((i) => i.id)}
+            onSwap={handleSwap}
+            onClose={() => setSwappingItem(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
