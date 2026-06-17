@@ -21,6 +21,7 @@ const maxNameLen = 100
 type AuthResult struct {
 	Token  string
 	UserID string
+	IsNew  bool // true when this call created a new account (drives onboarding)
 }
 
 type Service struct {
@@ -81,6 +82,56 @@ func (s *Service) Login(ctx context.Context, email, password string) (*AuthResul
 		return nil, err
 	}
 	return &AuthResult{Token: tok, UserID: u.ID}, nil
+}
+
+// AuthenticateGoogle signs a user in from a verified Google identity, creating
+// the account on first use. Lookup order: by Google ID, then by email (linking
+// Google to a pre-existing email/password account), else create a new account.
+func (s *Service) AuthenticateGoogle(ctx context.Context, id GoogleIdentity) (*AuthResult, error) {
+	if id.GoogleID == "" {
+		return nil, ErrInvalidCredentials
+	}
+
+	u, err := s.repo.FindByGoogleID(ctx, id.GoogleID)
+	if err != nil {
+		return nil, err
+	}
+
+	isNew := false
+	switch {
+	case u != nil:
+		// Already linked — nothing to persist.
+	default:
+		// No Google link yet: adopt an existing email account or create one.
+		u, err = s.repo.FindByEmail(ctx, id.Email)
+		if err != nil {
+			return nil, err
+		}
+		if u != nil {
+			u.GoogleID = id.GoogleID
+			if u.Name == "" {
+				u.Name = id.Name
+			}
+		} else {
+			isNew = true
+			u = &User{
+				ID:        uuid.New().String(),
+				Email:     id.Email,
+				Name:      id.Name,
+				GoogleID:  id.GoogleID,
+				CreatedAt: time.Now(),
+			}
+		}
+		if err := s.repo.Save(ctx, u); err != nil {
+			return nil, err
+		}
+	}
+
+	tok, err := token.Sign(u.ID, s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+	return &AuthResult{Token: tok, UserID: u.ID, IsNew: isNew}, nil
 }
 
 // GetProfile returns the authenticated user's account profile.

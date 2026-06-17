@@ -77,8 +77,16 @@ func (f *stubFetcher) FetchEvents(context.Context, string) ([]*calendar.Event, e
 	return f.events, f.err
 }
 
+// stubGoogle satisfies calendar.GoogleCalendarClient; the ICS-focused handler
+// tests never exercise the Google path.
+type stubGoogle struct{}
+
+func (stubGoogle) FetchEvents(_ context.Context, tok calendar.GoogleToken) ([]*calendar.Event, calendar.GoogleToken, error) {
+	return nil, tok, nil
+}
+
 func newHandler(repo *stubRepo, fetcher *stubFetcher) *CalendarHandler {
-	return NewCalendarHandler(calendar.NewService(repo, fetcher))
+	return NewCalendarHandler(calendar.NewService(repo, fetcher, stubGoogle{}))
 }
 
 func authed(req *http.Request, userID string) *http.Request {

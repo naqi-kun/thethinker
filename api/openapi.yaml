@@ -73,6 +73,34 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /auth/google:
+    post:
+      tags: [auth]
+      summary: Sign in (or register) with Google and connect Google Calendar
+      description: >
+        Exchanges a Google OAuth authorization code for tokens, verifies the
+        Google identity, and signs the user in — creating a new account on first
+        use. Because the consent screen also grants calendar access, the user's
+        Google Calendar is connected and its events synced in the same step.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleAuthRequest'
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   # ── Users ───────────────────────────────────────────────────────────────────
 
   /users/me:
@@ -518,6 +546,39 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /calendars/{id}/sync:
+    post:
+      tags: [calendar]
+      summary: Re-sync a connected calendar's events
+      description: >
+        Re-fetches events for the calendar from its source. For Google calendars
+        this calls the Google Calendar API using the stored OAuth refresh token;
+        for ICS calendars it re-fetches the ICS feed.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Calendar re-synced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Calendar'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          description: The calendar source could not be fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /calendars/events:
     get:
       tags: [calendar]
@@ -716,6 +777,20 @@ components:
         password:
           type: string
 
+    GoogleAuthRequest:
+      type: object
+      required: [code, redirect_uri]
+      properties:
+        code:
+          type: string
+          description: OAuth authorization code returned by Google to the redirect URI
+        redirect_uri:
+          type: string
+          format: uri
+          description: >
+            The exact redirect URI used to obtain the code. Must match one of the
+            URIs registered for the Google OAuth client.
+
     AuthResponse:
       type: object
       required: [token, user_id]
@@ -725,6 +800,11 @@ components:
           description: JWT Bearer token
         user_id:
           type: string
+        is_new:
+          type: boolean
+          description: >
+            True when this request created a new account (e.g. first Google
+            sign-in). Clients use this to route new users into onboarding.
 
     UserProfile:
       type: object

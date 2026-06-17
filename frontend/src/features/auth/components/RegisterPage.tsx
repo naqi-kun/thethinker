@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { register } from '../api';
+import { startGoogleSignIn, isGoogleConfigured } from '../google';
 import { token } from '../../../shared/api/token';
 import { ApiError } from '../../../shared/api/httpClient';
 
@@ -160,8 +161,9 @@ export default function RegisterPage() {
 
           <button
             type="button"
+            onClick={startGoogleSignIn}
+            disabled={!isGoogleConfigured()}
             className="btn-secondary btn-lg w-full flex items-center justify-center gap-3"
-            disabled
           >
             <GoogleIcon />
             Continue with Google

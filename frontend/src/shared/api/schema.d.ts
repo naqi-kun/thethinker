@@ -88,6 +88,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in (or register) with Google and connect Google Calendar
+         * @description Exchanges a Google OAuth authorization code for tokens, verifies the Google identity, and signs the user in — creating a new account on first use. Because the consent screen also grants calendar access, the user's Google Calendar is connected and its events synced in the same step.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GoogleAuthRequest"];
+                };
+            };
+            responses: {
+                /** @description Authentication successful */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuthResponse"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/me": {
         parameters: {
             query?: never;
@@ -826,6 +871,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/calendars/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-sync a connected calendar's events
+         * @description Re-fetches events for the calendar from its source. For Google calendars this calls the Google Calendar API using the stored OAuth refresh token; for ICS calendars it re-fetches the ICS feed.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Calendar re-synced */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Calendar"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                /** @description The calendar source could not be fetched */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/calendars/events": {
         parameters: {
             query?: never;
@@ -1074,10 +1171,21 @@ export interface components {
             email: string;
             password: string;
         };
+        GoogleAuthRequest: {
+            /** @description OAuth authorization code returned by Google to the redirect URI */
+            code: string;
+            /**
+             * Format: uri
+             * @description The exact redirect URI used to obtain the code. Must match one of the URIs registered for the Google OAuth client.
+             */
+            redirect_uri: string;
+        };
         AuthResponse: {
             /** @description JWT Bearer token */
             token: string;
             user_id: string;
+            /** @description True when this request created a new account (e.g. first Google sign-in). Clients use this to route new users into onboarding. */
+            is_new?: boolean;
         };
         UserProfile: {
             id: string;
