@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import TopNav from '../../../shared/components/TopNav';
 import { ApiError } from '../../../shared/api/client';
 import type {
   CalendarEvent,
@@ -22,13 +21,23 @@ import type {
 } from '../../../shared/api/types';
 import { ease } from '../../../shared/motion';
 import { getTodayEvents, ignoreEvent } from '../../calendar/api';
-import { acceptOutfit, getOutfit } from '../api';
+import { acceptOutfit, getOutfit, type OutfitOptions } from '../api';
 import { hasRevealedToday, markRevealedToday } from '../revealStore';
 import { SETTLE_STAGGER_S, settleSpring } from '../revealMotion';
 import SwapBottomSheet from './SwapBottomSheet';
 import WrappedCard from './WrappedCard';
 
 const MAX_ITEMS = 10;
+
+// "Dressing for" selection. 'auto' lets the server pick the day's most-formal
+// event; 'everyday' forces relaxed daily wear; any other value is an event id.
+type DressingFor = 'auto' | 'everyday' | string;
+
+function selectionToOptions(selection: DressingFor): OutfitOptions {
+  if (selection === 'auto') return {};
+  if (selection === 'everyday') return { occasion: 'casual' };
+  return { eventId: selection };
+}
 
 const today = new Date().toLocaleDateString('en-US', {
   weekday: 'long',
@@ -95,6 +104,7 @@ export default function OutfitPage() {
     null,
   );
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [dressingFor, setDressingFor] = useState<DressingFor>('auto');
   const [loading, setLoading] = useState(true);
   const [emptyWardrobe, setEmptyWardrobe] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,31 +138,34 @@ export default function OutfitPage() {
   // one orphaned) and swap the outfit ~2s after load.
   const didInitialFetch = useRef(false);
 
-  const fetchOutfit = useCallback((sessionId?: string) => {
-    const requestId = ++latestRequestId.current;
-    setLoading(true);
-    setError(null);
-    setEmptyWardrobe(false);
-    setAccepted(false);
-    setSwappingItem(null);
-    getOutfit(sessionId)
-      .then((rec) => {
-        if (latestRequestId.current !== requestId) return; // superseded
-        setRecommendation(rec);
-      })
-      .catch((err: unknown) => {
-        if (latestRequestId.current !== requestId) return; // superseded
-        if (err instanceof ApiError && err.status === 404) {
-          setEmptyWardrobe(true);
-        } else {
-          setError('Unable to load outfit recommendation. Please try again.');
-        }
-      })
-      .finally(() => {
-        if (latestRequestId.current !== requestId) return; // superseded
-        setLoading(false);
-      });
-  }, []);
+  const fetchOutfit = useCallback(
+    (sessionId?: string, selection: DressingFor = 'auto') => {
+      const requestId = ++latestRequestId.current;
+      setLoading(true);
+      setError(null);
+      setEmptyWardrobe(false);
+      setAccepted(false);
+      setSwappingItem(null);
+      getOutfit(sessionId, selectionToOptions(selection))
+        .then((rec) => {
+          if (latestRequestId.current !== requestId) return; // superseded
+          setRecommendation(rec);
+        })
+        .catch((err: unknown) => {
+          if (latestRequestId.current !== requestId) return; // superseded
+          if (err instanceof ApiError && err.status === 404) {
+            setEmptyWardrobe(true);
+          } else {
+            setError('Unable to load outfit recommendation. Please try again.');
+          }
+        })
+        .finally(() => {
+          if (latestRequestId.current !== requestId) return; // superseded
+          setLoading(false);
+        });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (didInitialFetch.current) return;
@@ -173,6 +186,13 @@ export default function OutfitPage() {
     const t = setTimeout(() => setShowToast(false), 3000);
     return () => clearTimeout(t);
   }, [showToast]);
+
+  function handleDressingForChange(value: DressingFor) {
+    // A new occasion changes the stylist's brief, which only applies when a
+    // session starts — so drop the current session and fetch a fresh look.
+    setDressingFor(value);
+    fetchOutfit(undefined, value);
+  }
 
   function handleIgnore(id: string) {
     // Optimistically drop it; ignored events are hidden server-side too.
@@ -222,8 +242,8 @@ export default function OutfitPage() {
   const handleShuffle = useCallback(() => {
     setCeremony(!prefersReducedMotion);
     setShuffleKey((k) => k + 1);
-    fetchOutfit(recommendation?.session_id);
-  }, [fetchOutfit, recommendation, prefersReducedMotion]);
+    fetchOutfit(recommendation?.session_id, dressingFor);
+  }, [fetchOutfit, recommendation, prefersReducedMotion, dressingFor]);
 
   const displayItems: ClothingItem[] = recommendation?.items.slice(0, MAX_ITEMS) ?? [];
   const hashtags = recommendation ? deriveHashtags(recommendation) : [];
@@ -234,10 +254,10 @@ export default function OutfitPage() {
   const whyDelay = ceremony ? displayItems.length * SETTLE_STAGGER_S + 0.15 : 0;
 
   return (
-    // Fixed viewport-height column: header, canvas (flex-1), CTA — no page scroll.
-    <div className="flex h-screen-safe flex-col overflow-hidden bg-background">
-      <TopNav />
-
+    // Fills the app shell's content region as a column — canvas (flex-1) + CTA,
+    // no inner scroll. Bottom padding clears the mobile floating tab bar (gone
+    // on desktop, where the side rail takes over).
+    <div className="flex h-full flex-col overflow-hidden pb-24 md:pb-4">
       {/* Save toast */}
       {showToast && (
         <div className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-espresso px-5 py-2.5 text-sm font-medium text-cream shadow-lg">
@@ -281,6 +301,29 @@ export default function OutfitPage() {
             </motion.div>
           )}
         </div>
+
+        {events.length > 0 && phase === 'revealed' && (
+          <div className="mb-3 flex shrink-0 items-center justify-center gap-2 text-sm">
+            <label htmlFor="dressing-for" className="text-muted-foreground">
+              Dressing for
+            </label>
+            <select
+              id="dressing-for"
+              value={dressingFor}
+              onChange={(e) => handleDressingForChange(e.target.value)}
+              disabled={loading}
+              className="rounded-full border border-border bg-card px-3 py-1.5 font-medium text-foreground disabled:opacity-60"
+            >
+              <option value="auto">✨ Best for today</option>
+              {events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {formatEventTime(event)} · {event.title}
+                </option>
+              ))}
+              <option value="everyday">Everyday</option>
+            </select>
+          </div>
+        )}
 
         {events.length > 0 && phase === 'revealed' && (
           <div className="mb-3 max-h-28 shrink-0 overflow-y-auto rounded-xl border border-border bg-card/60 p-3">

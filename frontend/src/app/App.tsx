@@ -8,6 +8,7 @@ import { OutfitPage } from '../features/outfit';
 import { CalendarPage } from '../features/calendar';
 import { SettingsPage } from '../features/settings';
 import { HistoryPage } from '../features/history';
+import AppLayout from './AppLayout';
 
 export function App() {
   return (
@@ -23,14 +24,7 @@ export function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/wardrobe"
-        element={
-          <ProtectedRoute>
-            <WardrobePage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Capture flows stand alone — no app chrome. */}
       <Route
         path="/wardrobe/add"
         element={
@@ -55,38 +49,21 @@ export function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* In-app pages share the header + floating bottom tab bar. */}
       <Route
-        path="/outfit"
         element={
           <ProtectedRoute>
-            <OutfitPage />
+            <AppLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/calendar"
-        element={
-          <ProtectedRoute>
-            <CalendarPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <SettingsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/history"
-        element={
-          <ProtectedRoute>
-            <HistoryPage />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route path="/wardrobe" element={<WardrobePage />} />
+        <Route path="/outfit" element={<OutfitPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/history" element={<HistoryPage />} />
+      </Route>
     </Routes>
   );
 }

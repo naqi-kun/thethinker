@@ -1,39 +1,27 @@
 import { apiClient } from '../../shared/api/client';
-import type { Preferences, StylePreference } from '../../shared/api/types';
+import type { Preferences } from '../../shared/api/types';
+import { DEFAULT_AESTHETIC, type Aesthetic } from '../../shared/aesthetics';
 
-const STYLE_MAP: Record<string, StylePreference> = {
-  Casual: 'casual',
-  'Smart Casual': 'business_casual',
-  Formal: 'formal',
-  Sporty: 'sport',
+// KAN-94: onboarding asks only what the recommender consumes and the user can
+// edit later — the aesthetic (shared taxonomy, KAN-92) and a location for
+// weather. Everything the old 8-step flow collected (occasions, skin tone,
+// body/face shape, height, palette, climate) is dropped per KAN-104.
+export type OnboardingAnswers = {
+  aesthetic: Aesthetic;
+  location: string;
 };
 
-export type OnboardingAnswers = {
-  style: string;
-  occasions: string[];
-  inspiration: string[];
-  skinTone: string;
-  bodyShape: string;
-  height: string;
-  faceShape: string;
-  palette: string;
-  location: string;
-  climate: string;
+export const EMPTY_ANSWERS: OnboardingAnswers = {
+  aesthetic: DEFAULT_AESTHETIC,
+  location: '',
 };
 
 export function buildPreferences(answers: OnboardingAnswers): Preferences {
   return {
-    styles: STYLE_MAP[answers.style] ? [STYLE_MAP[answers.style]] : [],
+    styles: [],
     answers: {
-      occasions: answers.occasions.join(','),
-      inspiration: answers.inspiration.join(','),
-      skin_tone: answers.skinTone,
-      body_shape: answers.bodyShape,
-      height: answers.height,
-      face_shape: answers.faceShape,
-      palette: answers.palette,
-      location: answers.location,
-      climate: answers.climate,
+      aesthetic: answers.aesthetic,
+      location: answers.location.trim(),
     },
     use_ai: true,
   };

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../shared/api/client';
@@ -71,8 +71,9 @@ describe('OutfitPage outfit loading (KAN-90)', () => {
 
     expect(await screen.findByText('#Work')).toBeTruthy();
     expect(mocks.getOutfit).toHaveBeenCalledTimes(1);
-    // Initial load starts a fresh session (no session_id passed).
-    expect(mocks.getOutfit).toHaveBeenNthCalledWith(1, undefined);
+    // Initial load starts a fresh session (no session_id) and dresses for the
+    // day's most-formal event by default (empty options).
+    expect(mocks.getOutfit).toHaveBeenNthCalledWith(1, undefined, {});
   });
 
   it('Refresh regenerates with the existing session_id and swaps in the new outfit', async () => {
@@ -92,8 +93,38 @@ describe('OutfitPage outfit loading (KAN-90)', () => {
 
     expect(await screen.findByText('#Gym')).toBeTruthy();
     expect(mocks.getOutfit).toHaveBeenCalledTimes(2);
-    // Shuffle reuses the current session rather than starting a new one.
-    expect(mocks.getOutfit).toHaveBeenNthCalledWith(2, 'a');
+    // Shuffle reuses the current session (with the same dressing-for brief)
+    // rather than starting a new one.
+    expect(mocks.getOutfit).toHaveBeenNthCalledWith(2, 'a', {});
+  });
+
+  it('dressing-for dropdown fetches a fresh session for the chosen event (KAN-92)', async () => {
+    mocks.getTodayEvents.mockResolvedValue([
+      {
+        id: 'ev-1',
+        title: 'Board meeting',
+        starts_at: '2026-06-16T09:00:00Z',
+        all_day: false,
+      },
+    ]);
+    mocks.getOutfit
+      .mockResolvedValueOnce(makeRec('a', 'Board meeting'))
+      .mockResolvedValueOnce(makeRec('b', 'Board meeting'));
+
+    render(
+      <MemoryRouter>
+        <OutfitPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('#Board meeting')).toBeTruthy();
+
+    const select = await screen.findByLabelText(/dressing for/i);
+    await userEvent.selectOptions(select, 'ev-1');
+
+    await waitFor(() => expect(mocks.getOutfit).toHaveBeenCalledTimes(2));
+    // Choosing an event starts a fresh session (undefined) dressing for it.
+    expect(mocks.getOutfit).toHaveBeenNthCalledWith(2, undefined, { eventId: 'ev-1' });
   });
 
   it('shows the empty-wardrobe state when the outfit request 404s', async () => {

@@ -38,7 +38,7 @@ type fakeAI struct {
 	err       error
 }
 
-func (f *fakeAI) StartSession(_ context.Context, _ []*wardrobe.ClothingItem) (string, recommendation.AIRec, error) {
+func (f *fakeAI) StartSession(_ context.Context, _ []*wardrobe.ClothingItem, _ recommendation.RecBrief) (string, recommendation.AIRec, error) {
 	return f.sessionID, f.rec, f.err
 }
 func (f *fakeAI) Regenerate(_ context.Context, _ string) (recommendation.AIRec, error) {
@@ -71,7 +71,7 @@ func TestGetOutfit_UseAIDisabled_UsesRuleBased(t *testing.T) {
 	ai := &fakeAI{sessionID: "should-not-be-used", rec: recommendation.AIRec{TopID: "top-1"}}
 	svc := newTestService(prefs, ai)
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "")
+	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -94,7 +94,7 @@ func TestGetOutfit_NoKeyEmptyCache_OmitsWeatherButStillRecommends(t *testing.T) 
 	prefs := &user.Preferences{UserID: "u1", UseAI: false, Answers: map[string]string{"location": "London"}}
 	svc := newTestService(prefs, &fakeAI{})
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "")
+	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestGetOutfit_AIError_FallsBackToRuleBased(t *testing.T) {
 	ai := &fakeAI{err: errors.New("ai service down")}
 	svc := newTestService(prefs, ai)
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "")
+	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "", "", "")
 	if err != nil {
 		t.Fatalf("expected graceful fallback, got error: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestGetOutfit_AISucceeds_ReportsAIRecommender(t *testing.T) {
 	}
 	svc := newTestService(prefs, ai)
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "")
+	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestGetOutfit_NoPreferences_DefaultsToAI(t *testing.T) {
 	}
 	svc := newTestService(nil, ai) // no prefs row at all
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "")
+	rec, err := svc.GetOutfit(context.Background(), "u1", time.Date(2026, 6, 12, 0, 0, 0, 0, time.UTC), "", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

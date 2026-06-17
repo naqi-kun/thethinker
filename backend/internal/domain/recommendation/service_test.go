@@ -90,7 +90,7 @@ func (s *stubCalendarRepo) FindUpcomingEvents(_ context.Context, _ string) ([]*c
 
 type stubAIRecommender struct{}
 
-func (s *stubAIRecommender) StartSession(_ context.Context, _ []*wardrobe.ClothingItem) (string, recommendation.AIRec, error) {
+func (s *stubAIRecommender) StartSession(_ context.Context, _ []*wardrobe.ClothingItem, _ recommendation.RecBrief) (string, recommendation.AIRec, error) {
 	return "", recommendation.AIRec{}, nil
 }
 func (s *stubAIRecommender) Regenerate(_ context.Context, _ string) (recommendation.AIRec, error) {
