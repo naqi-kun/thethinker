@@ -106,9 +106,10 @@ func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.Cl
 	}
 
 	return resp.SessionID, recommendation.AIRec{
-		TopID:    resp.Recommendation.TopID,
-		BottomID: resp.Recommendation.BottomID,
-		ShoesID:  resp.Recommendation.ShoesID,
+		TopID:     resp.Recommendation.TopID,
+		BottomID:  resp.Recommendation.BottomID,
+		ShoesID:   resp.Recommendation.ShoesID,
+		Reasoning: resp.Recommendation.Reasoning,
 	}, nil
 }
 
@@ -121,9 +122,10 @@ func (c *RecommendClient) Regenerate(ctx context.Context, sessionID string) (rec
 		return recommendation.AIRec{}, fmt.Errorf("ai: regenerate returned no recommendation")
 	}
 	return recommendation.AIRec{
-		TopID:    resp.Recommendation.TopID,
-		BottomID: resp.Recommendation.BottomID,
-		ShoesID:  resp.Recommendation.ShoesID,
+		TopID:     resp.Recommendation.TopID,
+		BottomID:  resp.Recommendation.BottomID,
+		ShoesID:   resp.Recommendation.ShoesID,
+		Reasoning: resp.Recommendation.Reasoning,
 	}, nil
 }
 
@@ -148,7 +150,10 @@ func (c *RecommendClient) post(ctx context.Context, path string, body, out any) 
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("ai: http: %w", err)
+		// A transport failure (connection refused, EOF, timeout) — commonly a
+		// cold-start race where the AI container is up but uvicorn isn't serving
+		// yet. Flag it as transient so the domain can retry before falling back.
+		return fmt.Errorf("%w: %v", recommendation.ErrAIUnavailable, err)
 	}
 	defer resp.Body.Close()
 

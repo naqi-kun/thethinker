@@ -6104,7 +6104,7 @@
                   "fill": {
                     "type": "image",
                     "enabled": true,
-                    "url": "./images/generated-1781449634313.png",
+                    "url": "images/generated-1781449634313.png",
                     "mode": "fill"
                   },
                   "width": "fill_container",

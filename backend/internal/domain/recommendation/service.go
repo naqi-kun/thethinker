@@ -104,24 +104,27 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 	brief := RecBrief{Occasion: occasion, EventName: occasionLabel, Aesthetic: aesthetic, Weather: conditions}
 
 	var selected []*wardrobe.ClothingItem
+	var reasoning string
 	recommender := RecommenderRuleBased
 	if useAI {
 		var rec AIRec
 		if sessionID == "" {
-			sessionID, rec, err = s.aiRecommender.StartSession(ctx, items, brief)
+			sessionID, rec, err = s.startAISession(ctx, items, brief)
 		} else {
 			rec, err = s.aiRecommender.Regenerate(ctx, sessionID)
 			if err != nil && sessionRecoverable(err) {
-				// The session is unusable — the AI lost it (404) or errored on it
-				// (5xx, commonly after a restart). Discard it and start a fresh
-				// session; if that also fails we fall through to the rule-based
-				// fallback below rather than surfacing an error to the client.
+				// The session is unusable — the AI lost it (404), errored on it
+				// (5xx, commonly after a restart), or was briefly unreachable.
+				// Discard it and start a fresh session; if that also fails we fall
+				// through to the rule-based fallback below rather than surfacing an
+				// error to the client.
 				log.Printf("recommendation: regenerate failed for user %s (%v); starting a fresh AI session", userID, err)
-				sessionID, rec, err = s.aiRecommender.StartSession(ctx, items, brief)
+				sessionID, rec, err = s.startAISession(ctx, items, brief)
 			}
 		}
 		if err == nil {
 			selected = pickItemsByID(items, rec)
+			reasoning = rec.Reasoning
 			recommender = RecommenderAI
 		} else {
 			log.Printf("recommendation: AI unavailable for user %s, falling back to rule-based: %v", userID, err)
@@ -143,6 +146,7 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		Occasion:    occasionLabel,
 		Weather:     conditions,
 		Recommender: recommender,
+		Reasoning:   reasoning,
 		CreatedAt:   time.Now(),
 	}, nil
 }
@@ -313,11 +317,44 @@ func isSessionNotFound(err error) bool {
 
 // sessionRecoverable reports whether a failed Regenerate should be retried with a
 // fresh AI session. A 404 means the session is gone; a 5xx means the AI errored on
-// this specific session (commonly after a restart) and a brand-new session may
-// still succeed. Transport timeouts and 4xx contract errors are not retried here —
-// they fall through to the rule-based fallback instead.
+// this specific session (commonly after a restart); a transport failure means the
+// AI was briefly unreachable. In all three a brand-new session may still succeed.
+// 4xx contract errors are not retried — they fall through to the rule-based
+// fallback instead.
 func sessionRecoverable(err error) bool {
-	return errors.Is(err, ErrSessionNotFound) || errors.Is(err, ErrAIServerError)
+	return errors.Is(err, ErrSessionNotFound) ||
+		errors.Is(err, ErrAIServerError) ||
+		errors.Is(err, ErrAIUnavailable)
+}
+
+// aiStartBackoff is the wait before each retry of a transient StartSession
+// failure; one retry per entry. A package var so tests can shorten it. Kept
+// short — it bridges a cold-start readiness gap or a transient reset, not a long
+// outage (a long one degrades to rule-based, which is fine).
+var aiStartBackoff = []time.Duration{150 * time.Millisecond, 400 * time.Millisecond}
+
+// startAISession starts a fresh AI session, retrying transient failures (a
+// cold-start EOF/connection reset or a 5xx) with a short backoff before giving
+// up. Non-transient errors (4xx contract errors, generic failures) return
+// immediately so the caller falls straight through to the rule-based fallback.
+func (s *Service) startAISession(ctx context.Context, items []*wardrobe.ClothingItem, brief RecBrief) (string, AIRec, error) {
+	sessionID, rec, err := s.aiRecommender.StartSession(ctx, items, brief)
+	for attempt := 0; err != nil && transientAIError(err) && attempt < len(aiStartBackoff); attempt++ {
+		log.Printf("recommendation: AI StartSession attempt %d failed (%v); retrying in %s", attempt+1, err, aiStartBackoff[attempt])
+		select {
+		case <-ctx.Done():
+			return "", AIRec{}, ctx.Err()
+		case <-time.After(aiStartBackoff[attempt]):
+		}
+		sessionID, rec, err = s.aiRecommender.StartSession(ctx, items, brief)
+	}
+	return sessionID, rec, err
+}
+
+// transientAIError reports whether an AI failure is worth retrying — a transient
+// transport problem or a 5xx, as opposed to a generic/contract error.
+func transientAIError(err error) bool {
+	return errors.Is(err, ErrAIUnavailable) || errors.Is(err, ErrAIServerError)
 }
 
 // ── item selection helpers ─────────────────────────────────────────────────────

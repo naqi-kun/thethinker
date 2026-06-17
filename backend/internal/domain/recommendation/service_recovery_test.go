@@ -33,6 +33,53 @@ func (f *scriptedAI) Regenerate(_ context.Context, _ string) (recommendation.AIR
 }
 func (f *scriptedAI) Accept(_ context.Context, _ string) error { return nil }
 
+// coldStartAI fails the first N StartSession calls with a transient error, then
+// succeeds — simulating an AI service that isn't accepting connections yet.
+type coldStartAI struct {
+	failsBeforeSuccess int
+	sessionID          string
+	rec                recommendation.AIRec
+	startCalls         int
+}
+
+func (f *coldStartAI) StartSession(_ context.Context, _ []*wardrobe.ClothingItem, _ recommendation.RecBrief) (string, recommendation.AIRec, error) {
+	f.startCalls++
+	if f.startCalls <= f.failsBeforeSuccess {
+		return "", recommendation.AIRec{}, recommendation.ErrAIUnavailable
+	}
+	return f.sessionID, f.rec, nil
+}
+func (f *coldStartAI) Regenerate(_ context.Context, _ string) (recommendation.AIRec, error) {
+	return recommendation.AIRec{}, recommendation.ErrAIUnavailable
+}
+func (f *coldStartAI) Accept(_ context.Context, _ string) error { return nil }
+
+// A transient StartSession failure (cold-start EOF) is retried rather than
+// silently degrading the day's first outfit to rule-based — the KAN-101 bug
+// where the "why this look" card went missing on app open.
+func TestGetOutfit_StartSessionTransientError_RetriesThenSucceeds(t *testing.T) {
+	ai := &coldStartAI{
+		failsBeforeSuccess: 1,
+		sessionID:          "warm-sess",
+		rec:                recommendation.AIRec{TopID: "top-1", BottomID: "bottom-1", ShoesID: "shoes-1"},
+	}
+	svc := newTestService(aiEnabledPrefs(), ai)
+
+	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "", "", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ai.startCalls != 2 {
+		t.Fatalf("startCalls = %d, want 2 (one retry after the transient failure)", ai.startCalls)
+	}
+	if rec.Recommender != recommendation.RecommenderAI {
+		t.Errorf("recommender = %q, want AI (retry should have recovered)", rec.Recommender)
+	}
+	if rec.SessionID != "warm-sess" {
+		t.Errorf("sessionID = %q, want warm-sess", rec.SessionID)
+	}
+}
+
 func aiEnabledPrefs() *user.Preferences {
 	return &user.Preferences{UserID: "u1", UseAI: true, Answers: map[string]string{}}
 }

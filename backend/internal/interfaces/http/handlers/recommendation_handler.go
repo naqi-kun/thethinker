@@ -42,6 +42,7 @@ type outfitResponse struct {
 	SessionID   string                 `json:"session_id"`
 	Date        string                 `json:"date"`
 	Recommender string                 `json:"recommender"`
+	Reasoning   string                 `json:"reasoning,omitempty"`
 	Occasion    string                 `json:"occasion,omitempty"`
 	Weather     *weatherResponse       `json:"weather,omitempty"`
 	Items       []clothingItemResponse `json:"items"`
@@ -108,6 +109,7 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 		SessionID:   rec.SessionID,
 		Date:        rec.Date.Format("2006-01-02"),
 		Recommender: string(rec.Recommender),
+		Reasoning:   rec.Reasoning,
 		Occasion:    rec.Occasion,
 		Weather:     wr,
 		Items:       items,

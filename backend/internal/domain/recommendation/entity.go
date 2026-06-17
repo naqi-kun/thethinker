@@ -22,14 +22,17 @@ type OutfitRecommendation struct {
 	Occasion    string
 	Weather     *weather.Conditions // nil when location is unknown
 	Recommender Recommender
+	Reasoning   string // one-sentence AI rationale; empty for the rule-based fallback
 	CreatedAt   time.Time
 }
 
-// AIRec holds the raw item IDs returned by the AI recommendation service.
+// AIRec holds the raw item IDs and styling rationale returned by the AI
+// recommendation service.
 type AIRec struct {
-	TopID    string
-	BottomID string
-	ShoesID  string
+	TopID     string
+	BottomID  string
+	ShoesID   string
+	Reasoning string
 }
 
 // RecBrief carries the situational signals the stylist should dress for, beyond
