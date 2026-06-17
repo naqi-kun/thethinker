@@ -23,7 +23,7 @@ type scriptedAI struct {
 	regenCalls     int
 }
 
-func (f *scriptedAI) StartSession(_ context.Context, _ []*wardrobe.ClothingItem) (string, recommendation.AIRec, error) {
+func (f *scriptedAI) StartSession(_ context.Context, _ []*wardrobe.ClothingItem, _ recommendation.RecBrief) (string, recommendation.AIRec, error) {
 	f.startCalls++
 	return f.startSessionID, f.startRec, f.startErr
 }
@@ -42,7 +42,7 @@ type coldStartAI struct {
 	startCalls         int
 }
 
-func (f *coldStartAI) StartSession(_ context.Context, _ []*wardrobe.ClothingItem) (string, recommendation.AIRec, error) {
+func (f *coldStartAI) StartSession(_ context.Context, _ []*wardrobe.ClothingItem, _ recommendation.RecBrief) (string, recommendation.AIRec, error) {
 	f.startCalls++
 	if f.startCalls <= f.failsBeforeSuccess {
 		return "", recommendation.AIRec{}, recommendation.ErrAIUnavailable
@@ -65,7 +65,7 @@ func TestGetOutfit_StartSessionTransientError_RetriesThenSucceeds(t *testing.T) 
 	}
 	svc := newTestService(aiEnabledPrefs(), ai)
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "")
+	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestGetOutfit_RegenerateServerError_StartsFreshSession(t *testing.T) {
 	}
 	svc := newTestService(aiEnabledPrefs(), ai)
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "stale-sess")
+	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "stale-sess", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestGetOutfit_RegenerateServerError_FreshSessionAlsoFails_RuleBased(t *test
 	}
 	svc := newTestService(aiEnabledPrefs(), ai)
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "stale-sess")
+	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "stale-sess", "", "")
 	if err != nil {
 		t.Fatalf("expected graceful fallback, got error: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestGetOutfit_RegenerateSessionNotFound_StartsFreshSession(t *testing.T) {
 	}
 	svc := newTestService(aiEnabledPrefs(), ai)
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "stale-sess")
+	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "stale-sess", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestGetOutfit_RegenerateContractError_NoRetry_RuleBased(t *testing.T) {
 	}
 	svc := newTestService(aiEnabledPrefs(), ai)
 
-	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "stale-sess")
+	rec, err := svc.GetOutfit(context.Background(), "u1", testDate, "stale-sess", "", "")
 	if err != nil {
 		t.Fatalf("expected graceful fallback, got error: %v", err)
 	}

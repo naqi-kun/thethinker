@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Download, Trash2, AlertTriangle, Plus, X, Pencil } from 'lucide-react';
-import TopNav from '../../../shared/components/TopNav';
 import { token } from '../../../shared/api/token';
+import {
+  AESTHETICS,
+  DEFAULT_AESTHETIC,
+  normalizeAesthetic,
+  type Aesthetic,
+} from '../../../shared/aesthetics';
 import {
   getPreferences,
   getProfile,
@@ -139,7 +144,6 @@ function RowLabel({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type TempUnit = 'Celsius' | 'Fahrenheit';
-type StylePref = 'Minimal' | 'Classic' | 'Streetwear' | 'Sporty' | 'Formal';
 type FitPref = 'Slim' | 'Regular' | 'Relaxed' | 'Oversized';
 
 export default function SettingsPage() {
@@ -159,7 +163,9 @@ export default function SettingsPage() {
   const [savedLocation, setSavedLocation] = useState('');
   const [savingLocation, setSavingLocation] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
-  const [style, setStyle] = useState<StylePref>('Classic');
+  const [style, setStyle] = useState<Aesthetic>(DEFAULT_AESTHETIC);
+  const [savingStyle, setSavingStyle] = useState(false);
+  const [styleStatus, setStyleStatus] = useState<string | null>(null);
   const [fit, setFit] = useState<FitPref>('Regular');
 
   // Work schedule (KAN-49)
@@ -222,12 +228,36 @@ export default function SettingsPage() {
         const loc = p.answers?.['location'] ?? '';
         setLocation(loc);
         setSavedLocation(loc);
+        setStyle(normalizeAesthetic(p.answers?.['aesthetic']));
         setUseAI(p.use_ai ?? true);
       })
       .catch(() => {
         /* best-effort; location stays empty */
       });
   }, []);
+
+  async function saveStyle(value: Aesthetic) {
+    const previous = style;
+    setStyle(value); // optimistic
+    setStyleStatus(null);
+    setSavingStyle(true);
+    try {
+      // answers are replaced wholesale on save, so merge into the current map.
+      const current = await getPreferences();
+      await updatePreferences({
+        styles: current.styles ?? [],
+        answers: { ...(current.answers ?? {}), aesthetic: value },
+        use_ai: current.use_ai ?? true,
+      });
+      setStyleStatus('Saved!');
+    } catch {
+      setStyle(previous); // revert on error
+      setStyleStatus('Could not save. Please try again.');
+    } finally {
+      setSavingStyle(false);
+      setTimeout(() => setStyleStatus(null), 3000);
+    }
+  }
 
   async function toggleUseAI(value: boolean) {
     setUseAI(value);
@@ -318,9 +348,7 @@ export default function SettingsPage() {
   const [eventReminder, setEventReminder] = useState(true);
 
   return (
-    <div className="min-h-screen-safe bg-background pb-12">
-      <TopNav />
-
+    <div className="pb-28 md:pb-8">
       <main className="mx-auto max-w-xl px-4 py-8 md:px-6">
         <div className="mb-8">
           <h2 className="mb-1">Settings</h2>
@@ -459,13 +487,20 @@ export default function SettingsPage() {
             )}
           </StackedRow>
           <StackedRow>
-            <p className="mb-2.5 text-sm font-medium text-foreground">
-              Style preference
-            </p>
-            <Segmented<StylePref>
-              options={['Minimal', 'Classic', 'Streetwear', 'Sporty', 'Formal']}
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-foreground">Aesthetic</p>
+              {styleStatus ? (
+                <span className="text-xs text-muted-foreground">{styleStatus}</span>
+              ) : (
+                savingStyle && (
+                  <span className="text-xs text-muted-foreground">Saving…</span>
+                )
+              )}
+            </div>
+            <Segmented<Aesthetic>
+              options={[...AESTHETICS]}
               value={style}
-              onChange={setStyle}
+              onChange={saveStyle}
             />
           </StackedRow>
           <StackedRow>

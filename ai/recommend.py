@@ -33,6 +33,12 @@ class Recommendation(BaseModel):
 class StartRequest(BaseModel):
     session_id: str | None = None
     wardrobe_items: list[WardrobeItem]
+    occasion: str | None = None       # wardrobe occasion category to dress for
+    event_name: str | None = None     # human label of the chosen calendar event
+    aesthetic: str | None = None      # the user's chosen aesthetic/vibe
+    temperature_c: float | None = None  # current temperature in °C
+    feels_like_c: float | None = None   # "feels like" temperature in °C
+    weather: str | None = None          # conditions description, e.g. "light rain"
 
 
 class StartResponse(BaseModel):
@@ -61,6 +67,12 @@ class RecommendationState(TypedDict):
     current_recommendation: dict | None
     disliked_combinations: list[dict]
     user_action: str | None
+    occasion: str | None
+    event_name: str | None
+    aesthetic: str | None
+    temperature_c: float | None
+    feels_like_c: float | None
+    weather: str | None
 
 
 # ── Claude client ──────────────────────────────────────────────────────────────
@@ -108,9 +120,44 @@ def filter_closet(state: RecommendationState) -> dict:
 def _build_prompt(state: RecommendationState) -> str:
     def fmt(items: list[dict]) -> str:
         return "\n".join(
-            f"  id={i['id']}  color={i['color']}  fit={i.get('fit', 'regular')}  type={i['sub_type']}"
+            f"  id={i['id']}  color={i['color']}  fit={i.get('fit', 'regular')}"
+            f"  type={i['sub_type']}  season={i.get('season', 'all')}"
             for i in items
         )
+
+    brief_lines = []
+    aesthetic = (state.get("aesthetic") or "").strip()
+    if aesthetic:
+        brief_lines.append(
+            f"- Aesthetic / vibe: {aesthetic}. Let this steer the overall look — "
+            "favor items and combinations that read as this style."
+        )
+    temp = state.get("temperature_c")
+    if temp is not None:
+        feels = state.get("feels_like_c")
+        weather_desc = (state.get("weather") or "").strip()
+        reading = f"{temp:.0f}°C"
+        if feels is not None and abs(feels - temp) >= 3:
+            reading += f" (feels like {feels:.0f}°C)"
+        if weather_desc:
+            reading += f", {weather_desc}"
+        brief_lines.append(
+            f"- Weather: {reading}. Dress for it — prefer warm layers and closed shoes "
+            "when it's cold or wet, and light, breathable pieces when it's hot. Use each "
+            "item's season tag as a guide."
+        )
+    occasion = (state.get("occasion") or "").strip()
+    event_name = (state.get("event_name") or "").strip()
+    if occasion and occasion != "everyday":
+        if event_name:
+            brief_lines.append(f"- Dress for: {event_name} — a {occasion} occasion. Match this formality.")
+        else:
+            brief_lines.append(f"- Dress for a {occasion} occasion. Match this formality.")
+    elif occasion == "everyday":
+        brief_lines.append("- Everyday wear — comfortable, no specific event to match.")
+    brief_section = ""
+    if brief_lines:
+        brief_section = "STYLING BRIEF (prioritize this):\n" + "\n".join(brief_lines) + "\n\n"
 
     blocklist = state.get("disliked_combinations") or []
     blocklist_section = ""
@@ -129,6 +176,7 @@ def _build_prompt(state: RecommendationState) -> str:
 
     return (
         "You are a personal stylist. Select one complete outfit from the wardrobe below.\n\n"
+        f"{brief_section}"
         "STYLING RULES:\n"
         "1. Avoid clashing colors (e.g. bright red top + bright green bottom).\n"
         "2. Match formality: casual tops with casual bottoms; formal with formal.\n"
@@ -228,6 +276,12 @@ async def recommend_start(body: StartRequest) -> StartResponse:
         "current_recommendation": None,
         "disliked_combinations": [],
         "user_action": None,
+        "occasion": body.occasion,
+        "event_name": body.event_name,
+        "aesthetic": body.aesthetic,
+        "temperature_c": body.temperature_c,
+        "feels_like_c": body.feels_like_c,
+        "weather": body.weather,
     }
 
     try:

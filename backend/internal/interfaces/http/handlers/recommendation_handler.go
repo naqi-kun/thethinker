@@ -13,9 +13,14 @@ import (
 )
 
 type recommendationSvc interface {
-	GetOutfit(ctx context.Context, userID string, date time.Time, sessionID string) (*recommendation.OutfitRecommendation, error)
+	GetOutfit(ctx context.Context, userID string, date time.Time, sessionID, occasion, eventID string) (*recommendation.OutfitRecommendation, error)
 	AcceptAndRecord(ctx context.Context, userID, sessionID string, itemIDs []string) error
 }
+
+// validOccasions are the occasion values accepted on the query string — they
+// mirror the wardrobe categories the recommender understands. Anything else is
+// ignored so a stray value degrades to the calendar-derived default.
+var validOccasions = map[string]bool{"casual": true, "formal": true, "sport": true}
 
 type RecommendationHandler struct {
 	svc recommendationSvc
@@ -61,8 +66,13 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 	}
 
 	sessionID := r.URL.Query().Get("session_id")
+	eventID := r.URL.Query().Get("event_id")
+	occasion := r.URL.Query().Get("occasion")
+	if occasion != "" && !validOccasions[occasion] {
+		occasion = "" // ignore unknown values; fall back to the calendar default
+	}
 
-	rec, err := h.svc.GetOutfit(r.Context(), userID, date, sessionID)
+	rec, err := h.svc.GetOutfit(r.Context(), userID, date, sessionID, occasion, eventID)
 	if err != nil {
 		if errors.Is(err, recommendation.ErrEmptyWardrobe) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "no items in wardrobe")

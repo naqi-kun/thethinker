@@ -941,6 +941,10 @@ export interface paths {
                     date?: string;
                     /** @description Resume an existing AI recommendation session (regenerate). Omit to start a new session. */
                     session_id?: string;
+                    /** @description Dress for this specific calendar event (id from GET /calendars/events). The server maps the event's type to an occasion. Takes precedence over `occasion`. Omit to let the server default to the day's most-formal event. */
+                    event_id?: string;
+                    /** @description Explicit occasion to dress for — used for the "Everyday" (no-event) choice or to override the calendar. Ignored when `event_id` is supplied. When neither is given, the server defaults to the most-formal event of the day, falling back to casual. */
+                    occasion?: "casual" | "formal" | "sport";
                 };
                 header?: never;
                 path?: never;

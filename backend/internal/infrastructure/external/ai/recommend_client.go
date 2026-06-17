@@ -48,6 +48,13 @@ type aiRecommendation struct {
 type startRequest struct {
 	SessionID     string                `json:"session_id,omitempty"`
 	WardrobeItems []wardrobeItemPayload `json:"wardrobe_items"`
+	Occasion      string                `json:"occasion,omitempty"`
+	EventName     string                `json:"event_name,omitempty"`
+	Aesthetic     string                `json:"aesthetic,omitempty"`
+	// Weather is sent as pointers so 0°C is distinguishable from "no reading".
+	TemperatureC *float64 `json:"temperature_c,omitempty"`
+	FeelsLikeC   *float64 `json:"feels_like_c,omitempty"`
+	Weather      string   `json:"weather,omitempty"` // conditions description, e.g. "light rain"
 }
 
 type startResponse struct {
@@ -67,7 +74,7 @@ type feedbackResponse struct {
 
 // ── interface implementation ──────────────────────────────────────────────────
 
-func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.ClothingItem) (string, recommendation.AIRec, error) {
+func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.ClothingItem, brief recommendation.RecBrief) (string, recommendation.AIRec, error) {
 	payload := make([]wardrobeItemPayload, len(items))
 	for i, item := range items {
 		payload[i] = wardrobeItemPayload{
@@ -81,7 +88,20 @@ func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.Cl
 	}
 
 	var resp startResponse
-	if err := c.post(ctx, "/recommend/start", startRequest{WardrobeItems: payload}, &resp); err != nil {
+	req := startRequest{
+		WardrobeItems: payload,
+		Occasion:      brief.Occasion,
+		EventName:     brief.EventName,
+		Aesthetic:     brief.Aesthetic,
+	}
+	if brief.Weather != nil {
+		temp := brief.Weather.Temperature
+		feels := brief.Weather.FeelsLike
+		req.TemperatureC = &temp
+		req.FeelsLikeC = &feels
+		req.Weather = brief.Weather.Description
+	}
+	if err := c.post(ctx, "/recommend/start", req, &resp); err != nil {
 		return "", recommendation.AIRec{}, err
 	}
 

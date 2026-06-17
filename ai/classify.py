@@ -17,6 +17,10 @@ router = APIRouter(tags=["classify"])
 _client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 _executor = ThreadPoolExecutor(max_workers=4)
 
+# Background removal is memory-heavy; serialize it so a burst of concurrent scans
+# (or an overlapping /classify) can't stack rembg peaks and OOM the container.
+_rembg_semaphore = asyncio.Semaphore(1)
+
 _MODEL = "claude-sonnet-4-6"
 
 # Largest edge (px) we send to the vision model. Garment classification doesn't
@@ -24,8 +28,11 @@ _MODEL = "claude-sonnet-4-6"
 # base64 payload well under Anthropic's image limits.
 _MAX_EDGE = 1024
 
-# Load u2net session once at startup — reused across all /remove-bg requests.
-rembg_session = new_session("u2net")
+# Load the rembg session once at startup — reused across all /remove-bg requests.
+# u2netp is the lightweight (~5 MB) variant of u2net (~176 MB); it keeps the fixed
+# memory baseline low so the service fits inside Railway's 512 MB cap. Edge quality
+# is slightly softer but fine for garment cutouts (KAN-116).
+rembg_session = new_session("u2netp")
 
 # Allowed enum values, shared by the tool schema and kept in sync with the Go
 # domain layer (internal/domain/wardrobe/entity.go).
@@ -166,25 +173,32 @@ async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
 
 
 
+def _remove_bg_sync(pil_image: Image.Image) -> bytes:
+    cutout = remove(pil_image, session=rembg_session)  # RGBA PIL image
+    buf = io.BytesIO()
+    cutout.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 @router.post("/remove-bg")
 async def remove_bg(image: UploadFile = File(...)) -> Response:
     data = await image.read()
 
-    # Downscale before u2net the same way /classify does. Full phone-resolution
-    # images make onnxruntime allocate multiple full-size float32 arrays, which
-    # OOM-kills the container. Background-removed wardrobe thumbnails don't need
-    # more than _MAX_EDGE px.
     try:
         pil_image = Image.open(io.BytesIO(data)).convert("RGB")
     except Exception:
         raise HTTPException(status_code=422, detail="cannot decode image")
 
+    # Downscale before rembg — the network only sees 320x320, but rembg upsamples
+    # the alpha mask back to the *input* resolution, so a full-res phone photo
+    # allocates several multi-MP arrays and spikes memory past the container cap.
+    # Capping the input mirrors the /classify path and keeps peak memory bounded.
     pil_image.thumbnail((_MAX_EDGE, _MAX_EDGE))
-    buf = io.BytesIO()
-    pil_image.save(buf, format="JPEG", quality=90)
 
-    try:
-        output = remove(buf.getvalue(), session=rembg_session)
-    except Exception:
-        raise HTTPException(status_code=422, detail="cannot process image")
+    loop = asyncio.get_running_loop()
+    async with _rembg_semaphore:
+        try:
+            output = await loop.run_in_executor(_executor, _remove_bg_sync, pil_image)
+        except Exception:
+            raise HTTPException(status_code=422, detail="cannot process image")
     return Response(content=output, media_type="image/png")

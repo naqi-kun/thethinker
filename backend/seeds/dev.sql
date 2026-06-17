@@ -22,14 +22,17 @@ INSERT INTO users (id, email, password_hash) VALUES
   ('00000000-0000-0000-0000-000000000002', 'jane@thethinker.com',
    crypt('password123', gen_salt('bf', 10)));
 
--- Preferences
+-- Preferences — distinct aesthetics + locations so the seed exercises the
+-- aesthetic (KAN-92) and weather (KAN-114) signals. answers uses the current
+-- {aesthetic, location} keys (legacy climate/occasion retired); styles empty to
+-- match what onboarding/Settings now write.
 INSERT INTO user_preferences (user_id, styles, answers) VALUES
   ('00000000-0000-0000-0000-000000000001',
-   ARRAY['casual', 'business_casual'],
-   '{"climate": "temperate", "occasion": "work"}'),
+   '{}',
+   '{"aesthetic": "Streetwear", "location": "Berlin"}'),
   ('00000000-0000-0000-0000-000000000002',
-   ARRAY['formal', 'classic'],
-   '{"climate": "temperate", "occasion": "formal"}');
+   '{}',
+   '{"aesthetic": "Old Money", "location": "Paris"}');
 
 -- Wardrobe items — explicit UUIDs so outfit history can reference them
 INSERT INTO wardrobe_items (id, user_id, category, sub_type, color, fit, season) VALUES

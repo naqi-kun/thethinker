@@ -133,10 +133,14 @@ func (h *DevSeedHandler) runSeed(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("insert users: %w", err)
 	}
 
+	// Distinct aesthetics + locations so the seed exercises the aesthetic
+	// (KAN-92) and weather (KAN-114) signals on login. answers uses the current
+	// {aesthetic, location} keys (the legacy climate/occasion keys were retired);
+	// styles is empty to match what onboarding/Settings now write.
 	if _, err := h.db.Exec(ctx, `
 		INSERT INTO user_preferences (user_id, styles, answers) VALUES
-		($1, ARRAY['casual','business_casual'], '{"climate":"temperate","occasion":"work"}'),
-		($2, ARRAY['formal','classic'],         '{"climate":"temperate","occasion":"formal"}')`,
+		($1, '{}', '{"aesthetic":"Streetwear","location":"Berlin"}'),
+		($2, '{}', '{"aesthetic":"Old Money","location":"Paris"}')`,
 		user1, user2,
 	); err != nil {
 		return "", fmt.Errorf("insert preferences: %w", err)
