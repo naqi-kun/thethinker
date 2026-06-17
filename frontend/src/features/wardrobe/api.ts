@@ -67,6 +67,13 @@ export async function updateItem(
   return data! as ClothingItem;
 }
 
+/**
+ * Window event emitted after any wardrobe item status change succeeds, so
+ * passive consumers (e.g. the nav basket-count badge) can refresh without a
+ * shared store. Listen via `window.addEventListener(WARDROBE_STATUS_EVENT, ...)`.
+ */
+export const WARDROBE_STATUS_EVENT = 'wardrobe:status-changed';
+
 export async function updateItemStatus(
   id: string,
   status: ClothingStatus,
@@ -75,6 +82,9 @@ export async function updateItemStatus(
     params: { path: { id } },
     body: { status },
   });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(WARDROBE_STATUS_EVENT));
+  }
   return data! as ClothingItem;
 }
 
