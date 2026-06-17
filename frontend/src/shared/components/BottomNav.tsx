@@ -31,9 +31,8 @@ export default function BottomNav() {
     listItems()
       .then((items) =>
         setBasketCount(
-          items.filter((i) =>
-            LAUNDERING_STATUSES.includes(i.status as ClothingStatus),
-          ).length,
+          items.filter((i) => LAUNDERING_STATUSES.includes(i.status as ClothingStatus))
+            .length,
         ),
       )
       .catch(() => {

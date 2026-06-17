@@ -362,7 +362,9 @@ export default function LaundryPage() {
                       onDragStart={() => handleDragStart(item.id, 'basket')}
                       onDragEnd={handleDragEnd}
                       className={`flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-all ${
-                        isSaving ? 'pointer-events-none' : 'cursor-grab active:cursor-grabbing'
+                        isSaving
+                          ? 'pointer-events-none'
+                          : 'cursor-grab active:cursor-grabbing'
                       }`}
                     >
                       <GripVertical className="h-4 w-4 flex-shrink-0 text-muted-foreground/40" />
@@ -374,7 +376,9 @@ export default function LaundryPage() {
                         <p className="text-xs text-muted-foreground">{item.color}</p>
                       </div>
                       <span className="badge-default shrink-0 px-2 py-0.5 text-[10px]">
-                        {isSaving ? 'Moving…' : statusLabel(item.status as ClothingStatus)}
+                        {isSaving
+                          ? 'Moving…'
+                          : statusLabel(item.status as ClothingStatus)}
                       </span>
                       <button
                         onClick={() => void moveToWorn(item)}
