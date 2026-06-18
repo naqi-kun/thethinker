@@ -92,33 +92,5 @@ backend-build:
     expire_in: 1 hour
 
 # ── Deploy ──────────────────────────────────────────────────
-
-# Source-build deploys: `railway up` uploads each service directory and Railway
-# builds its Dockerfile (pinned via <svc>/railway.json -> builder: DOCKERFILE).
-# No image registry is involved, so there is no image tag to mis-point — that
-# missing-tag mistake is what took the backend down (cyrileo/...:fix1).
-#
-# Each <svc>/railway.json also sets a healthcheckPath, so Railway will NOT shift
-# traffic to a new deploy until it passes its healthcheck; a broken build leaves
-# the previous healthy deploy serving instead of crashing the service.
-#
-# `railway up` deploys the CURRENT directory, so we cd into each service (where
-# its railway.json lives) and run it there. Passing the dir as a positional PATH
-# (`railway up backend`) trips the CLI's "prefix not found" indexing bug, which
-# is what failed the first deploy. --ci streams build logs then exits with the
-# build's status, so a failed build fails the pipeline (red) instead of hanging.
-deploy-railway:
-  stage: deploy
-  image: node:22
-  before_script:
-    # Pin the CLI so an upstream release can't change deploy behavior unannounced.
-    - npm install -g @railway/cli@5.12.1
-  script:
-    - (cd backend  && railway up --service backend  --ci)
-    - (cd ai       && railway up --service ai       --ci)
-    - (cd frontend && railway up --service frontend --ci)
-  only:
-    - main
-  variables:
-    RAILWAY_TOKEN: $RAILWAY_TOKEN
-    RAILWAY_PROJECT_ID: $RAILWAY_PROJECT_ID
+# Production deploys to GCP Cloud Run via scripts/deploy-production.mjs.
+# Run manually: node scripts/deploy-production.mjs (requires gcs-key.json + gcloud auth).
