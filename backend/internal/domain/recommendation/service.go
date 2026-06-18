@@ -131,11 +131,19 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		}
 	}
 
+	var watch, bag, belt *wardrobe.ClothingItem
 	if len(selected) == 0 {
 		// Rule-based fallback: used when use_ai=false or AI service is unavailable.
 		sessionID = "" // no session ID for rule-based recommendations
 		recommender = RecommenderRuleBased
 		selected = ruleBasedOutfit(items, conditions, date)
+		// Also suggest accessories using the rule-based strategy
+		watch, bag, belt = ruleBasedAccessories(items, conditions, date)
+	} else {
+		// AI path: accessories come from AIRec
+		watch = pickItemByID(items, rec.WatchID)
+		bag = pickItemByID(items, rec.BagID)
+		belt = pickItemByID(items, rec.BeltID)
 	}
 
 	return &OutfitRecommendation{
@@ -143,9 +151,9 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		UserID:      userID,
 		Date:        date,
 		Items:       selected,
-		Watch:       pickItemByID(items, rec.WatchID),
-		Bag:         pickItemByID(items, rec.BagID),
-		Belt:        pickItemByID(items, rec.BeltID),
+		Watch:       watch,
+		Bag:         bag,
+		Belt:        belt,
 		Occasion:    occasionLabel,
 		Weather:     conditions,
 		Recommender: recommender,
