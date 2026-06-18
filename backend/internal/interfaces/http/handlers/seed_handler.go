@@ -50,7 +50,7 @@ type seedMeta struct {
 // dev account, women's only jane's; unisex items go to both.
 var imageMeta = map[string]seedMeta{
 	"shirt":      {"shirt", "formal", "light blue", "slim", "all", mens},
-	"t-shirt":    {"t-shirt", "casual", "orange", "regular", "all", unisex},
+	"t-shirt":    {"t-shirt", "casual", "white", "regular", "all", unisex},
 	"sweatshirt": {"sweater", "casual", "grey", "relaxed", "autumn_winter", unisex},
 	"hoodie":     {"hoodie", "casual", "beige", "oversized", "all", unisex},
 	"jacket":     {"jacket", "casual", "grey", "regular", "all", mens},
@@ -65,6 +65,29 @@ var imageMeta = map[string]seedMeta{
 	"shoes":      {"shoes", "formal", "black", "regular", "all", mens},
 	"sneakers":   {"sneakers", "casual", "beige", "regular", "all", unisex},
 	"boots":      {"boots", "casual", "black", "regular", "autumn_winter", unisex},
+
+	// ── KAN-118: aesthetic wardrobes ──────────────────────────────────────
+	// Aesthetic is emergent from how items are *paired*, not a per-item tag, so
+	// each user gets the versatile core above plus a few signature pieces. The
+	// same polo reads streetwear with jeans but preppy with chinos; the wardrobe
+	// is sized so each user can reach several distinct vibes by combination.
+	//
+	// jane@ (womenswear): old-money/parisian · coquette · cottagecore · boho.
+	"coquette-blouse":   {"shirt", "casual", "white", "regular", "spring_summer", womens},
+	"coquette-dress":    {"dress", "casual", "pink", "regular", "spring_summer", womens},
+	"coquette-flats":    {"shoes", "casual", "black", "regular", "all", womens},
+	"cottagecore-skirt": {"skirt", "casual", "pink", "regular", "spring_summer", womens},
+	"boho-kimono":       {"jacket", "casual", "multicolor", "relaxed", "all", womens},
+	"oldmoney-sweater":  {"sweater", "casual", "beige", "regular", "autumn_winter", womens},
+	"oldmoney-trousers": {"pants", "formal", "beige", "regular", "all", womens},
+	// dev@ (menswear): streetwear · preppy · old-money/classic · athleisure.
+	"preppy-polo":         {"shirt", "casual", "green", "regular", "spring_summer", mens},
+	"preppy-chinos":       {"pants", "casual", "beige", "slim", "all", mens},
+	"street-cargo":        {"pants", "casual", "beige", "relaxed", "all", mens},
+	"street-graphictee":   {"t-shirt", "casual", "green", "regular", "all", mens},
+	"athleisure-hoodie":   {"hoodie", "sport", "grey", "regular", "all", mens},
+	"athleisure-sweats":   {"pants", "sport", "white", "relaxed", "all", mens},
+	"athleisure-trainers": {"sneakers", "sport", "black", "regular", "all", mens},
 }
 
 // DevSeedHandler populates the database with deterministic test data.
