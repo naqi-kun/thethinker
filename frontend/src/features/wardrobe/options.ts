@@ -79,8 +79,6 @@ export const STATUSES: SelectOption<ClothingStatus>[] = [
   { value: 'clean', label: 'Clean' },
   { value: 'worn', label: 'Worn' },
   { value: 'in_laundry', label: 'In Laundry' },
-  { value: 'washing', label: 'Washing' },
-  { value: 'drying', label: 'Drying' },
 ];
 
 export const SUB_TYPES: SelectOption<ClothingSubType>[] = [

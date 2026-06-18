@@ -1252,7 +1252,7 @@ export interface components {
         };
         UpdateStatusRequest: {
             /** @enum {string} */
-            status: "clean" | "worn" | "in_laundry" | "washing" | "drying";
+            status: "clean" | "worn" | "in_laundry";
         };
         ClothingItem: {
             id: string;
@@ -1276,7 +1276,7 @@ export interface components {
              * @default clean
              * @enum {string}
              */
-            status: "clean" | "worn" | "in_laundry" | "washing" | "drying";
+            status: "clean" | "worn" | "in_laundry";
             /** Format: uri */
             image_url?: string;
             /** Format: date-time */

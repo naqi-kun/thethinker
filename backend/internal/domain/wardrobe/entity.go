@@ -202,12 +202,10 @@ const (
 	StatusClean Status = iota
 	StatusWorn
 	StatusInLaundry
-	StatusWashing
-	StatusDrying
 )
 
 func (s Status) String() string {
-	return [...]string{"clean", "worn", "in_laundry", "washing", "drying"}[s]
+	return [...]string{"clean", "worn", "in_laundry"}[s]
 }
 
 func ParseStatus(s string) (Status, error) {
@@ -218,10 +216,6 @@ func ParseStatus(s string) (Status, error) {
 		return StatusWorn, nil
 	case "in_laundry":
 		return StatusInLaundry, nil
-	case "washing":
-		return StatusWashing, nil
-	case "drying":
-		return StatusDrying, nil
 	default:
 		return 0, fmt.Errorf("%w: status %q", ErrInvalidClassification, s)
 	}

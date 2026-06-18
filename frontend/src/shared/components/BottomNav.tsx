@@ -15,7 +15,7 @@ const tabs: { to: string; label: string; Icon: LucideIcon }[] = [
   { to: '/history', label: 'History', Icon: History },
 ];
 
-const LAUNDERING_STATUSES: ClothingStatus[] = ['in_laundry', 'washing', 'drying'];
+const LAUNDERING_STATUSES: ClothingStatus[] = ['in_laundry'];
 
 // Floating tab bar pinned to the bottom of the viewport, mobile only — on md
 // and up the Sidebar rail takes over (`md:hidden` here). `fixed` so it hovers
@@ -23,8 +23,8 @@ const LAUNDERING_STATUSES: ClothingStatus[] = ['in_laundry', 'washing', 'drying'
 // it).
 export default function BottomNav() {
   const location = useLocation();
-  // Live count of items currently in the laundry basket (in_laundry/washing/
-  // drying), surfaced as a badge on the Wardrobe tab.
+  // Live count of items currently in the laundry basket (in_laundry),
+  // surfaced as a badge on the Wardrobe tab.
   const [basketCount, setBasketCount] = useState(0);
 
   const refreshCount = useCallback(() => {
