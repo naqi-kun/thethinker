@@ -105,9 +105,9 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 
 	var selected []*wardrobe.ClothingItem
 	var reasoning string
+	var rec AIRec
 	recommender := RecommenderRuleBased
 	if useAI {
-		var rec AIRec
 		if sessionID == "" {
 			sessionID, rec, err = s.startAISession(ctx, items, brief)
 		} else {
@@ -143,6 +143,9 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		UserID:      userID,
 		Date:        date,
 		Items:       selected,
+		Watch:       pickItemByID(items, rec.WatchID),
+		Bag:         pickItemByID(items, rec.BagID),
+		Belt:        pickItemByID(items, rec.BeltID),
 		Occasion:    occasionLabel,
 		Weather:     conditions,
 		Recommender: recommender,
@@ -375,6 +378,19 @@ func pickItemsByID(items []*wardrobe.ClothingItem, rec AIRec) []*wardrobe.Clothi
 		}
 	}
 	return result
+}
+
+// pickItemByID returns a single item by ID, or nil if not found.
+func pickItemByID(items []*wardrobe.ClothingItem, id string) *wardrobe.ClothingItem {
+	if id == "" {
+		return nil
+	}
+	for _, item := range items {
+		if item.ID == id {
+			return item
+		}
+	}
+	return nil
 }
 
 func leastRecentlyWorn(items []*wardrobe.ClothingItem) *wardrobe.ClothingItem {
