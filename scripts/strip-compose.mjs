@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Run after `aspire publish` to make the generated Docker Compose file
-// production-ready before deploying to Railway.
+// production-ready before deploying.
 //
 // What this does:
 //   - Removes dev-only services: jaeger

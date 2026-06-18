@@ -225,25 +225,24 @@ func (s *Service) UploadImage(ctx context.Context, itemID, userID string, imageD
 		return nil, ErrForbidden
 	}
 
-	// Validate the upload is a real image by attempting a JPEG decode/encode.
-	// This surfaces invalid uploads as a user-facing error before we hit the AI service.
-	if _, err := processImage(bytes.NewReader(imageData)); err != nil {
+	// Validate and encode once. Reuse the bytes for the JPEG fallback so we
+	// don't decode a potentially large photo twice (each decode peaks at ~50 MB).
+	processed, err := processImage(bytes.NewReader(imageData))
+	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalidImage, err)
 	}
 
 	// Try background removal — returns a transparent PNG. Fall back to JPEG on failure.
 	var (
-		imageURL    string
-		uploadErr   error
-		objectName  string
+		imageURL   string
+		uploadErr  error
+		objectName string
 	)
 	if pngBytes := s.removeBackground(ctx, imageData); pngBytes != nil {
 		objectName = path.Join("wardrobe", userID, itemID, time.Now().UTC().Format("20060102T150405")+"-"+uuid.NewString()+".png")
 		imageURL, uploadErr = s.imageStore.Upload(ctx, objectName, "image/png", bytes.NewReader(pngBytes), int64(len(pngBytes)))
 	}
 	if imageURL == "" {
-		// bg removal unavailable or upload failed — store original as JPEG
-		processed, _ := processImage(bytes.NewReader(imageData))
 		objectName = path.Join("wardrobe", userID, itemID, time.Now().UTC().Format("20060102T150405")+"-"+uuid.NewString()+".jpg")
 		imageURL, uploadErr = s.imageStore.Upload(ctx, objectName, "image/jpeg", bytes.NewReader(processed), int64(len(processed)))
 	}

@@ -29,8 +29,7 @@ _MODEL = "claude-sonnet-4-6"
 _MAX_EDGE = 1024
 
 # Load the rembg session once at startup — reused across all /remove-bg requests.
-# u2netp is the lightweight (~5 MB) variant of u2net (~176 MB); it keeps the fixed
-# memory baseline low so the service fits inside Railway's 512 MB cap. Edge quality
+# u2netp is the lightweight (~5 MB) variant of u2net (~176 MB); edge quality
 # is slightly softer but fine for garment cutouts (KAN-116).
 rembg_session = new_session("u2netp")
 
