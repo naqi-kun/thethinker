@@ -46,6 +46,9 @@ type outfitResponse struct {
 	Occasion    string                 `json:"occasion,omitempty"`
 	Weather     *weatherResponse       `json:"weather,omitempty"`
 	Items       []clothingItemResponse `json:"items"`
+	Watch       *clothingItemResponse  `json:"watch,omitempty"`
+	Bag         *clothingItemResponse  `json:"bag,omitempty"`
+	Belt        *clothingItemResponse  `json:"belt,omitempty"`
 }
 
 func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +108,20 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	var watch, bag, belt *clothingItemResponse
+	if rec.Watch != nil {
+		w := toItemResponse(rec.Watch)
+		watch = &w
+	}
+	if rec.Bag != nil {
+		b := toItemResponse(rec.Bag)
+		bag = &b
+	}
+	if rec.Belt != nil {
+		be := toItemResponse(rec.Belt)
+		belt = &be
+	}
+
 	writeJSON(w, http.StatusOK, outfitResponse{
 		SessionID:   rec.SessionID,
 		Date:        rec.Date.Format("2006-01-02"),
@@ -113,6 +130,9 @@ func (h *RecommendationHandler) GetOutfit(w http.ResponseWriter, r *http.Request
 		Occasion:    rec.Occasion,
 		Weather:     wr,
 		Items:       items,
+		Watch:       watch,
+		Bag:         bag,
+		Belt:        belt,
 	})
 }
 
