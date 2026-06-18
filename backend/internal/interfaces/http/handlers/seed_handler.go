@@ -50,7 +50,7 @@ type seedMeta struct {
 // dev account, women's only jane's; unisex items go to both.
 var imageMeta = map[string]seedMeta{
 	"shirt":      {"shirt", "formal", "light blue", "slim", "all", mens},
-	"t-shirt":    {"t-shirt", "casual", "orange", "regular", "all", unisex},
+	"t-shirt":    {"t-shirt", "casual", "white", "regular", "all", unisex},
 	"sweatshirt": {"sweater", "casual", "grey", "relaxed", "autumn_winter", unisex},
 	"hoodie":     {"hoodie", "casual", "beige", "oversized", "all", unisex},
 	"jacket":     {"jacket", "casual", "grey", "regular", "all", mens},
@@ -67,45 +67,27 @@ var imageMeta = map[string]seedMeta{
 	"boots":      {"boots", "casual", "black", "regular", "autumn_winter", unisex},
 
 	// ── KAN-118: aesthetic wardrobes ──────────────────────────────────────
-	// jane@ (Old Money) gets the womens aesthetics: cottagecore, coquette, boho.
-	"cottagecore-blouse":   {"shirt", "casual", "brown", "regular", "spring_summer", womens},
-	"cottagecore-cardigan": {"sweater", "casual", "beige", "regular", "autumn_winter", womens},
-	"cottagecore-skirt":    {"skirt", "casual", "pink", "regular", "spring_summer", womens},
-	"cottagecore-boots":    {"boots", "casual", "black", "regular", "autumn_winter", womens},
-	"coquette-blouse":      {"shirt", "casual", "white", "regular", "spring_summer", womens},
-	"coquette-cardigan":    {"sweater", "casual", "green", "regular", "all", womens},
-	"coquette-skirt":       {"skirt", "casual", "light blue", "regular", "spring_summer", womens},
-	"coquette-dress":       {"dress", "casual", "pink", "regular", "spring_summer", womens},
-	"coquette-flats":       {"shoes", "casual", "black", "regular", "all", womens},
-	"coquette-boots":       {"boots", "casual", "multicolor", "regular", "all", womens},
-	"boho-blouse":          {"shirt", "casual", "multicolor", "relaxed", "spring_summer", womens},
-	"boho-jeans":           {"jeans", "casual", "multicolor", "regular", "all", womens},
-	"boho-kimono":          {"jacket", "casual", "multicolor", "relaxed", "all", womens},
-	"boho-boots":           {"boots", "casual", "brown", "regular", "all", womens},
-	"oldmoney-sweater":     {"sweater", "casual", "beige", "regular", "autumn_winter", womens},
-	"oldmoney-vneck":       {"sweater", "casual", "navy blue", "regular", "all", womens},
-	"oldmoney-trousers":    {"pants", "formal", "beige", "regular", "all", womens},
-	"oldmoney-trousers2":   {"pants", "formal", "grey", "slim", "all", womens},
-	// dev@ (Streetwear) gets the mens/neutral aesthetics: athleisure, y2k, preppy.
+	// Aesthetic is emergent from how items are *paired*, not a per-item tag, so
+	// each user gets the versatile core above plus a few signature pieces. The
+	// same polo reads streetwear with jeans but preppy with chinos; the wardrobe
+	// is sized so each user can reach several distinct vibes by combination.
+	//
+	// jane@ (womenswear): old-money/parisian · coquette · cottagecore · boho.
+	"coquette-blouse":   {"shirt", "casual", "white", "regular", "spring_summer", womens},
+	"coquette-dress":    {"dress", "casual", "pink", "regular", "spring_summer", womens},
+	"coquette-flats":    {"shoes", "casual", "black", "regular", "all", womens},
+	"cottagecore-skirt": {"skirt", "casual", "pink", "regular", "spring_summer", womens},
+	"boho-kimono":       {"jacket", "casual", "multicolor", "relaxed", "all", womens},
+	"oldmoney-sweater":  {"sweater", "casual", "beige", "regular", "autumn_winter", womens},
+	"oldmoney-trousers": {"pants", "formal", "beige", "regular", "all", womens},
+	// dev@ (menswear): streetwear · preppy · old-money/classic · athleisure.
+	"preppy-polo":         {"shirt", "casual", "green", "regular", "spring_summer", mens},
+	"preppy-chinos":       {"pants", "casual", "beige", "slim", "all", mens},
+	"street-cargo":        {"pants", "casual", "beige", "relaxed", "all", mens},
+	"street-graphictee":   {"t-shirt", "casual", "green", "regular", "all", mens},
 	"athleisure-hoodie":   {"hoodie", "sport", "grey", "regular", "all", mens},
 	"athleisure-sweats":   {"pants", "sport", "white", "relaxed", "all", mens},
 	"athleisure-trainers": {"sneakers", "sport", "black", "regular", "all", mens},
-	"y2k-tee":             {"t-shirt", "casual", "black", "relaxed", "spring_summer", mens},
-	"y2k-tee2":            {"t-shirt", "casual", "black", "relaxed", "spring_summer", mens},
-	"y2k-jeans":           {"jeans", "casual", "black", "relaxed", "all", mens},
-	"y2k-jeans2":          {"jeans", "casual", "blue", "relaxed", "all", mens},
-	"y2k-glasses":         {"sunglasses", "casual", "white", "regular", "all", mens},
-	"street-cargo":        {"pants", "casual", "beige", "relaxed", "all", mens},
-	"street-flannel":      {"shirt", "casual", "red", "regular", "autumn_winter", mens},
-	"street-graphictee":   {"t-shirt", "casual", "green", "regular", "all", mens},
-	"street-stripedtee":   {"t-shirt", "casual", "black", "regular", "all", mens},
-	"preppy-chinos":       {"pants", "casual", "beige", "slim", "all", mens},
-	"preppy-chinos2":      {"pants", "casual", "black", "slim", "all", mens},
-	"preppy-polo":         {"shirt", "casual", "green", "regular", "spring_summer", mens},
-	"preppy-polotee":      {"t-shirt", "casual", "blue", "regular", "spring_summer", mens},
-	"preppy-loafers":      {"shoes", "formal", "black", "regular", "all", mens},
-	"preppy-loafers2":     {"shoes", "casual", "brown", "regular", "all", mens},
-	"preppy-blazer":       {"blazer", "formal", "navy blue", "regular", "all", mens},
 }
 
 // DevSeedHandler populates the database with deterministic test data.
