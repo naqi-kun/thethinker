@@ -1,0 +1,200 @@
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from "fs";
+import { spawnSync } from "child_process";
+import { join } from "path";
+
+const keyPath = join(process.cwd(), "gcs-key.json");
+const jsonPath = join(process.cwd(), "service-prod.json");
+
+if (!existsSync(keyPath)) {
+  console.error(`Error: GCS credentials file not found at: ${keyPath}`);
+  process.exit(1);
+}
+
+console.log("Reading and minifying gcs-key.json...");
+let gcsKeyContent;
+try {
+  const rawKey = readFileSync(keyPath, "utf8");
+  gcsKeyContent = JSON.stringify(JSON.parse(rawKey));
+} catch (err) {
+  console.error("Failed to parse and minify gcs-key.json:", err.message);
+  process.exit(1);
+}
+
+console.log("Fetching service configuration from the successful revision (thethinker-00010-fzk)...");
+const getSvcResult = spawnSync("gcloud", [
+  "run", "revisions", "describe", "thethinker-00010-fzk",
+  "--project=thethinker",
+  "--region=us-central1",
+  "--format=json"
+], { encoding: "utf8", shell: true });
+
+if (getSvcResult.status !== 0) {
+  console.error("Failed to fetch revision config:", getSvcResult.stderr);
+  process.exit(1);
+}
+
+let revision;
+try {
+  revision = JSON.parse(getSvcResult.stdout);
+} catch (err) {
+  console.error("Failed to parse revision config JSON:", err.message);
+  process.exit(1);
+}
+
+console.log("Reconstructing Service configuration from the revision spec...");
+
+// Define the clean Service schema
+const service = {
+  apiVersion: "serving.knative.dev/v1",
+  kind: "Service",
+  metadata: {
+    name: "thethinker",
+    labels: {
+      "cloud.googleapis.com/location": "us-central1",
+      "managed-by": "runcompose"
+    },
+    annotations: {
+      "run.googleapis.com/ingress": "all",
+      "run.googleapis.com/ingress-status": "all"
+    }
+  },
+  spec: {
+    template: {
+      metadata: {
+        labels: {
+          "managed-by": "runcompose",
+          "run.googleapis.com/startupProbeType": "Default"
+        },
+        annotations: {
+          // Execution environment: gen2 (second generation)
+          "run.googleapis.com/execution-environment": "gen2",
+          "run.googleapis.com/startup-cpu-boost": "true",
+          // Remove db dependency: backend depends on ai and cloudsql-proxy, frontend depends on backend
+          "run.googleapis.com/container-dependencies": JSON.stringify({
+            "backend": ["ai", "cloudsql-proxy"],
+            "frontend": ["backend"]
+          })
+        }
+      },
+      spec: {
+        containerConcurrency: revision.spec.containerConcurrency,
+        serviceAccountName: revision.spec.serviceAccountName,
+        timeoutSeconds: revision.spec.timeoutSeconds,
+        containers: []
+      }
+    }
+  }
+};
+
+// Copy and filter containers from the successful revision (excluding 'db')
+for (const container of revision.spec.containers) {
+  if (container.name === "db") {
+    console.log("Removing 'db' PostgreSQL container from production spec...");
+    continue; // Exclude local postgres container
+  }
+
+  // Clone container spec
+  const cleanContainer = {
+    name: container.name,
+    image: container.image,
+    resources: container.resources,
+    startupProbe: container.startupProbe
+  };
+
+  if (container.args) cleanContainer.args = container.args;
+  if (container.ports) cleanContainer.ports = container.ports;
+
+  // Clone environment variables
+  cleanContainer.env = [];
+  if (container.env) {
+    for (const envVar of container.env) {
+      cleanContainer.env.push({ name: envVar.name, value: envVar.value });
+    }
+  }
+
+  // Inject production updates to backend container
+  if (container.name === "backend") {
+    console.log("Configuring production environment variables for 'backend'...");
+    
+    const prodEnv = {
+      DATABASE_URL: "postgresql://postgres:TheThinker2026!@127.0.0.1:5432/thethinker",
+      GCS_CREDENTIALS_JSON: gcsKeyContent,
+      GCS_BUCKET: "thethinker-wardrobe-images"
+    };
+
+    for (const [key, val] of Object.entries(prodEnv)) {
+      const existing = cleanContainer.env.find(e => e.name === key);
+      if (existing) {
+        existing.value = val;
+      } else {
+        cleanContainer.env.push({ name: key, value: val });
+      }
+    }
+  }
+
+  service.spec.template.spec.containers.push(cleanContainer);
+}
+
+// Add Cloud SQL Auth Proxy sidecar container (v2)
+console.log("Adding 'cloudsql-proxy' sidecar container...");
+const proxyContainer = {
+  name: "cloudsql-proxy",
+  image: "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.0",
+  args: [
+    "--port=5432",
+    "--address=0.0.0.0",
+    "thethinker:us-central1:thethinker-db"
+  ],
+  resources: {
+    limits: {
+      cpu: "500m",
+      memory: "512Mi"
+    }
+  },
+  startupProbe: {
+    failureThreshold: 3,
+    periodSeconds: 10,
+    tcpSocket: {
+      port: 5432
+    },
+    timeoutSeconds: 5
+  }
+};
+service.spec.template.spec.containers.push(proxyContainer);
+
+// Write the reconstructed declarative configuration to a temporary JSON file
+console.log("Writing temporary service-prod.json...");
+try {
+  writeFileSync(jsonPath, JSON.stringify(service, null, 2), "utf8");
+} catch (err) {
+  console.error("Failed to write temporary JSON config:", err.message);
+  process.exit(1);
+}
+
+// Apply the configuration via gcloud run services replace
+console.log("Applying atomic Production-ready configuration via 'gcloud run services replace'...");
+const replaceResult = spawnSync("gcloud", [
+  "run", "services", "replace", jsonPath,
+  "--project=thethinker",
+  "--region=us-central1"
+], { encoding: "utf8", shell: true });
+
+// Clean up temporary file containing sensitive GCS private key
+if (existsSync(jsonPath)) {
+  console.log("Cleaning up temporary service-prod.json...");
+  unlinkSync(jsonPath);
+}
+
+if (replaceResult.stdout) {
+  console.log("STDOUT:\n", replaceResult.stdout);
+}
+if (replaceResult.stderr) {
+  console.error("STDERR:\n", replaceResult.stderr);
+}
+
+if (replaceResult.status !== 0) {
+  console.error(`gcloud replace command failed with exit code ${replaceResult.status}`);
+  process.exit(replaceResult.status || 1);
+}
+
+console.log("\nSuccessfully deployed Production-ready Configuration atomically!");
