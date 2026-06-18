@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/calendar"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/recommendation"
 	"school-gitlab.xsolla.dev/team3/thethinker/internal/domain/user"
@@ -57,13 +59,25 @@ func main() {
 		log.Print("WARNING: GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET unset — Google sign-in disabled")
 	}
 
-	if err := postgres.RunMigrations(databaseURL); err != nil {
-		log.Fatalf("migrations: %v", err)
+	// Retry database connection on startup to handle database boot times (race conditions in container starts)
+	var db *pgxpool.Pool
+	for i := 1; i <= 30; i++ {
+		err = postgres.RunMigrations(databaseURL)
+		if err == nil {
+			db, err = postgres.NewPool(ctx, databaseURL)
+			if err == nil {
+				break
+			}
+		}
+		log.Printf("Waiting for database connection (attempt %d/30): %v", i, err)
+		select {
+		case <-ctx.Done():
+			log.Fatalf("cancelled waiting for database: %v", ctx.Err())
+		case <-time.After(1 * time.Second):
+		}
 	}
-
-	db, err := postgres.NewPool(ctx, databaseURL)
 	if err != nil {
-		log.Fatalf("database: %v", err)
+		log.Fatalf("database connection failed after 30 attempts: %v", err)
 	}
 	defer db.Close()
 
