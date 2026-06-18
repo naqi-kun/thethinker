@@ -118,9 +118,18 @@ for (const container of revision.spec.containers) {
   const cleanContainer = {
     name: container.name,
     image: container.image,
-    resources: container.resources,
+    resources: JSON.parse(JSON.stringify(container.resources)), // deep-clone so we can patch limits
     startupProbe: container.startupProbe
   };
+
+  // The AI sidecar loads CLIP + background-removal models simultaneously.
+  // 1 GiB was too small — the instance OOM-killed on the first image upload.
+  if (container.name === "ai") {
+    console.log("Bumping 'ai' container memory limit to 2Gi...");
+    if (!cleanContainer.resources) cleanContainer.resources = {};
+    if (!cleanContainer.resources.limits) cleanContainer.resources.limits = {};
+    cleanContainer.resources.limits.memory = "2Gi";
+  }
 
   if (container.args) cleanContainer.args = container.args;
   if (container.ports) cleanContainer.ports = container.ports;
