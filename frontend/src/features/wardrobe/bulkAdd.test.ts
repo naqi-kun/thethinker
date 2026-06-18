@@ -5,6 +5,7 @@ import {
   mapWithConcurrency,
   seedFields,
   toPayload,
+  toUploadFile,
   type ScanItem,
 } from './bulkAdd';
 
@@ -61,6 +62,23 @@ describe('toPayload', () => {
       fit: 'slim',
       season: 'all',
     });
+  });
+});
+
+describe('toUploadFile', () => {
+  it('preserves the source MIME type and gives it a matching extension', () => {
+    const png = toUploadFile({ blob: new Blob(['x'], { type: 'image/png' }) });
+    expect(png.type).toBe('image/png');
+    expect(png.name).toBe('scan.png');
+  });
+
+  it('falls back to jpeg for an unknown or missing type', () => {
+    const unknown = toUploadFile({ blob: new Blob(['x'], { type: 'image/heic' }) });
+    expect(unknown.name).toBe('scan.jpg');
+
+    const blank = toUploadFile({ blob: new Blob(['x']) });
+    expect(blank.type).toBe('image/jpeg');
+    expect(blank.name).toBe('scan.jpg');
   });
 });
 

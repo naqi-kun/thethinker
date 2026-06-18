@@ -77,6 +77,25 @@ export function toPayload(item: ScanItem): AddItemPayload {
   } as AddItemPayload;
 }
 
+const MIME_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/avif': 'avif',
+};
+
+/**
+ * Build the multipart File to upload for a scan item, preserving the source
+ * image's MIME type and giving it a matching extension. Avoids tagging every
+ * upload as `scan.jpg`/`image/jpeg`, which mislabels PNG/WebP photos.
+ */
+export function toUploadFile(item: Pick<ScanItem, 'blob'>): File {
+  const type = item.blob.type || 'image/jpeg';
+  const ext = MIME_EXTENSIONS[type] ?? 'jpg';
+  return new File([item.blob], `scan.${ext}`, { type });
+}
+
 /**
  * Run `fn` over `items` with at most `limit` in flight at once, preserving
  * input order in the result. Used to fan classification calls out without
