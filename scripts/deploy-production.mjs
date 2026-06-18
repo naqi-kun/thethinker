@@ -26,7 +26,7 @@ const getLatestResult = spawnSync("gcloud", [
   "--project=thethinker",
   "--region=us-central1",
   "--format=value(status.latestCreatedRevisionName)"
-], { encoding: "utf8", shell: true });
+], { encoding: "utf8" });
 
 if (getLatestResult.status !== 0 || !getLatestResult.stdout.trim()) {
   console.error("Failed to fetch latest revision name:", getLatestResult.stderr);
@@ -42,7 +42,7 @@ const getSvcResult = spawnSync("gcloud", [
   "--project=thethinker",
   "--region=us-central1",
   "--format=json"
-], { encoding: "utf8", shell: true });
+], { encoding: "utf8" });
 
 if (getSvcResult.status !== 0) {
   console.error("Failed to fetch revision config:", getSvcResult.stderr);
@@ -231,7 +231,7 @@ const replaceResult = spawnSync("gcloud", [
   "run", "services", "replace", jsonPath,
   "--project=thethinker",
   "--region=us-central1"
-], { encoding: "utf8", shell: true });
+], { encoding: "utf8" });
 
 // Clean up temporary file containing sensitive GCS private key
 if (existsSync(jsonPath)) {
