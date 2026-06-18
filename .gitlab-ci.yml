@@ -92,5 +92,24 @@ backend-build:
     expire_in: 1 hour
 
 # ── Deploy ──────────────────────────────────────────────────
-# Production deploys to GCP Cloud Run via scripts/deploy-production.mjs.
-# Run manually: node scripts/deploy-production.mjs (requires gcs-key.json + gcloud auth).
+# Requires one GitLab CI/CD variable:
+#   GCS_KEY_JSON  (type: File) — the GCP service account JSON key.
+#                 The service account needs Cloud Run Admin + Storage Object Admin.
+
+deploy-gcp:
+  stage: deploy
+  image: google/cloud-sdk:slim
+  before_script:
+    # Install Node 22 on the gcloud image
+    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    - apt-get install -y nodejs
+    # Authenticate gcloud with the service account key
+    - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
+    - gcloud config set project thethinker
+    - gcloud config set run/region us-central1
+  script:
+    # deploy-production.mjs expects gcs-key.json in the working directory
+    - cp "$GCS_KEY_JSON" gcs-key.json
+    - node scripts/deploy-production.mjs
+  only:
+    - main
