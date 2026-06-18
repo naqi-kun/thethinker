@@ -205,25 +205,27 @@ func TestSeed_EveryImageHasValidMetadata(t *testing.T) {
 	t.Setenv("GCS_EMULATOR_HOST", "localhost:4443")
 	t.Setenv("AI_SERVICE_URL", healthyAIServer(t).URL)
 
-	subTypes := map[wardrobe.SubType]bool{}
+	added := 0
 	items := 0
 	db := &fakeSeedDB{items: &items}
 	svc := seedMockSvc(&items, nil)
 	baseAdd := svc.addItem
 	svc.addItem = func(ctx context.Context, userID string, item wardrobe.ClothingItem) (*wardrobe.ClothingItem, error) {
-		subTypes[item.SubType] = true
+		added++
 		return baseAdd(ctx, userID, item)
 	}
 
 	rec := runSeedRequest(handlers.NewDevSeedHandler(db, svc))
 
-	// A 200 means every filename resolved to parseable enum metadata —
-	// an image without an imageMeta entry fails the whole run.
+	// A 200 means every filename resolved to parseable enum metadata — an image
+	// without an imageMeta entry fails the whole run. Each image seeds at least
+	// one user (mens/womens) or two (unisex), so adds >= image count. Multiple
+	// images now share a sub-type, so it is no longer one-per-sub-type.
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-	if len(subTypes) != seedImageCount(t) {
-		t.Fatalf("distinct sub-types = %d, want %d (one per image)", len(subTypes), seedImageCount(t))
+	if added < seedImageCount(t) {
+		t.Fatalf("items added = %d, want >= %d (at least one per image)", added, seedImageCount(t))
 	}
 }
 
