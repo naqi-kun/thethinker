@@ -21,6 +21,7 @@ import {
   mapWithConcurrency,
   seedFields,
   toPayload,
+  toUploadFile,
   type ScanFields,
   type ScanItem,
 } from '../bulkAdd';
@@ -71,6 +72,11 @@ export default function BulkAddPage() {
     return () => itemsRef.current.forEach((it) => URL.revokeObjectURL(it.url));
   }, []);
 
+  // Identifies the active ingest batch. Starting a new batch supersedes any
+  // still-classifying older one, so its late-arriving patches and final phase
+  // flip are ignored (see ingestFiles).
+  const batchRef = useRef(0);
+
   function patchItem(id: string, patch: Partial<ScanItem>) {
     setItems((list) => list.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }
@@ -93,6 +99,11 @@ export default function BulkAddPage() {
       season: '',
     }));
 
+    // This batch replaces whatever was on screen, so revoke the old thumbnails
+    // and claim a fresh batch token before swapping in the new items.
+    itemsRef.current.forEach((it) => URL.revokeObjectURL(it.url));
+    const batch = ++batchRef.current;
+
     setItems(fresh);
     setPhase('tagging');
     setError(null);
@@ -100,12 +111,15 @@ export default function BulkAddPage() {
     await mapWithConcurrency(fresh, CONCURRENCY, async (item) => {
       try {
         const result = await classifyItem(item.blob);
+        // A newer batch has taken over; this result no longer belongs on screen.
+        if (batchRef.current !== batch) return;
         patchItem(item.id, {
           status: 'done',
           confidence: result.confidence_score,
           ...seedFields(result),
         });
       } catch (err) {
+        if (batchRef.current !== batch) return;
         const notClothing = err instanceof ApiError && err.status === 422;
         patchItem(item.id, {
           status: 'failed',
@@ -114,7 +128,8 @@ export default function BulkAddPage() {
       }
     });
 
-    setPhase('review');
+    // Only the batch that is still current may advance the flow to review.
+    if (batchRef.current === batch) setPhase('review');
   }
 
   function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
@@ -150,6 +165,9 @@ export default function BulkAddPage() {
   const doneItems = items.filter((it) => it.status === 'done');
   const unresolved = doneItems.filter((it) => !itemIsComplete(it)).length;
   const addable = doneItems.filter((it) => itemIsComplete(it));
+  // Intentional "fix everything or remove it" gate: any incomplete item blocks
+  // the whole batch rather than letting the user add only the complete ones.
+  // (Product-confirmed UX intent — revisit with the team before relaxing.)
   const canAddAll = !submitting && addable.length > 0 && unresolved === 0;
 
   async function addAll() {
@@ -157,9 +175,11 @@ export default function BulkAddPage() {
     setSubmitting(true);
     setError(null);
     try {
+      // Follow-up: errors are surfaced as a single generic message. Tracking
+      // per-item upload failures (so partial success can be retried) is a known
+      // gap left for a later iteration.
       const results = await mapWithConcurrency(addable, CONCURRENCY, async (item) => {
-        const file = new File([item.blob], 'scan.jpg', { type: 'image/jpeg' });
-        await addItemWithImage(toPayload(item), file);
+        await addItemWithImage(toPayload(item), toUploadFile(item));
         return true;
       });
       if (results.every(Boolean)) {
