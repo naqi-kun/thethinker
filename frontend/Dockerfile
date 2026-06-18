@@ -9,4 +9,4 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf.template
 EXPOSE 80
-CMD ["/bin/sh", "-c", "export PORT=\"${PORT:-80}\" && envsubst '${PORT} ${RAILWAY_SERVICE_BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
+CMD ["/bin/sh", "-c", "export PORT=\"${PORT:-80}\" BACKEND_URL=\"${BACKEND_URL:-127.0.0.1:8081}\" && envsubst '${PORT} ${BACKEND_URL}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]

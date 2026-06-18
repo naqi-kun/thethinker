@@ -20,9 +20,25 @@ try {
   process.exit(1);
 }
 
-console.log("Fetching service configuration from the successful revision (thethinker-00010-fzk)...");
+console.log("Querying the latest created Cloud Run revision name dynamically...");
+const getLatestResult = spawnSync("gcloud", [
+  "run", "services", "describe", "thethinker",
+  "--project=thethinker",
+  "--region=us-central1",
+  "--format=value(status.latestCreatedRevisionName)"
+], { encoding: "utf8", shell: true });
+
+if (getLatestResult.status !== 0 || !getLatestResult.stdout.trim()) {
+  console.error("Failed to fetch latest revision name:", getLatestResult.stderr);
+  process.exit(1);
+}
+
+const latestRevisionName = getLatestResult.stdout.trim();
+console.log(`Latest revision detected: ${latestRevisionName}`);
+
+console.log(`Fetching service configuration from revision ${latestRevisionName}...`);
 const getSvcResult = spawnSync("gcloud", [
-  "run", "revisions", "describe", "thethinker-00010-fzk",
+  "run", "revisions", "describe", latestRevisionName,
   "--project=thethinker",
   "--region=us-central1",
   "--format=json"
@@ -93,6 +109,11 @@ for (const container of revision.spec.containers) {
     continue; // Exclude local postgres container
   }
 
+  if (container.name === "cloudsql-proxy") {
+    console.log("Skipping existing 'cloudsql-proxy' (will be re-added fresh below)...");
+    continue; // Always re-add from the fixed spec below to avoid duplicates
+  }
+
   // Clone container spec
   const cleanContainer = {
     name: container.name,
@@ -115,14 +136,38 @@ for (const container of revision.spec.containers) {
   // Inject production updates to backend container
   if (container.name === "backend") {
     console.log("Configuring production environment variables for 'backend'...");
-    
+
+    // PORT=8081 keeps the backend sidecar off the ingress port (8080) that Cloud Run
+    // assigns to the frontend nginx container. Both containers share localhost in the
+    // same Cloud Run network namespace, so they must listen on distinct ports.
     const prodEnv = {
       DATABASE_URL: "postgresql://postgres:TheThinker2026!@127.0.0.1:5432/thethinker",
       GCS_CREDENTIALS_JSON: gcsKeyContent,
-      GCS_BUCKET: "thethinker-wardrobe-images"
+      GCS_BUCKET: "thethinker-wardrobe-images",
+      PORT: "8081"
     };
 
     for (const [key, val] of Object.entries(prodEnv)) {
+      const existing = cleanContainer.env.find(e => e.name === key);
+      if (existing) {
+        existing.value = val;
+      } else {
+        cleanContainer.env.push({ name: key, value: val });
+      }
+    }
+  }
+
+  // Inject production updates to frontend container
+  if (container.name === "frontend") {
+    console.log("Configuring production environment variables for 'frontend'...");
+
+    // BACKEND_URL tells nginx where to proxy /api/ requests. In Cloud Run
+    // multi-container, all sidecars are reachable via 127.0.0.1 on their port.
+    const frontendProdEnv = {
+      BACKEND_URL: "127.0.0.1:8081"
+    };
+
+    for (const [key, val] of Object.entries(frontendProdEnv)) {
       const existing = cleanContainer.env.find(e => e.name === key);
       if (existing) {
         existing.value = val;
