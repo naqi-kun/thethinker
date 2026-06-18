@@ -7,7 +7,12 @@ import {
   ProtectedRoute,
 } from '../features/auth';
 import { OnboardingPage } from '../features/onboarding';
-import { WardrobePage, AddItemPage, BulkAddPage } from '../features/wardrobe';
+import {
+  WardrobePage,
+  AddItemPage,
+  BulkAddPage,
+  LaundryPage,
+} from '../features/wardrobe';
 import ReviewItemPage from '../features/wardrobe/components/ReviewItemPage';
 import { OutfitPage } from '../features/outfit';
 import { CalendarPage } from '../features/calendar';
@@ -52,6 +57,14 @@ export function App() {
         element={
           <ProtectedRoute>
             <ReviewItemPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/wardrobe/laundry"
+        element={
+          <ProtectedRoute>
+            <LaundryPage />
           </ProtectedRoute>
         }
       />

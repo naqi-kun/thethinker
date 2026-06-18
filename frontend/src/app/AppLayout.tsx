@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import AppHeader from '../shared/components/AppHeader';
 import BottomNav from '../shared/components/BottomNav';
+import LaundryReminderSheet from '../features/wardrobe/components/LaundryReminderSheet';
 
 // App shell for the in-app (post-onboarding) pages: a viewport-height column of
 // a header, a scrollable content region, and (on mobile) the floating bottom tab
@@ -14,6 +15,7 @@ export default function AppLayout() {
         <Outlet />
       </div>
       <BottomNav />
+      <LaundryReminderSheet />
     </div>
   );
 }

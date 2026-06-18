@@ -460,13 +460,11 @@ function ItemCard({
   item,
   onCardClick,
   onImageUploaded,
-  onStatusChanged,
   onDeleted,
 }: {
   item: ClothingItem;
   onCardClick: (item: ClothingItem) => void;
   onImageUploaded?: (id: string, imageUrl: string) => void;
-  onStatusChanged?: (updated: ClothingItem) => void;
   onDeleted?: (id: string) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -474,8 +472,6 @@ function ItemCard({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [savingStatus, setSavingStatus] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
 
   const displayName = displayNameFor(item);
   const tags = [item.category, item.fit].filter(Boolean) as string[];
@@ -509,23 +505,14 @@ function ItemCard({
     }
   }
 
-  async function handleStatusChange(next: ClothingStatus) {
-    if (next === item.status) return;
-    setSavingStatus(true);
-    setStatusError(null);
-    try {
-      const updated = await updateItemStatus(item.id, next);
-      onStatusChanged?.(updated);
-    } catch {
-      setStatusError('Could not update status.');
-    } finally {
-      setSavingStatus(false);
-    }
-  }
+  const isLaundering =
+    item.status === 'in_laundry' ||
+    item.status === 'washing' ||
+    item.status === 'drying';
 
   return (
     <div
-      className="card-interactive flex flex-col overflow-hidden cursor-pointer"
+      className={`card-interactive flex flex-col overflow-hidden cursor-pointer transition-opacity ${isLaundering ? 'opacity-50' : ''}`}
       onClick={() => onCardClick(item)}
     >
       {/* topInset reserves pt-12 so the contained image clears the top controls
@@ -568,22 +555,24 @@ function ItemCard({
           <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
 
-        {/* Quick status control — top-right overlay; stops propagation so it
-            doesn't open the modal */}
-        <select
-          value={item.status}
-          disabled={savingStatus}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => handleStatusChange(e.target.value as ClothingStatus)}
-          aria-label="Item status"
-          className="absolute right-2 top-2 cursor-pointer rounded-full border border-border bg-background/90 px-2 py-1 text-[10px] text-foreground shadow-sm backdrop-blur-sm disabled:opacity-60"
-        >
-          {STATUSES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+        {/* Status badge — top-right overlay; only shown for non-clean items */}
+        {item.status !== 'clean' && (
+          <div className="absolute right-2 top-2" onClick={(e) => e.stopPropagation()}>
+            {item.status === 'worn' ? (
+              <span className="badge-dirty px-2 py-0.5 text-[10px] shadow-sm">
+                Worn
+              </span>
+            ) : (
+              <span className="badge-default px-2 py-0.5 text-[10px] shadow-sm">
+                {item.status === 'in_laundry'
+                  ? 'In Laundry'
+                  : item.status === 'washing'
+                    ? 'Washing'
+                    : 'Drying'}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Upload button — stops propagation so it doesn't open the modal */}
         <button
@@ -631,7 +620,6 @@ function ItemCard({
               : null}
         </p>
 
-        {statusError && <p className="text-[10px] text-destructive">{statusError}</p>}
         {uploadError && <p className="text-[10px] text-destructive">{uploadError}</p>}
       </div>
     </div>
@@ -693,6 +681,40 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function LaundryBanner({ items }: { items: ClothingItem[] }) {
+  const navigate = useNavigate();
+  const wornCount = items.filter((i) => i.status === 'worn').length;
+  const basketCount = items.filter((i) =>
+    ['in_laundry', 'washing', 'drying'].includes(i.status ?? ''),
+  ).length;
+  const total = wornCount + basketCount;
+  if (total === 0) return null;
+
+  return (
+    <button
+      onClick={() => navigate('/wardrobe/laundry')}
+      className="mb-6 flex w-full items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/8 px-4 py-3 text-left transition-colors hover:bg-warning/12 active:scale-[0.99]"
+    >
+      <div className="flex items-center gap-3">
+        <ShoppingBag className="h-4 w-4 flex-shrink-0 text-warning" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            {basketCount > 0
+              ? `${basketCount} item${basketCount !== 1 ? 's' : ''} in laundry basket`
+              : `${wornCount} worn item${wornCount !== 1 ? 's' : ''} to wash`}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {basketCount > 0 && wornCount > 0
+              ? `+${wornCount} worn — tap to manage`
+              : 'Tap to manage wash cycle'}
+          </p>
+        </div>
+      </div>
+      <span className="badge-dirty shrink-0 px-2 py-0.5 text-[10px]">{total}</span>
+    </button>
   );
 }
 
@@ -788,6 +810,7 @@ export default function WardrobePage() {
           <>
             <StatsBar items={items} />
             <ReadinessHint items={items} />
+            <LaundryBanner items={items} />
 
             <div className="relative mb-4">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -830,7 +853,6 @@ export default function WardrobePage() {
                       item={item}
                       onCardClick={setSelectedItem}
                       onImageUploaded={handleImageUploaded}
-                      onStatusChanged={handleItemUpdated}
                       onDeleted={handleDeleted}
                     />
                   </motion.div>
