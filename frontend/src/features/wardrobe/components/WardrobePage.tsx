@@ -505,10 +505,7 @@ function ItemCard({
     }
   }
 
-  const isLaundering =
-    item.status === 'in_laundry' ||
-    item.status === 'washing' ||
-    item.status === 'drying';
+  const isLaundering = item.status === 'in_laundry';
 
   return (
     <div
@@ -564,11 +561,7 @@ function ItemCard({
               </span>
             ) : (
               <span className="badge-default px-2 py-0.5 text-[10px] shadow-sm">
-                {item.status === 'in_laundry'
-                  ? 'In Laundry'
-                  : item.status === 'washing'
-                    ? 'Washing'
-                    : 'Drying'}
+                In Laundry
               </span>
             )}
           </div>
@@ -687,9 +680,7 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
 function LaundryBanner({ items }: { items: ClothingItem[] }) {
   const navigate = useNavigate();
   const wornCount = items.filter((i) => i.status === 'worn').length;
-  const basketCount = items.filter((i) =>
-    ['in_laundry', 'washing', 'drying'].includes(i.status ?? ''),
-  ).length;
+  const basketCount = items.filter((i) => i.status === 'in_laundry').length;
   const total = wornCount + basketCount;
   if (total === 0) return null;
 

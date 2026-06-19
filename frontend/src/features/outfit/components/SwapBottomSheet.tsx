@@ -55,6 +55,9 @@ export default function SwapBottomSheet({
             (i) =>
               i.id !== item.id &&
               !outfitItemIds.includes(i.id) &&
+              // Only clean items can be swapped in — worn / in-laundry pieces
+              // aren't available to wear (KAN-93 fine-tuning).
+              i.status === 'clean' &&
               slotOf(i.sub_type) === itemSlot &&
               (i.season === item.season || i.season === 'all' || item.season === 'all'),
           ),

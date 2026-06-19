@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   ArrowLeft,
+  Check,
   CheckCircle2,
   Circle,
   GripVertical,
@@ -22,12 +23,10 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const LAUNDERING_STATUSES: ClothingStatus[] = ['in_laundry', 'washing', 'drying'];
+const LAUNDERING_STATUSES: ClothingStatus[] = ['in_laundry'];
 
 function statusLabel(status: ClothingStatus): string {
   if (status === 'in_laundry') return 'In Laundry';
-  if (status === 'washing') return 'Washing';
-  if (status === 'drying') return 'Drying';
   return status;
 }
 
@@ -126,6 +125,23 @@ export default function LaundryPage() {
       const updated = await updateItemStatus(item.id, 'worn');
       setBasketItems((prev) => prev.filter((i) => i.id !== item.id));
       setWornItems((prev) => [...prev, updated]);
+    } finally {
+      setSavingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
+
+  // Put a worn item straight back into the wardrobe as clean — e.g. shoes that
+  // were worn but don't need a wash cycle. It leaves the laundry flow entirely.
+  async function moveToClean(item: ClothingItem) {
+    if (savingIds.has(item.id)) return;
+    setSavingIds((prev) => new Set([...prev, item.id]));
+    try {
+      await updateItemStatus(item.id, 'clean');
+      setWornItems((prev) => prev.filter((i) => i.id !== item.id));
     } finally {
       setSavingIds((prev) => {
         const next = new Set(prev);
@@ -337,16 +353,30 @@ export default function LaundryPage() {
           </div>
         )}
 
-        {/* ── In the basket ── */}
-        {basketItems.length > 0 && (
+        {/* ── The basket (also the drop target for worn items) ── */}
+        {(basketItems.length > 0 || wornItems.length > 0) && (
           <section>
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               In the basket
             </p>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Drag an item back out, or tap the arrow to keep wearing it.
-            </p>
-            <div className="space-y-2">
+            {basketItems.length > 0 && (
+              <p className="mb-3 text-xs text-muted-foreground">
+                Drag an item back out, or tap the arrow to keep wearing it.
+              </p>
+            )}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverBasket(true);
+              }}
+              onDragLeave={() => setDragOverBasket(false)}
+              onDrop={handleDrop}
+              className={`space-y-2 rounded-2xl border-2 border-dashed p-3 transition-all duration-150 ${
+                dragOverBasket
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border bg-background'
+              }`}
+            >
               <AnimatePresence initial={false}>
                 {basketItems.map((item) => {
                   const isSaving = savingIds.has(item.id);
@@ -392,39 +422,32 @@ export default function LaundryPage() {
                   );
                 })}
               </AnimatePresence>
+
+              {/* Drag-in prompt, inside the basket. Shown whenever there are
+                  worn items to add; sits below anything already in the basket. */}
+              {wornItems.length > 0 && (
+                <div
+                  className={`flex flex-col items-center gap-1 text-center ${
+                    basketItems.length > 0
+                      ? 'mt-1 border-t border-dashed border-border pt-3'
+                      : 'py-6'
+                  }`}
+                >
+                  <ShoppingBag
+                    className={`h-7 w-7 transition-colors ${dragOverBasket ? 'text-primary' : 'text-muted-foreground'}`}
+                  />
+                  <p
+                    className={`text-sm font-medium transition-colors ${dragOverBasket ? 'text-primary' : 'text-muted-foreground'}`}
+                  >
+                    Drag worn items here
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    or tap an item below to add it
+                  </p>
+                </div>
+              )}
             </div>
           </section>
-        )}
-
-        {/* ── Drop zone (shown when worn items exist) ── */}
-        {wornItems.length > 0 && (
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOverBasket(true);
-            }}
-            onDragLeave={() => setDragOverBasket(false)}
-            onDrop={handleDrop}
-            className={`flex items-center justify-center rounded-2xl border-2 border-dashed py-8 transition-all duration-150 ${
-              dragOverBasket
-                ? 'border-primary bg-primary/5 scale-[1.01]'
-                : 'border-border bg-background'
-            }`}
-          >
-            <div className="flex flex-col items-center gap-2 text-center">
-              <ShoppingBag
-                className={`h-7 w-7 transition-colors ${dragOverBasket ? 'text-primary' : 'text-muted-foreground'}`}
-              />
-              <p
-                className={`text-sm font-medium transition-colors ${dragOverBasket ? 'text-primary' : 'text-muted-foreground'}`}
-              >
-                Drag worn items here
-              </p>
-              <p className="text-xs text-muted-foreground">
-                or tap an item below to add it
-              </p>
-            </div>
-          </div>
         )}
 
         {/* ── Still worn ── */}
@@ -458,7 +481,8 @@ export default function LaundryPage() {
 
             {!mobileSelectMode && (
               <p className="mb-3 text-xs text-muted-foreground">
-                Tap to add to basket, or drag. Long-press to multi-select on mobile.
+                Tap to add to basket, or drag. Tap ✓ to put a piece back without
+                washing. Long-press to multi-select on mobile.
               </p>
             )}
 
@@ -514,6 +538,20 @@ export default function LaundryPage() {
                       <span className="badge-dirty shrink-0 px-2 py-0.5 text-[10px]">
                         {isSaving ? 'Moving…' : 'Worn'}
                       </span>
+                      {!mobileSelectMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void moveToClean(item);
+                          }}
+                          disabled={isSaving}
+                          aria-label="Put back in wardrobe without washing"
+                          title="Won't wash — put back in wardrobe"
+                          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-50"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </motion.div>
                   );
                 })}

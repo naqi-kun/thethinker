@@ -910,7 +910,7 @@ components:
       properties:
         status:
           type: string
-          enum: [clean, worn, in_laundry, washing, drying]
+          enum: [clean, worn, in_laundry]
 
     ClothingItem:
       type: object
@@ -939,7 +939,7 @@ components:
           enum: [all, spring_summer, autumn_winter, winter]
         status:
           type: string
-          enum: [clean, worn, in_laundry, washing, drying]
+          enum: [clean, worn, in_laundry]
           default: clean
           description: Current wearability state. Only 'clean' items are included in outfit recommendations.
         image_url:
