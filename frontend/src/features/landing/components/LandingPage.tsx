@@ -6,6 +6,7 @@ import {
   ArrowRight,
   CloudSun,
 } from 'lucide-react';
+import BrandLogo from '../../../shared/components/BrandLogo';
 
 const trustItems = [
   { icon: Scan, label: 'Your wardrobe' },
@@ -154,9 +155,7 @@ export default function LandingPage() {
     <div className="min-h-screen-safe bg-background">
       {/* Nav */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 lg:px-12 lg:py-5">
-        <span className="font-serif text-xl text-terracotta lg:text-[22px]">
-          TheThinker
-        </span>
+        <BrandLogo className="w-36 lg:w-44" />
         <button
           onClick={goToLogin}
           className="rounded-full border border-border px-3.5 py-2 text-[13px] font-semibold text-foreground lg:px-[18px] lg:py-2.5 lg:text-sm"

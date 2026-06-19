@@ -1,18 +1,20 @@
 import { ArrowRight } from 'lucide-react';
+import BrandLogo from '../../../../shared/components/BrandLogo';
 
 // Onboarding 1 · Welcome — intro screen shown right after registration.
 const HERO_IMG = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600&q=80';
 
+type WelcomeStepProps = {
+  onStart: () => void;
+  onHaveAccount?: () => void;
+};
+
 export default function WelcomeStep({
   onStart,
-}: {
-  onStart: () => void;
-}) {
+}: WelcomeStepProps) {
   return (
     <div className="flex min-h-screen-safe w-full max-w-md flex-col px-6 py-10">
-      <div className="mb-8 text-center font-serif text-xl text-terracotta">
-        TheThinker
-      </div>
+      <BrandLogo className="mx-auto mb-8 w-44" />
 
       <div className="mb-8 aspect-4/5 w-full overflow-hidden rounded-xl bg-card shadow-sm">
         <img

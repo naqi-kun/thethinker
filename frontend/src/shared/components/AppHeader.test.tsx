@@ -26,9 +26,9 @@ describe('AppHeader (desktop nav)', () => {
   it('links the wordmark home and the gear to settings', () => {
     renderAt('/wardrobe');
 
-    expect(screen.getByRole('link', { name: 'TheThinker' }).getAttribute('href')).toBe(
-      '/',
-    );
+    expect(
+      screen.getByRole('link', { name: 'The Thinker home' }).getAttribute('href'),
+    ).toBe('/');
     expect(screen.getByRole('link', { name: 'Settings' }).getAttribute('href')).toBe(
       '/settings',
     );

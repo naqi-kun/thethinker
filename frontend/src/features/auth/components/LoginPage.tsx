@@ -5,6 +5,7 @@ import { login } from '../api';
 import { startGoogleSignIn, isGoogleConfigured } from '../google';
 import { token } from '../../../shared/api/token';
 import { ApiError } from '../../../shared/api/httpClient';
+import BrandLogo from '../../../shared/components/BrandLogo';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -38,10 +39,7 @@ export default function LoginPage() {
     <div className="min-h-screen-safe flex flex-col items-center bg-cream px-4 py-12">
       {/* Brand */}
       <div className="mb-8 text-center">
-        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-terracotta shadow-md">
-          <HangerIcon className="h-8 w-8 text-cream" />
-        </div>
-        <p className="font-serif text-2xl text-espresso">TheThinker</p>
+        <BrandLogo className="mx-auto mb-3 w-52" />
         <p className="text-sm text-muted-foreground">Your digital atelier await.</p>
       </div>
 
@@ -160,23 +158,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function HangerIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 3.5a1.5 1.5 0 0 1 1.5 1.5c0 .9-.75 1.6-1.5 2.2L3 16h18L12 7.2c-.75-.6-1.5-1.3-1.5-2.2A1.5 1.5 0 0 1 12 3.5z" />
-      <line x1="3" y1="16" x2="21" y2="16" />
-    </svg>
   );
 }
 

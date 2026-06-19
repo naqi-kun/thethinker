@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
 import { Settings } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 
 const navItems = [
   { to: '/wardrobe', label: 'Wardrobe' },
@@ -15,11 +16,8 @@ export default function AppHeader() {
   return (
     <header className="z-20 shrink-0 border-b border-border bg-background">
       <div className="mx-auto flex max-w-xl items-center justify-between px-6 py-3">
-        <Link
-          to="/"
-          className="font-serif text-xl font-medium text-espresso hover:text-rust"
-        >
-          TheThinker
+        <Link to="/" aria-label="The Thinker home" className="block w-32">
+          <BrandLogo />
         </Link>
 
         <nav aria-label="Primary" className="hidden items-center gap-6 text-sm md:flex">

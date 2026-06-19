@@ -1,4 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
+import BrandLogo from '../../../../shared/components/BrandLogo';
 
 // Shared chrome for the two "quick setup" steps (Aesthetic, Location). Welcome
 // and Done are intro/outro screens and don't show a step counter, matching the
@@ -23,7 +24,7 @@ export default function OnboardingHeader({
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <span className="font-serif text-xl text-terracotta">TheThinker</span>
+        <BrandLogo className="w-36" />
         <div className="w-9" />
       </div>
       <div className="progress-bar mb-2">
