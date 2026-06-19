@@ -9950,6 +9950,2172 @@
       "width": 360,
       "height": 170,
       "content": "DRESSING-FOR SELECTOR (KAN-92)\n\n• A compact dropdown on the Wrapped page lists the day's calendar events.\n• Default = most-formal event of the day (never underdressed).\n• Pick another → the look regenerates for that occasion.\n• No events that day → shows 'Everyday' (casual default).\n• Occasion maps Event.Type → formal / casual / sport (matches wardrobe Category)."
+    },
+    {
+      "type": "frame",
+      "id": "RugXG",
+      "x": 5420,
+      "y": 0,
+      "name": "Landing Page — Improved",
+      "width": 1200,
+      "fill": "$cream",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "DDOgP",
+          "name": "Nav",
+          "width": "fill_container",
+          "padding": [
+            20,
+            48
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "w6aVA",
+              "name": "Logo",
+              "fill": "$terracotta",
+              "content": "TheThinker",
+              "fontFamily": "$font-serif",
+              "fontSize": 22,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "r2gy6b",
+              "name": "Nav Actions",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "k5SOR",
+                  "name": "Sign In Btn",
+                  "cornerRadius": 9999,
+                  "stroke": "$sand",
+                  "strokeWidth": 1,
+                  "padding": [
+                    10,
+                    18
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qTSJu",
+                      "name": "Sign In Label",
+                      "fill": "$espresso",
+                      "content": "Sign in",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "AukhG",
+                  "name": "Nav CTA",
+                  "fill": "$terracotta",
+                  "cornerRadius": 9999,
+                  "gap": 6,
+                  "padding": [
+                    10,
+                    20
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xSJAJ",
+                      "name": "Nav CTA Label",
+                      "fill": "$cream",
+                      "content": "Get started",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "c9Wxw",
+                      "name": "Nav CTA Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "arrow-right",
+                      "library": "lucide",
+                      "fill": "$cream"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "uJUOD",
+          "name": "Hero",
+          "width": "fill_container",
+          "gap": 40,
+          "padding": [
+            56,
+            48,
+            40,
+            48
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "group",
+              "id": "rmtnr",
+              "width": "fill_container",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "iDoei",
+                  "x": 0,
+                  "y": 105,
+                  "name": "Hero Copy",
+                  "width": 613.3333333333333,
+                  "layout": "vertical",
+                  "gap": 18,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "zxivt",
+                      "name": "Eyebrow",
+                      "fill": "$terracotta",
+                      "content": "SCAN · SCHEDULE · STYLE",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 11,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.5
+                    },
+                    {
+                      "type": "text",
+                      "id": "i9yRxZ",
+                      "name": "Headline",
+                      "fill": "$espresso",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Stop deciding what to wear.",
+                      "lineHeight": 1.1,
+                      "fontFamily": "$font-serif",
+                      "fontSize": 48,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "OVwym",
+                      "name": "Subhead",
+                      "fill": "$muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "TheThinker scans your wardrobe, reads your calendar, and delivers one complete outfit every morning — tailored to the weather and your day.",
+                      "lineHeight": 1.5,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 16,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YPSgg",
+                      "name": "Hero CTAs",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "NC0sS",
+                          "name": "Primary CTA",
+                          "fill": "$terracotta",
+                          "cornerRadius": 9999,
+                          "gap": 8,
+                          "padding": [
+                            14,
+                            24
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "HPRVG",
+                              "name": "Primary Label",
+                              "fill": "$cream",
+                              "content": "Get started free",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 15,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "mFWZM",
+                              "name": "Primary Icon",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "arrow-right",
+                              "library": "lucide",
+                              "fill": "$cream"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "S7Mq2M",
+                          "name": "Secondary CTA",
+                          "cornerRadius": 9999,
+                          "stroke": "$sand",
+                          "strokeWidth": 1,
+                          "padding": [
+                            14,
+                            20
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "aC3iy",
+                              "name": "Secondary Label",
+                              "fill": "$espresso",
+                              "content": "See how it works",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "c9P0kx",
+                  "x": 662.4,
+                  "y": 0,
+                  "name": "Phone Mockup Wrap",
+                  "width": 441.59999999999997,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "dVu0p",
+                      "name": "Phone Frame",
+                      "clip": true,
+                      "width": 320,
+                      "fill": "$espresso",
+                      "cornerRadius": 32,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#3D2B1F33",
+                        "offset": {
+                          "x": 0,
+                          "y": 16
+                        },
+                        "blur": 40
+                      },
+                      "layout": "vertical",
+                      "padding": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "uu5Ku",
+                          "name": "Phone Screen",
+                          "width": "fill_container",
+                          "fill": "$cream",
+                          "cornerRadius": 24,
+                          "layout": "vertical",
+                          "gap": 12,
+                          "padding": [
+                            16,
+                            16,
+                            20,
+                            16
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "xgCM8",
+                              "name": "Mock Header",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 4,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "ougVe",
+                                  "name": "Mock Eyebrow",
+                                  "fill": "$terracotta",
+                                  "content": "TODAY'S LOOK",
+                                  "fontFamily": "$font-sans",
+                                  "fontSize": 10,
+                                  "fontWeight": "600",
+                                  "letterSpacing": 1.2
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "VPlSN",
+                                  "name": "Mock Title",
+                                  "fill": "$espresso",
+                                  "content": "Friday, June 19",
+                                  "fontFamily": "$font-serif",
+                                  "fontSize": 22,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Okilk",
+                              "name": "Context Chips",
+                              "gap": 6,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "knlOB",
+                                  "name": "Weather Chip",
+                                  "fill": "$cream",
+                                  "cornerRadius": 9999,
+                                  "stroke": "$sand",
+                                  "strokeWidth": 1,
+                                  "gap": 4,
+                                  "padding": [
+                                    5,
+                                    10
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "M67DMy",
+                                      "name": "Weather Label",
+                                      "fill": "$espresso",
+                                      "content": "22°C · Sunny",
+                                      "fontFamily": "$font-sans",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "eK7HS",
+                                  "name": "Occasion Chip",
+                                  "fill": "$cream",
+                                  "cornerRadius": 9999,
+                                  "stroke": "$sand",
+                                  "strokeWidth": 1,
+                                  "gap": 4,
+                                  "padding": [
+                                    5,
+                                    10
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "WJ9tw",
+                                      "name": "Occasion Label",
+                                      "fill": "$espresso",
+                                      "content": "Client Meeting",
+                                      "fontFamily": "$font-sans",
+                                      "fontSize": 11,
+                                      "fontWeight": "500"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "xIjY9",
+                              "name": "Flat Lay",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 200,
+                              "fill": "$cream",
+                              "cornerRadius": 16,
+                              "stroke": "#EADFD0",
+                              "strokeWidth": 1,
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 10,
+                                  "id": "nE2gX",
+                                  "x": 20,
+                                  "y": 14,
+                                  "name": "Item Top",
+                                  "rotation": 5,
+                                  "fill": "#f0e4d6",
+                                  "width": 110,
+                                  "height": 90,
+                                  "effect": {
+                                    "type": "shadow",
+                                    "shadowType": "outer",
+                                    "color": "#3D2B1F20",
+                                    "offset": {
+                                      "x": 0,
+                                      "y": 4
+                                    },
+                                    "blur": 12
+                                  }
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 10,
+                                  "id": "Fn5Os",
+                                  "x": 120,
+                                  "y": 36,
+                                  "name": "Item Shirt",
+                                  "rotation": -4,
+                                  "fill": "#4a4a4a",
+                                  "width": 108,
+                                  "height": 88,
+                                  "effect": {
+                                    "type": "shadow",
+                                    "shadowType": "outer",
+                                    "color": "#3D2B1F20",
+                                    "offset": {
+                                      "x": 0,
+                                      "y": 4
+                                    },
+                                    "blur": 12
+                                  }
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 10,
+                                  "id": "dnEf0",
+                                  "x": 36,
+                                  "y": 110,
+                                  "name": "Item Shoes",
+                                  "rotation": 6.000000000000001,
+                                  "fill": "#c9a96e",
+                                  "width": 96,
+                                  "height": 68,
+                                  "effect": {
+                                    "type": "shadow",
+                                    "shadowType": "outer",
+                                    "color": "#3D2B1F20",
+                                    "offset": {
+                                      "x": 0,
+                                      "y": 4
+                                    },
+                                    "blur": 12
+                                  }
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "cornerRadius": 10,
+                                  "id": "wfmwH",
+                                  "x": 150,
+                                  "y": 118,
+                                  "name": "Item Watch",
+                                  "rotation": -7,
+                                  "fill": "#a8a8b3",
+                                  "width": 80,
+                                  "height": 58,
+                                  "effect": {
+                                    "type": "shadow",
+                                    "shadowType": "outer",
+                                    "color": "#3D2B1F20",
+                                    "offset": {
+                                      "x": 0,
+                                      "y": 4
+                                    },
+                                    "blur": 12
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "czW6e",
+                              "name": "Why Card",
+                              "width": "fill_container",
+                              "fill": "$linen",
+                              "cornerRadius": 14,
+                              "stroke": "$sand",
+                              "strokeWidth": 1,
+                              "layout": "vertical",
+                              "gap": 6,
+                              "padding": 12,
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "Na1Bw",
+                                  "name": "Why Head",
+                                  "gap": 6,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "dvNYD",
+                                      "name": "Sparkles",
+                                      "width": 14,
+                                      "height": 14,
+                                      "icon": "sparkles",
+                                      "library": "lucide",
+                                      "fill": "$terracotta"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "tsJv9",
+                                      "name": "Why Eyebrow",
+                                      "fill": "$terracotta",
+                                      "content": "WHY THIS LOOK",
+                                      "fontFamily": "$font-sans",
+                                      "fontSize": 10,
+                                      "fontWeight": "600",
+                                      "letterSpacing": 1.2
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Skea2",
+                                  "name": "Why Text",
+                                  "fill": "$espresso",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Neutral tones keep it sharp for your client meeting — polished without trying too hard.",
+                                  "lineHeight": 1.4,
+                                  "fontFamily": "$font-sans",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "L4Q1Cr",
+                              "name": "Wear Btn",
+                              "width": "fill_container",
+                              "fill": "$terracotta",
+                              "cornerRadius": 9999,
+                              "gap": 6,
+                              "padding": [
+                                12,
+                                16
+                              ],
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "E2vfU",
+                                  "name": "Wear Label",
+                                  "fill": "$cream",
+                                  "content": "Wear This Today",
+                                  "fontFamily": "$font-sans",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "EdI7I",
+                      "name": "Mock Caption",
+                      "fill": "$muted-foreground",
+                      "content": "What you'll see every morning",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 12,
+                      "fontWeight": "600",
+                      "letterSpacing": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HdC3x",
+          "name": "Trust Strip",
+          "width": "fill_container",
+          "fill": "$linen",
+          "gap": 32,
+          "padding": [
+            20,
+            48
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "l7C6J",
+              "name": "Your wardrobe",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "vAtE0",
+                  "name": "Your wardrobe Icon",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "scan",
+                  "library": "lucide",
+                  "fill": "$terracotta"
+                },
+                {
+                  "type": "text",
+                  "id": "kGI2y",
+                  "name": "Your wardrobe Text",
+                  "fill": "$espresso",
+                  "content": "Your wardrobe",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r5Q8fX",
+              "name": "Your calendar",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "sKwFU",
+                  "name": "Your calendar Icon",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "calendar-days",
+                  "library": "lucide",
+                  "fill": "$terracotta"
+                },
+                {
+                  "type": "text",
+                  "id": "t1OD9E",
+                  "name": "Your calendar Text",
+                  "fill": "$espresso",
+                  "content": "Your calendar",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rjpZ0",
+              "name": "Live weather",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "S4Bn9d",
+                  "name": "Live weather Icon",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "cloud-sun",
+                  "library": "lucide",
+                  "fill": "$terracotta"
+                },
+                {
+                  "type": "text",
+                  "id": "Sg3ij",
+                  "name": "Live weather Text",
+                  "fill": "$espresso",
+                  "content": "Live weather",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Z2VGPc",
+          "name": "How It Works",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            56,
+            48
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "x23gfu",
+              "name": "How Header",
+              "width": 600,
+              "layout": "vertical",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "O9qXa6",
+                  "name": "How Title",
+                  "fill": "$espresso",
+                  "content": "How it works",
+                  "fontFamily": "$font-serif",
+                  "fontSize": 32,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "gdXvx",
+                  "name": "How Sub",
+                  "fill": "$muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Three steps from closet chaos to a confident morning.",
+                  "textAlign": "center",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r8O4Pt",
+              "name": "Steps Row",
+              "width": "fill_container",
+              "gap": 24,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "W5nVCI",
+                  "name": "Step 01",
+                  "width": "fill_container",
+                  "fill": "$cream",
+                  "cornerRadius": 16,
+                  "stroke": "$sand",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "DOt6B",
+                      "name": "Icon Box",
+                      "width": 44,
+                      "height": 44,
+                      "fill": "#C1714A1A",
+                      "cornerRadius": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "PHuIw",
+                          "name": "Step Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "scan",
+                          "library": "lucide",
+                          "fill": "$terracotta"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "vzKAV",
+                      "name": "Step Num",
+                      "fill": "$muted-foreground",
+                      "content": "STEP 01",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    },
+                    {
+                      "type": "text",
+                      "id": "A5Mec",
+                      "name": "Step Title",
+                      "fill": "$espresso",
+                      "content": "Scan your wardrobe",
+                      "fontFamily": "$font-serif",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "zuKfn",
+                      "name": "Step Desc",
+                      "fill": "$muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Photograph each item once. We learn your style from what you actually own.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "t6FAN",
+                  "name": "Step 02",
+                  "width": "fill_container",
+                  "fill": "$cream",
+                  "cornerRadius": 16,
+                  "stroke": "$sand",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "DYNbF",
+                      "name": "Icon Box",
+                      "width": 44,
+                      "height": 44,
+                      "fill": "#C1714A1A",
+                      "cornerRadius": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "yFaN9",
+                          "name": "Step Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "calendar-days",
+                          "library": "lucide",
+                          "fill": "$terracotta"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "PRImp",
+                      "name": "Step Num",
+                      "fill": "$muted-foreground",
+                      "content": "STEP 02",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    },
+                    {
+                      "type": "text",
+                      "id": "p2Heq",
+                      "name": "Step Title",
+                      "fill": "$espresso",
+                      "content": "Sync your schedule",
+                      "fontFamily": "$font-serif",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "e8RinP",
+                      "name": "Step Desc",
+                      "fill": "$muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Connect your calendar so looks match your day — meetings, dinners, casual Fridays.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "uD3yU",
+                  "name": "Step 03",
+                  "width": "fill_container",
+                  "fill": "$cream",
+                  "cornerRadius": 16,
+                  "stroke": "$sand",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "nwdOA",
+                      "name": "Icon Box",
+                      "width": 44,
+                      "height": 44,
+                      "fill": "#C1714A1A",
+                      "cornerRadius": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "sjQBp",
+                          "name": "Step Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "sparkles",
+                          "library": "lucide",
+                          "fill": "$terracotta"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "eXPf5",
+                      "name": "Step Num",
+                      "fill": "$muted-foreground",
+                      "content": "STEP 03",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 10,
+                      "fontWeight": "600",
+                      "letterSpacing": 1.2
+                    },
+                    {
+                      "type": "text",
+                      "id": "wrloj",
+                      "name": "Step Title",
+                      "fill": "$espresso",
+                      "content": "Get styled daily",
+                      "fontFamily": "$font-serif",
+                      "fontSize": 18,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "i8jEs",
+                      "name": "Step Desc",
+                      "fill": "$muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Every morning, one complete outfit tailored to weather, occasion, and your taste.",
+                      "lineHeight": 1.45,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VZtQo",
+          "name": "Proof Band",
+          "width": "fill_container",
+          "fill": "$espresso",
+          "gap": 40,
+          "padding": [
+            48,
+            64
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "zi5QZ",
+              "name": "Band Copy",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "SmJKT",
+                  "name": "Band Quote",
+                  "fill": "$cream",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "\"I stopped opening my closet and staring. TheThinker just tells me what works.\"",
+                  "lineHeight": 1.35,
+                  "fontFamily": "$font-serif",
+                  "fontSize": 24,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "YIMvZ",
+                  "name": "Band Attr",
+                  "fill": "#D4BDA8",
+                  "content": "— Early beta user",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r3zMQ",
+              "name": "Band Stat",
+              "width": 180,
+              "layout": "vertical",
+              "gap": 4,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "UQbWD",
+                  "name": "Stat Num",
+                  "fill": "$terracotta",
+                  "content": "< 2 min",
+                  "fontFamily": "$font-serif",
+                  "fontSize": 36,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "Ddylw",
+                  "name": "Stat Label",
+                  "fill": "#D4BDA8",
+                  "content": "to get dressed\nwith confidence",
+                  "lineHeight": 1.4,
+                  "fontFamily": "$font-sans",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "crqBM",
+          "name": "Footer CTA",
+          "width": "fill_container",
+          "fill": "#F0E4D680",
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            56,
+            48
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "BhNag",
+              "name": "CTA Inner",
+              "width": 520,
+              "layout": "vertical",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "SnzHa",
+                  "name": "CTA Title",
+                  "fill": "$espresso",
+                  "content": "Ready to dress smarter?",
+                  "textAlign": "center",
+                  "fontFamily": "$font-serif",
+                  "fontSize": 28,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "DeYrg",
+                  "name": "CTA Sub",
+                  "fill": "$muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Your wardrobe is already full of great outfits. Let TheThinker surface them.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "Xduic",
+                  "name": "Footer CTA Btn",
+                  "fill": "$terracotta",
+                  "cornerRadius": 9999,
+                  "gap": 8,
+                  "padding": [
+                    16,
+                    32
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fAH84",
+                      "name": "Footer CTA Label",
+                      "fill": "$cream",
+                      "content": "Get started",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "nzkSs",
+                      "name": "Footer CTA Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "arrow-right",
+                      "library": "lucide",
+                      "fill": "$cream"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Rmwhm",
+          "name": "Footer",
+          "width": "fill_container",
+          "stroke": "$sand",
+          "strokeWidth": 1,
+          "padding": [
+            20,
+            48
+          ],
+          "justifyContent": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "kWu88",
+              "name": "Footer Text",
+              "fill": "$muted-foreground",
+              "content": "© 2026 TheThinker · Scan · Schedule · Style",
+              "fontFamily": "$font-sans",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "note",
+      "id": "H1QrA",
+      "x": 5420,
+      "y": 2180,
+      "name": "Landing improvement rationale",
+      "width": 380,
+      "height": 300,
+      "content": "LANDING PAGE IMPROVEMENTS\n\n1. Split hero — outcome copy left, product mockup right\n2. Headline leads with transformation, not brand name\n3. Phone mockup shows Daily Reveal (flat-lay + Why card)\n4. Trust strip grounds the AI claim\n5. Espresso band breaks rhythm before final CTA\n6. Terracotta reserved for primary actions"
+    },
+    {
+      "type": "frame",
+      "id": "tReec",
+      "x": 5420,
+      "y": 2581,
+      "name": "Landing Page — Mobile",
+      "clip": true,
+      "width": 390,
+      "fill": "$cream",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "HWi5M",
+          "name": "Nav",
+          "width": "fill_container",
+          "padding": [
+            16,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "l1uTu",
+              "name": "Logo",
+              "fill": "$terracotta",
+              "content": "TheThinker",
+              "fontFamily": "$font-serif",
+              "fontSize": 20,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "isbCw",
+              "name": "Sign In Btn",
+              "cornerRadius": 9999,
+              "stroke": "$sand",
+              "strokeWidth": 1,
+              "padding": [
+                8,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "n5BeFF",
+                  "name": "Sign In Label",
+                  "fill": "$espresso",
+                  "content": "Sign in",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ZHwEO",
+          "name": "Hero",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            8,
+            20,
+            24,
+            20
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "jP4J8",
+              "name": "Hero Copy",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 14,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WkXDH",
+                  "name": "Eyebrow",
+                  "fill": "$terracotta",
+                  "content": "SCAN · SCHEDULE · STYLE",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "text",
+                  "id": "Wbo1V",
+                  "name": "Headline",
+                  "fill": "$espresso",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Stop deciding what to wear.",
+                  "lineHeight": 1.12,
+                  "textAlign": "center",
+                  "fontFamily": "$font-serif",
+                  "fontSize": 34,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "rPPNs",
+                  "name": "Subhead",
+                  "fill": "$muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Scan your wardrobe, sync your calendar, and get one outfit every morning — tailored to weather and your day.",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "ZG7ND",
+                  "name": "Primary CTA",
+                  "width": "fill_container",
+                  "fill": "$terracotta",
+                  "cornerRadius": 9999,
+                  "gap": 8,
+                  "padding": [
+                    15,
+                    20
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JZawr",
+                      "name": "Primary Label",
+                      "fill": "$cream",
+                      "content": "Get started free",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "Z4QOxr",
+                      "name": "Primary Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "arrow-right",
+                      "library": "lucide",
+                      "fill": "$cream"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dVGR9",
+              "name": "Product Preview",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "d5CHux",
+                  "name": "Preview Label",
+                  "fill": "$muted-foreground",
+                  "content": "WHAT YOU'LL SEE EVERY MORNING",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 10,
+                  "fontWeight": "600",
+                  "letterSpacing": 1.2
+                },
+                {
+                  "type": "frame",
+                  "id": "GsPHW",
+                  "name": "Preview Card",
+                  "width": "fill_container",
+                  "fill": "$cream",
+                  "cornerRadius": 20,
+                  "stroke": "$sand",
+                  "strokeWidth": 1,
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#3D2B1F1A",
+                    "offset": {
+                      "x": 0,
+                      "y": 8
+                    },
+                    "blur": 24
+                  },
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "K3mBZi",
+                      "name": "Card Head",
+                      "width": "fill_container",
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "r1U8jg",
+                          "name": "Card Title",
+                          "fill": "$muted-foreground",
+                          "content": "Today's Outfit",
+                          "fontFamily": "$font-sans",
+                          "fontSize": 11,
+                          "fontWeight": "600",
+                          "letterSpacing": 1
+                        },
+                        {
+                          "type": "frame",
+                          "id": "U6d1jj",
+                          "name": "Ready Badge",
+                          "fill": "#4A8B5C1A",
+                          "cornerRadius": 9999,
+                          "gap": 4,
+                          "padding": [
+                            4,
+                            8
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "uuzY6",
+                              "name": "Dot",
+                              "fill": "$success",
+                              "width": 6,
+                              "height": 6
+                            },
+                            {
+                              "type": "text",
+                              "id": "z8oYts",
+                              "name": "Ready Label",
+                              "fill": "$success",
+                              "content": "Ready",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 10,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "w6rhpc",
+                      "name": "Chips",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "tc4Hy",
+                          "name": "Weather",
+                          "cornerRadius": 9999,
+                          "stroke": "$sand",
+                          "strokeWidth": 1,
+                          "padding": [
+                            5,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Huwy3",
+                              "name": "Weather Text",
+                              "fill": "$espresso",
+                              "content": "22°C · Sunny",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "o0k5L",
+                          "name": "Occasion",
+                          "cornerRadius": 9999,
+                          "stroke": "$sand",
+                          "strokeWidth": 1,
+                          "padding": [
+                            5,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "gbZDS",
+                              "name": "Occasion Text",
+                              "fill": "$espresso",
+                              "content": "Client Meeting",
+                              "fontFamily": "$font-sans",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yARf4",
+                      "name": "Flat Lay",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 160,
+                      "fill": "$cream",
+                      "cornerRadius": 14,
+                      "stroke": "#EADFD0",
+                      "strokeWidth": 1,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 8,
+                          "id": "OMXb1",
+                          "x": 16,
+                          "y": 12,
+                          "name": "Top",
+                          "rotation": 4,
+                          "fill": "#f0e4d6",
+                          "width": 100,
+                          "height": 72
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 8,
+                          "id": "trDLo",
+                          "x": 110,
+                          "y": 28,
+                          "name": "Shirt",
+                          "rotation": -3.0000000000000004,
+                          "fill": "#4a4a4a",
+                          "width": 96,
+                          "height": 70
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 8,
+                          "id": "lIM5j",
+                          "x": 28,
+                          "y": 92,
+                          "name": "Shoes",
+                          "rotation": 5,
+                          "fill": "#c9a96e",
+                          "width": 88,
+                          "height": 56
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 8,
+                          "id": "b0HXO",
+                          "x": 130,
+                          "y": 98,
+                          "name": "Watch",
+                          "rotation": -6.000000000000001,
+                          "fill": "#a8a8b3",
+                          "width": 72,
+                          "height": 48
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TgdmE",
+                      "name": "Why Card",
+                      "width": "fill_container",
+                      "fill": "$linen",
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": 10,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "W5aND",
+                          "name": "Why Text",
+                          "fill": "$espresso",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "Neutral tones — sharp for your meeting without trying too hard.",
+                          "lineHeight": 1.4,
+                          "fontFamily": "$font-sans",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "XOM9E",
+          "name": "Trust Strip",
+          "width": "fill_container",
+          "fill": "$linen",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            16,
+            20
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "a5o0y",
+              "name": "Your wardrobe",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "M7ikF",
+                  "name": "Icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "scan",
+                  "library": "lucide",
+                  "fill": "$terracotta"
+                },
+                {
+                  "type": "text",
+                  "id": "NVslX",
+                  "name": "Label",
+                  "fill": "$espresso",
+                  "content": "Your wardrobe",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xS2Ci",
+              "name": "Your calendar",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "u0ajFc",
+                  "name": "Icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "calendar-days",
+                  "library": "lucide",
+                  "fill": "$terracotta"
+                },
+                {
+                  "type": "text",
+                  "id": "tM9pd",
+                  "name": "Label",
+                  "fill": "$espresso",
+                  "content": "Your calendar",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "wClxw",
+              "name": "Live weather",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "qf23q",
+                  "name": "Icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "cloud-sun",
+                  "library": "lucide",
+                  "fill": "$terracotta"
+                },
+                {
+                  "type": "text",
+                  "id": "atACh",
+                  "name": "Label",
+                  "fill": "$espresso",
+                  "content": "Live weather",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "p0fmhZ",
+          "name": "How It Works",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            40,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "KO81d",
+              "name": "How Header",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "w10F0",
+                  "name": "How Title",
+                  "fill": "$espresso",
+                  "content": "How it works",
+                  "fontFamily": "$font-serif",
+                  "fontSize": 26,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "EG5Zh",
+                  "name": "How Sub",
+                  "fill": "$muted-foreground",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Three steps to a confident morning.",
+                  "textAlign": "center",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "p8HVJT",
+              "name": "Step 01",
+              "width": "fill_container",
+              "fill": "$cream",
+              "cornerRadius": 14,
+              "stroke": "$sand",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "lXpZe",
+                  "name": "Icon Box",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#C1714A1A",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "SOrC7",
+                      "name": "Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "scan",
+                      "library": "lucide",
+                      "fill": "$terracotta"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "EwXMr",
+                  "name": "Body",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "XFZvo",
+                      "name": "Num",
+                      "fill": "$muted-foreground",
+                      "content": "STEP 01",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "nRWFO",
+                      "name": "Title",
+                      "fill": "$espresso",
+                      "content": "Scan your wardrobe",
+                      "fontFamily": "$font-serif",
+                      "fontSize": 16,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "R2klvD",
+                      "name": "Desc",
+                      "fill": "$muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Photograph each item once. We learn your style from what you own.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "L44CCt",
+              "name": "Step 02",
+              "width": "fill_container",
+              "fill": "$cream",
+              "cornerRadius": 14,
+              "stroke": "$sand",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "xQsEd",
+                  "name": "Icon Box",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#C1714A1A",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "x6pRJR",
+                      "name": "Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "calendar-days",
+                      "library": "lucide",
+                      "fill": "$terracotta"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "wuY00",
+                  "name": "Body",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "j7T7t",
+                      "name": "Num",
+                      "fill": "$muted-foreground",
+                      "content": "STEP 02",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "TI35P",
+                      "name": "Title",
+                      "fill": "$espresso",
+                      "content": "Sync your schedule",
+                      "fontFamily": "$font-serif",
+                      "fontSize": 16,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "RGppK",
+                      "name": "Desc",
+                      "fill": "$muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Connect your calendar so looks match meetings, dinners, and casual days.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "bNzor",
+              "name": "Step 03",
+              "width": "fill_container",
+              "fill": "$cream",
+              "cornerRadius": 14,
+              "stroke": "$sand",
+              "strokeWidth": 1,
+              "gap": 14,
+              "padding": 16,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "OjjA4",
+                  "name": "Icon Box",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#C1714A1A",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "Pj8O9",
+                      "name": "Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "sparkles",
+                      "library": "lucide",
+                      "fill": "$terracotta"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "e9rUUl",
+                  "name": "Body",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "AwR51",
+                      "name": "Num",
+                      "fill": "$muted-foreground",
+                      "content": "STEP 03",
+                      "fontFamily": "$font-sans",
+                      "fontSize": 9,
+                      "fontWeight": "600",
+                      "letterSpacing": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "lFqQ0",
+                      "name": "Title",
+                      "fill": "$espresso",
+                      "content": "Get styled daily",
+                      "fontFamily": "$font-serif",
+                      "fontSize": 16,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Aaryi",
+                      "name": "Desc",
+                      "fill": "$muted-foreground",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "Every morning, one outfit tailored to weather, occasion, and taste.",
+                      "lineHeight": 1.4,
+                      "fontFamily": "$font-sans",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "GpJIW",
+          "name": "Proof Band",
+          "width": "fill_container",
+          "fill": "$espresso",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            32,
+            24
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "n2xaO",
+              "name": "Quote",
+              "fill": "$cream",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "\"I stopped opening my closet and staring. TheThinker just tells me what works.\"",
+              "lineHeight": 1.35,
+              "textAlign": "center",
+              "fontFamily": "$font-serif",
+              "fontSize": 20,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "QJiel",
+              "name": "Stat Row",
+              "gap": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "g97yfe",
+                  "name": "Stat Num",
+                  "fill": "$terracotta",
+                  "content": "< 2 min",
+                  "fontFamily": "$font-serif",
+                  "fontSize": 28,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "FjTPA",
+                  "name": "Stat Label",
+                  "fill": "#D4BDA8",
+                  "content": "to get dressed with confidence",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "p37A92",
+              "name": "Attr",
+              "fill": "#D4BDA8",
+              "content": "— Early beta user",
+              "fontFamily": "$font-sans",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "JJFrh",
+          "name": "Footer CTA",
+          "width": "fill_container",
+          "fill": "#F0E4D680",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            40,
+            20
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "PuBQl",
+              "name": "CTA Title",
+              "fill": "$espresso",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Ready to dress smarter?",
+              "textAlign": "center",
+              "fontFamily": "$font-serif",
+              "fontSize": 24,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "MAxnl",
+              "name": "CTA Sub",
+              "fill": "$muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Your wardrobe is full of great outfits. Let TheThinker surface them.",
+              "lineHeight": 1.45,
+              "textAlign": "center",
+              "fontFamily": "$font-sans",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "m0pV7",
+              "name": "Footer CTA Btn",
+              "width": "fill_container",
+              "fill": "$terracotta",
+              "cornerRadius": 9999,
+              "gap": 8,
+              "padding": [
+                15,
+                20
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "L154aa",
+                  "name": "Label",
+                  "fill": "$cream",
+                  "content": "Get started",
+                  "fontFamily": "$font-sans",
+                  "fontSize": 15,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "icon",
+                  "id": "DONka",
+                  "name": "Icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "arrow-right",
+                  "library": "lucide",
+                  "fill": "$cream"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "NoEFl",
+          "name": "Footer",
+          "width": "fill_container",
+          "stroke": "$sand",
+          "strokeWidth": 1,
+          "padding": [
+            18,
+            20
+          ],
+          "justifyContent": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "WzeEV",
+              "name": "Footer Text",
+              "fill": "$muted-foreground",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "© 2026 TheThinker · Scan · Schedule · Style",
+              "textAlign": "center",
+              "fontFamily": "$font-sans",
+              "fontSize": 11,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "note",
+      "id": "xe22Z",
+      "x": 5860,
+      "y": 2180,
+      "name": "Landing mobile notes",
+      "width": 360,
+      "height": 200,
+      "content": "MOBILE LANDING ADAPTATIONS\n\n• Single column — hero copy then inline product card (no phone-in-phone)\n• Full-width primary CTA in hero\n• Trust items stack vertically\n• Steps use horizontal row layout (icon + text) to save height\n• Proof band stacks quote + stat vertically\n• Nav drops header Get started — one CTA in hero + footer"
     }
   ],
   "variables": {
