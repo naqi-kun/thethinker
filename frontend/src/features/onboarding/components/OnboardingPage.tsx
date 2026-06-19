@@ -12,6 +12,7 @@ import DoneStep from './steps/DoneStep';
 // KAN-94: a 4-screen flow (Welcome → Aesthetic → Location → Done) that asks only
 // what the recommender consumes and the user can edit later — the aesthetic
 // (shared taxonomy, KAN-92) and a location for weather.
+// KAN-95: Done screen directs user straight to /wardrobe/add to fill their closet.
 type Step = 'welcome' | 'aesthetic' | 'location' | 'done';
 
 export default function OnboardingPage() {
@@ -36,6 +37,9 @@ export default function OnboardingPage() {
     setAnswers((a) => ({ ...a, location }));
   }
 
+  // Persist aesthetic + location, then reveal the "all set" screen. On failure
+  // we stay on the Location step with an error and keep the user's input — the
+  // old flow swallowed this error and navigated away regardless (KAN-94 bug).
   // Persist aesthetic + location, then reveal the "all set" screen. On failure
   // we stay on the Location step with an error and keep the user's input — the
   // old flow swallowed this error and navigated away regardless (KAN-94 bug).
