@@ -278,6 +278,14 @@
 }
 
 @layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   .text-gradient {
     @apply bg-gradient-to-r from-terracotta to-rust bg-clip-text text-transparent;
   }
