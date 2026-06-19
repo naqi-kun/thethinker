@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import type { Aesthetic } from '../../../shared/aesthetics';
 import { buildPreferences, savePreferences, EMPTY_ANSWERS } from '../api';
 import type { OnboardingAnswers } from '../api';
@@ -13,9 +14,18 @@ import DoneStep from './steps/DoneStep';
 // recommender consumes: aesthetic (shared taxonomy, KAN-92) and city for weather.
 type Step = 'welcome' | 'aesthetic' | 'location' | 'done';
 
+const STEP_ORDER: Step[] = ['welcome', 'aesthetic', 'location', 'done'];
+
+const slideVariants = {
+  enter: (d: number) => ({ x: d > 0 ? '100%' : '-100%', opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (d: number) => ({ x: d > 0 ? '-30%' : '30%', opacity: 0 }),
+};
+
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>('welcome');
+  const [direction, setDirection] = useState(1);
   const [answers, setAnswers] = useState<OnboardingAnswers>(EMPTY_ANSWERS);
 
   // Location step UI state
@@ -24,6 +34,9 @@ export default function OnboardingPage() {
   const [locationError, setLocationError] = useState<string | null>(null);
 
   function go(to: Step) {
+    const fromIdx = STEP_ORDER.indexOf(step);
+    const toIdx = STEP_ORDER.indexOf(to);
+    setDirection(toIdx >= fromIdx ? 1 : -1);
     setStep(to);
   }
 
@@ -69,16 +82,12 @@ export default function OnboardingPage() {
     }
   }
 
-  switch (step) {
-    case 'welcome':
-      return (
-        <div className="flex min-h-screen-safe justify-center bg-background">
-          <WelcomeStep onStart={() => go('aesthetic')} />
-        </div>
-      );
-    case 'aesthetic':
-      return (
-        <div className="flex min-h-screen-safe justify-center bg-background">
+  function renderStep() {
+    switch (step) {
+      case 'welcome':
+        return <WelcomeStep onStart={() => go('aesthetic')} />;
+      case 'aesthetic':
+        return (
           <AestheticStep
             value={answers.aesthetic}
             onChange={setAesthetic}
@@ -86,11 +95,9 @@ export default function OnboardingPage() {
             onSkip={() => go('location')}
             onBack={() => go('welcome')}
           />
-        </div>
-      );
-    case 'location':
-      return (
-        <div className="flex min-h-screen-safe justify-center bg-background">
+        );
+      case 'location':
+        return (
           <LocationStep
             value={answers.location}
             onChange={setLocation}
@@ -104,18 +111,35 @@ export default function OnboardingPage() {
             onSkip={() => persistAndFinish({ ...answers, location: '' })}
             onBack={() => go('aesthetic')}
           />
-        </div>
-      );
-    case 'done':
-      return (
-        <div className="flex min-h-screen-safe justify-center bg-background">
+        );
+      case 'done':
+        return (
           <DoneStep
             city={answers.location}
             onChangeCity={() => go('location')}
             onAddClothes={() => navigate('/wardrobe/add')}
             onLater={() => navigate('/wardrobe')}
           />
-        </div>
-      );
+        );
+    }
   }
+
+  return (
+    <div className="relative min-h-screen-safe overflow-hidden bg-background">
+      <AnimatePresence custom={direction} initial={false}>
+        <motion.div
+          key={step}
+          custom={direction}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.32, ease: [0.4, 0, 0.2, 1] }}
+          className="absolute inset-0 flex justify-center overflow-y-auto"
+        >
+          {renderStep()}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
 }

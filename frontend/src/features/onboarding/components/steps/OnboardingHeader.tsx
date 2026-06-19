@@ -1,4 +1,5 @@
-import { ArrowLeft } from 'lucide-react';
+﻿import { ArrowLeft } from 'lucide-react';
+import { motion } from 'motion/react';
 import BrandLogo from '../../../../shared/components/BrandLogo';
 
 // Shared chrome for the two "quick setup" steps (Aesthetic, Location). Welcome
@@ -28,7 +29,12 @@ export default function OnboardingHeader({
         <div className="w-9" />
       </div>
       <div className="progress-bar mb-2">
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
+        <motion.div
+          className="progress-fill"
+          initial={{ width: '0%' }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        />
       </div>
       <div className="flex items-center justify-between">
         <span className="helper-text">Quick setup</span>
@@ -39,3 +45,4 @@ export default function OnboardingHeader({
     </div>
   );
 }
+

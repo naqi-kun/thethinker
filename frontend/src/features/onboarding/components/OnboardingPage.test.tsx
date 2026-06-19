@@ -3,6 +3,21 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Strip animations so AnimatePresence never holds exiting elements in the DOM,
+// which would cause getByRole to find duplicate buttons between transitions.
+vi.mock('motion/react', async () => {
+  const { createElement, Fragment } = await import('react');
+  return {
+    motion: {
+      div: ({ children, initial: _i, animate: _a, exit: _e, variants: _v,
+               transition: _t, custom: _c, ...props }: Record<string, unknown>) =>
+        createElement('div', props as object, children as never),
+    },
+    AnimatePresence: ({ children }: { children: unknown }) =>
+      createElement(Fragment, null, children as never),
+  };
+});
+
 // Mock the data + geolocation layers so no real HTTP/permission prompts happen.
 const mocks = vi.hoisted(() => ({
   savePreferences: vi.fn(),
