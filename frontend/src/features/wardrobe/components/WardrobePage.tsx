@@ -274,7 +274,9 @@ function ItemDetailModal({
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3">
-          <h3 className="font-serif text-xl font-normal text-espresso">{displayName}</h3>
+          <h3 className="font-serif text-xl font-normal text-espresso">
+            {displayName}
+          </h3>
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-linen transition-colors hover:bg-sand/60"
@@ -420,7 +422,9 @@ function ItemDetailModal({
                 options={STATUSES}
                 value={status}
                 onChange={handleStatusChange}
-                className={savingStatus ? 'rounded-[10px] opacity-60' : 'rounded-[10px]'}
+                className={
+                  savingStatus ? 'rounded-[10px] opacity-60' : 'rounded-[10px]'
+                }
               />
             </div>
           </div>
