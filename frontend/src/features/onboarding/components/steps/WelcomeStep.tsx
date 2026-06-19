@@ -9,7 +9,7 @@ type WelcomeStepProps = {
   onHaveAccount?: () => void;
 };
 
-export default function WelcomeStep({ onStart }: WelcomeStepProps) {
+export default function WelcomeStep({ onStart, onHaveAccount }: WelcomeStepProps) {
   return (
     <div className="flex min-h-screen-safe w-full max-w-md flex-col px-6 py-10">
       <BrandLogo className="mx-auto mb-8 w-44" />
@@ -31,9 +31,16 @@ export default function WelcomeStep({ onStart }: WelcomeStepProps) {
         every morning.
       </p>
 
-      <button onClick={onStart} className="btn-primary btn-lg w-full">
-        Get Started <ArrowRight className="h-4 w-4" />
-      </button>
+      <div className="space-y-3">
+        <button onClick={onStart} className="btn-primary btn-lg w-full">
+          Get Started <ArrowRight className="h-4 w-4" />
+        </button>
+        {onHaveAccount ? (
+          <button onClick={onHaveAccount} className="btn-secondary btn-lg w-full">
+            I already have an account
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
