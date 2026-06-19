@@ -32,22 +32,20 @@ export default function WelcomeStep({ onStart }: { onStart: () => void }) {
         />
       </motion.div>
 
-      <motion.h1 variants={fadeUpItem} className="mb-3 text-center">
-        Your closet, styled daily.
-      </motion.h1>
-      <motion.p variants={fadeUpItem} className="helper-text mb-auto text-center">
-        Scan your wardrobe, sync your calendar, and get one outfit picked for your day —
-        every morning.
-      </motion.p>
+      <motion.div variants={fadeUpItem}>
+        <h1 className="mb-3 text-center">Your closet, styled daily.</h1>
+      </motion.div>
+      <motion.div variants={fadeUpItem}>
+        <p className="helper-text mb-auto text-center">
+          Scan your wardrobe, sync your calendar, and get one outfit picked for your day
+          — every morning.
+        </p>
+      </motion.div>
 
       <motion.div variants={fadeUpItem} className="space-y-3">
-        <motion.button
-          onClick={onStart}
-          whileTap={{ scale: 0.97 }}
-          className="btn-primary btn-lg w-full"
-        >
+        <button onClick={onStart} className="btn-primary btn-lg w-full">
           Get Started <ArrowRight className="h-4 w-4" />
-        </motion.button>
+        </button>
       </motion.div>
     </motion.div>
   );
