@@ -875,19 +875,6 @@ export default function WardrobePage() {
         )}
       </main>
 
-      {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-sm">
-          <div className="container-app py-4">
-            <button
-              onClick={() => navigate('/outfit')}
-              className="btn-primary btn-lg w-full"
-            >
-              Get Outfit Recommendation
-            </button>
-          </div>
-        </div>
-      )}
-
       {selectedItem && (
         <ItemDetailModal
           item={selectedItem}
