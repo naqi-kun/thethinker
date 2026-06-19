@@ -1,4 +1,4 @@
-﻿-- Web Push notifications: daily outfit reminder + pre-event "what to wear"
+-- Web Push notifications: daily outfit reminder + pre-event "what to wear"
 -- reminders, both driven by the user's connected calendar.
 
 -- One row per device/browser subscription. The push service endpoint uniquely
