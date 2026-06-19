@@ -1,11 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import {
-  Scan,
-  CalendarDays,
-  Sparkles,
-  ArrowRight,
-  CloudSun,
-} from 'lucide-react';
+import { Scan, CalendarDays, Sparkles, ArrowRight, CloudSun } from 'lucide-react';
 import BrandLogo from '../../../shared/components/BrandLogo';
 
 const trustItems = [
@@ -37,9 +31,15 @@ const steps = [
 
 const flatLayItems = [
   { color: '#f0e4d6', className: 'left-[6%] top-[7%] h-[45%] w-[34%] rotate-[5deg]' },
-  { color: '#4a4a4a', className: 'left-[37%] top-[18%] h-[44%] w-[34%] -rotate-[4deg]' },
+  {
+    color: '#4a4a4a',
+    className: 'left-[37%] top-[18%] h-[44%] w-[34%] -rotate-[4deg]',
+  },
   { color: '#c9a96e', className: 'left-[11%] top-[55%] h-[34%] w-[30%] rotate-[6deg]' },
-  { color: '#a8a8b3', className: 'left-[47%] top-[59%] h-[29%] w-[25%] -rotate-[7deg]' },
+  {
+    color: '#a8a8b3',
+    className: 'left-[47%] top-[59%] h-[29%] w-[25%] -rotate-[7deg]',
+  },
 ] as const;
 
 function FlatLayPreview() {
@@ -89,7 +89,8 @@ function WhyCard({ compact = false }: { compact?: boolean }) {
         </span>
       </div>
       <p className="text-xs leading-snug text-foreground">
-        Neutral tones keep it sharp for your client meeting — polished without trying too hard.
+        Neutral tones keep it sharp for your client meeting — polished without trying
+        too hard.
       </p>
     </div>
   );
@@ -176,12 +177,12 @@ export default function LandingPage() {
             </h1>
             <p className="text-[15px] leading-relaxed text-muted-foreground lg:text-base">
               <span className="lg:hidden">
-                Scan your wardrobe, sync your calendar, and get one outfit every morning —
-                tailored to weather and your day.
+                Scan your wardrobe, sync your calendar, and get one outfit every morning
+                — tailored to weather and your day.
               </span>
               <span className="hidden lg:inline">
-                TheThinker scans your wardrobe, reads your calendar, and delivers one complete
-                outfit every morning — tailored to the weather and your day.
+                TheThinker scans your wardrobe, reads your calendar, and delivers one
+                complete outfit every morning — tailored to the weather and your day.
               </span>
             </p>
             <div className="flex flex-col gap-3 pt-1 lg:flex-row lg:items-center">
@@ -231,7 +232,10 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="mx-auto max-w-6xl px-5 py-10 lg:px-12 lg:py-14">
+      <section
+        id="how-it-works"
+        className="mx-auto max-w-6xl px-5 py-10 lg:px-12 lg:py-14"
+      >
         <div className="mb-8 flex flex-col items-center gap-1.5 text-center lg:mb-10 lg:gap-2">
           <h2 className="text-[26px] lg:text-[32px]">How it works</h2>
           <p className="max-w-xl text-sm text-muted-foreground lg:text-[15px]">
@@ -271,8 +275,8 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-8 text-center lg:flex-row lg:items-center lg:gap-10 lg:px-16 lg:py-12 lg:text-left">
           <div className="flex-1 space-y-2.5">
             <blockquote className="font-serif text-xl leading-snug lg:text-2xl lg:leading-[1.35]">
-              &ldquo;I stopped opening my closet and staring. TheThinker just tells me what
-              works.&rdquo;
+              &ldquo;I stopped opening my closet and staring. TheThinker just tells me
+              what works.&rdquo;
             </blockquote>
             <p className="text-xs text-[#D4BDA8] lg:text-[13px]">— Early beta user</p>
           </div>
@@ -298,7 +302,8 @@ export default function LandingPage() {
               Your wardrobe is full of great outfits. Let TheThinker surface them.
             </span>
             <span className="hidden lg:inline">
-              Your wardrobe is already full of great outfits. Let TheThinker surface them.
+              Your wardrobe is already full of great outfits. Let TheThinker surface
+              them.
             </span>
           </p>
           <button

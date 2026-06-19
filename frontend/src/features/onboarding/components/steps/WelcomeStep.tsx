@@ -9,9 +9,7 @@ type WelcomeStepProps = {
   onHaveAccount?: () => void;
 };
 
-export default function WelcomeStep({
-  onStart,
-}: WelcomeStepProps) {
+export default function WelcomeStep({ onStart }: WelcomeStepProps) {
   return (
     <div className="flex min-h-screen-safe w-full max-w-md flex-col px-6 py-10">
       <BrandLogo className="mx-auto mb-8 w-44" />
