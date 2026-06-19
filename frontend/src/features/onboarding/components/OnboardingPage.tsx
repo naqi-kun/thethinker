@@ -7,11 +7,13 @@ import { getDeviceLocation, reverseGeocode } from '../geocode';
 import WelcomeStep from './steps/WelcomeStep';
 import AestheticStep from './steps/AestheticStep';
 import LocationStep from './steps/LocationStep';
+import DoneStep from './steps/DoneStep';
 
-// KAN-94: a 3-screen flow (Welcome → Aesthetic → Location) that asks only what
-// the recommender consumes. KAN-95: on completion navigate directly to
-// /wardrobe/add so users can fill their closet immediately.
-type Step = 'welcome' | 'aesthetic' | 'location';
+// KAN-94: a 4-screen flow (Welcome → Aesthetic → Location → Done) that asks only
+// what the recommender consumes and the user can edit later — the aesthetic
+// (shared taxonomy, KAN-92) and a location for weather.
+// KAN-95: Done screen directs user straight to /wardrobe/add to fill their closet.
+type Step = 'welcome' | 'aesthetic' | 'location' | 'done';
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
@@ -38,11 +40,14 @@ export default function OnboardingPage() {
   // Persist aesthetic + location, then reveal the "all set" screen. On failure
   // we stay on the Location step with an error and keep the user's input — the
   // old flow swallowed this error and navigated away regardless (KAN-94 bug).
+  // Persist aesthetic + location, then reveal the "all set" screen. On failure
+  // we stay on the Location step with an error and keep the user's input — the
+  // old flow swallowed this error and navigated away regardless (KAN-94 bug).
   async function persistAndFinish(next: OnboardingAnswers) {
     try {
       await savePreferences(buildPreferences(next));
       setLocationError(null);
-      navigate('/wardrobe/add');
+      go('done');
     } catch {
       setLocationError('Could not save your preferences. Please try again.');
     }
@@ -104,6 +109,15 @@ export default function OnboardingPage() {
             onContinue={() => persistAndFinish(answers)}
             onSkip={() => persistAndFinish({ ...answers, location: '' })}
             onBack={() => go('aesthetic')}
+          />
+        </div>
+      );
+    case 'done':
+      return (
+        <div className="flex min-h-screen-safe justify-center bg-background">
+          <DoneStep
+            onAddClothes={() => navigate('/wardrobe/add')}
+            onLater={() => navigate('/wardrobe')}
           />
         </div>
       );

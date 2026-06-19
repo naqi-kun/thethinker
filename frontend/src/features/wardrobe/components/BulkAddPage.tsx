@@ -274,10 +274,6 @@ export default function BulkAddPage() {
                 Lay items on a plain background for the best tags.
               </p>
             </div>
-
-            <button type="button" onClick={cancel} className="btn-link btn-sm mt-4 w-full">
-              Skip for now
-            </button>
           </>
         )}
 
