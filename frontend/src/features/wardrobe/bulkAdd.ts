@@ -22,6 +22,12 @@ export type ScanItem = {
   status: ScanStatus;
   /** Friendly message when status is 'failed' (e.g. not a clothing item). */
   error?: string;
+  /**
+   * Set when committing this item in "Add All" failed (create or image upload).
+   * Distinct from `error` (classification) so a complete item can stay addable
+   * and be retried while still showing why the last attempt failed.
+   */
+  addError?: string;
   confidence?: number;
   // Editable, contract-aligned fields (seeded from the classifier).
   name: string;

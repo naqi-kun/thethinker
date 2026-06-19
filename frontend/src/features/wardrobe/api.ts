@@ -29,7 +29,16 @@ export async function addItemWithImage(
   file: File,
 ): Promise<ClothingItem> {
   const created = await addItem(payload);
-  return uploadItemImage(created.id, file);
+  try {
+    return await uploadItemImage(created.id, file);
+  } catch (err) {
+    // The item was created but its image upload failed, leaving an imageless
+    // wardrobe entry. Roll it back so a retry re-adds it cleanly instead of
+    // duplicating. Swallow rollback errors — the original failure is what the
+    // caller needs to surface.
+    await deleteItem(created.id).catch(() => undefined);
+    throw err;
+  }
 }
 
 export async function scanItem(image: Blob): Promise<ClothingItem> {

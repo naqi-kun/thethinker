@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"golang.org/x/image/draw"
+	_ "golang.org/x/image/webp" // register the WebP decoder for image.Decode
 )
 
 const (

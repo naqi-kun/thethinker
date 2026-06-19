@@ -153,7 +153,7 @@ export default function BulkAddPage() {
   }
 
   function saveEdit(id: string, fields: ScanFields) {
-    patchItem(id, { ...fields, status: 'done', error: undefined });
+    patchItem(id, { ...fields, status: 'done', error: undefined, addError: undefined });
     setEditingId(null);
   }
 
@@ -172,24 +172,57 @@ export default function BulkAddPage() {
 
   async function addAll() {
     if (!canAddAll) return;
+    const batch = addable;
     setSubmitting(true);
     setError(null);
-    try {
-      // Follow-up: errors are surfaced as a single generic message. Tracking
-      // per-item upload failures (so partial success can be retried) is a known
-      // gap left for a later iteration.
-      const results = await mapWithConcurrency(addable, CONCURRENCY, async (item) => {
+
+    // Commit each item independently and capture its own outcome, so one
+    // failure no longer sinks the whole batch. addItemWithImage rolls back a
+    // created-but-unimaged item on failure, so failures leave nothing behind
+    // and stay safe to retry.
+    const outcomes = await mapWithConcurrency(batch, CONCURRENCY, async (item) => {
+      try {
         await addItemWithImage(toPayload(item), toUploadFile(item));
-        return true;
-      });
-      if (results.every(Boolean)) {
-        items.forEach((it) => URL.revokeObjectURL(it.url));
-        navigate('/wardrobe');
+        return { id: item.id, ok: true as const };
+      } catch (err) {
+        const message =
+          err instanceof ApiError || err instanceof Error
+            ? err.message
+            : 'Could not be added.';
+        return { id: item.id, ok: false as const, message };
       }
-    } catch {
-      setError('Some items could not be added. Please try again.');
-      setSubmitting(false);
+    });
+
+    const savedIds = new Set(outcomes.filter((o) => o.ok).map((o) => o.id));
+    const failures = new Map(
+      outcomes.filter((o) => !o.ok).map((o) => [o.id, o.message]),
+    );
+
+    if (failures.size === 0) {
+      items.forEach((it) => URL.revokeObjectURL(it.url));
+      navigate('/wardrobe');
+      return;
     }
+
+    // Drop the items that saved (revoking their thumbnails) and tag the ones
+    // that didn't, so the next Add All only re-attempts the genuine failures.
+    setItems((list) =>
+      list
+        .filter((it) => {
+          if (savedIds.has(it.id)) URL.revokeObjectURL(it.url);
+          return !savedIds.has(it.id);
+        })
+        .map((it) =>
+          failures.has(it.id) ? { ...it, addError: failures.get(it.id) } : it,
+        ),
+    );
+
+    setError(
+      savedIds.size > 0
+        ? `Added ${savedIds.size} of ${batch.length}. ${failures.size} couldn’t be added — try again.`
+        : 'Some items could not be added. Please try again.',
+    );
+    setSubmitting(false);
   }
 
   const editingItem = items.find((it) => it.id === editingId) ?? null;
@@ -377,6 +410,12 @@ export default function BulkAddPage() {
                               </span>
                             )}
                             <ColorChip color={it.color} />
+                          </span>
+                        )}
+                        {it.addError && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            {it.addError}
                           </span>
                         )}
                       </button>
