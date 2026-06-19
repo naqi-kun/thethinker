@@ -204,7 +204,6 @@ function ItemDetailModal({
 
   const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
-  const colorIsMulticolor = form.color === 'multicolor';
   // Hovering the image previews the sampled colour; otherwise show the committed one.
   const previewColor = hoverColor ?? form.color;
   const previewSwatch = previewColor ? COLOR_SWATCHES[previewColor] : '';
@@ -261,27 +260,34 @@ function ItemDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm md:items-center"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-t-2xl bg-background pb-safe max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-t-[24px] md:rounded-[24px] bg-background pb-safe max-h-[90vh] overflow-y-auto scrollbar-hide"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="h-1 w-10 rounded-full bg-sand" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h3 className="text-base font-semibold text-foreground">{displayName}</h3>
+        <div className="flex items-center justify-between px-5 py-3">
+          <h3 className="font-serif text-xl font-normal text-espresso">
+            {displayName}
+          </h3>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-secondary transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-linen transition-colors hover:bg-sand/60"
           >
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-5">
+        <div className="px-5 pt-3 pb-6 space-y-5">
           {/* Image preview */}
-          <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl bg-linen/60">
+          <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-[14px] bg-linen/60">
             {item.image_url && !imgError ? (
               <EyedropperImage
                 src={item.image_url}
@@ -307,18 +313,18 @@ function ItemDetailModal({
           </div>
 
           {/* Edit form */}
-          <div className="space-y-4">
+          <div className="space-y-[14px]">
             <div>
               <label
                 htmlFor="modal-item-name"
-                className="mb-2 block text-xs font-medium text-muted-foreground uppercase tracking-wide"
+                className="mb-2 block text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em]"
               >
                 Name
               </label>
               <input
                 id="modal-item-name"
                 type="text"
-                className="input"
+                className="input rounded-[10px]"
                 value={form.name}
                 placeholder="e.g. Black T-Shirt"
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -326,7 +332,7 @@ function ItemDetailModal({
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <p className="mb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">
                 Category
               </p>
               <Select
@@ -334,11 +340,12 @@ function ItemDetailModal({
                 value={form.category}
                 placeholder="Select category…"
                 onChange={(v) => setForm((f) => ({ ...f, category: v }))}
+                className="rounded-[10px]"
               />
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <p className="mb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">
                 Type
               </p>
               <Select
@@ -346,11 +353,12 @@ function ItemDetailModal({
                 value={form.sub_type}
                 placeholder="Select type…"
                 onChange={(v) => setForm((f) => ({ ...f, sub_type: v }))}
+                className="rounded-[10px]"
               />
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <p className="mb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">
                 Color
               </p>
               <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
@@ -372,49 +380,40 @@ function ItemDetailModal({
                       </span>
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, color: 'multicolor' }))}
-                    className={`flex w-fit cursor-pointer items-center gap-1.5 transition-all ${
-                      colorIsMulticolor ? 'badge-primary' : 'badge-outline'
-                    }`}
-                  >
-                    <span
-                      className="inline-block h-3 w-3 shrink-0 rounded-full border border-black/10"
-                      style={{ backgroundImage: COLOR_SWATCHES.multicolor }}
-                    />
-                    Multicolor
-                  </button>
                 </div>
               </div>
             </div>
 
-            <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Fit
-              </p>
-              <Select
-                options={FITS}
-                value={form.fit}
-                placeholder="Select fit…"
-                onChange={(v) => setForm((f) => ({ ...f, fit: v }))}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="mb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">
+                  Fit
+                </p>
+                <Select
+                  options={FITS}
+                  value={form.fit}
+                  placeholder="Select fit…"
+                  onChange={(v) => setForm((f) => ({ ...f, fit: v }))}
+                  className="rounded-[10px]"
+                />
+              </div>
+
+              <div>
+                <p className="mb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">
+                  Season
+                </p>
+                <Select
+                  options={SEASONS}
+                  value={form.season}
+                  placeholder="Select season…"
+                  onChange={(v) => setForm((f) => ({ ...f, season: v }))}
+                  className="rounded-[10px]"
+                />
+              </div>
             </div>
 
             <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Season
-              </p>
-              <Select
-                options={SEASONS}
-                value={form.season}
-                placeholder="Select season…"
-                onChange={(v) => setForm((f) => ({ ...f, season: v }))}
-              />
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <p className="mb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em]">
                 Status
               </p>
               {/* Status saves immediately via its own endpoint, independent of
@@ -423,7 +422,9 @@ function ItemDetailModal({
                 options={STATUSES}
                 value={status}
                 onChange={handleStatusChange}
-                className={savingStatus ? 'opacity-60' : undefined}
+                className={
+                  savingStatus ? 'rounded-[10px] opacity-60' : 'rounded-[10px]'
+                }
               />
             </div>
           </div>
@@ -431,11 +432,11 @@ function ItemDetailModal({
           {saveError && <p className="text-sm text-destructive">{saveError}</p>}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-1 pb-2">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="btn-outline btn-md flex-1"
+              className="btn-outline btn-md flex-1 rounded-full"
             >
               Cancel
             </button>
@@ -443,7 +444,7 @@ function ItemDetailModal({
               type="button"
               onClick={handleSave}
               disabled={!isFormValid || saving}
-              className="btn-primary btn-md flex-1"
+              className="btn-primary btn-md flex-1 rounded-full"
             >
               {saving ? 'Saving…' : 'Save Changes'}
             </button>
