@@ -178,24 +178,6 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* Mood images */}
-      <div className="mt-10 grid w-full max-w-sm grid-cols-3 gap-3">
-        <img
-          src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=300&q=80"
-          alt=""
-          className="aspect-square rounded-xl object-cover"
-        />
-        <img
-          src="https://images.unsplash.com/photo-1517842645767-c639042777db?w=300&q=80"
-          alt=""
-          className="aspect-square rounded-xl object-cover"
-        />
-        <img
-          src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=300&q=80"
-          alt=""
-          className="aspect-square rounded-xl object-cover"
-        />
-      </div>
     </div>
   );
 }
