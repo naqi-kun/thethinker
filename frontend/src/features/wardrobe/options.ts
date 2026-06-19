@@ -24,15 +24,7 @@ export type ClothingSubType =
   | 'sneakers'
   | 'boots'
   | 'suit'
-  | 'blazer'
-  // accessories — bucketed under "Accessories" by subTypeToCategory()
-  | 'watch'
-  | 'bag'
-  | 'belt'
-  | 'hat'
-  | 'scarf'
-  | 'sunglasses'
-  | 'tie';
+  | 'blazer';
 
 export type ClothingColor =
   | 'black'
@@ -98,14 +90,6 @@ export const SUB_TYPES: SelectOption<ClothingSubType>[] = [
   { value: 'shoes', label: 'Shoes' },
   { value: 'sneakers', label: 'Sneakers' },
   { value: 'boots', label: 'Boots' },
-  // Accessories
-  { value: 'watch', label: 'Watch' },
-  { value: 'bag', label: 'Bag' },
-  { value: 'belt', label: 'Belt' },
-  { value: 'hat', label: 'Hat' },
-  { value: 'scarf', label: 'Scarf' },
-  { value: 'sunglasses', label: 'Sunglasses' },
-  { value: 'tie', label: 'Tie' },
 ];
 
 // Representative hex per named colour. `multicolor` is a gradient (not a hex)

@@ -80,13 +80,7 @@ const FLAT_LAY_SLOTS = [
 function deriveHashtags(rec: OutfitRecommendation): string[] {
   const tags: string[] = [];
   if (rec.occasion) tags.push(rec.occasion);
-  // Collect all items including accessories
-  const allItems = [
-    ...rec.items,
-    ...(rec.watch ? [rec.watch] : []),
-    ...(rec.bag ? [rec.bag] : []),
-    ...(rec.belt ? [rec.belt] : []),
-  ];
+  const allItems = rec.items;
   const seasons = [
     ...new Set(allItems.flatMap((i) => (i.season ? [i.season] : []))),
   ].filter((s) => s !== 'all');
@@ -214,12 +208,7 @@ export default function OutfitPage() {
 
   const handleAccept = useCallback(async () => {
     if (!recommendation || accepting || accepted) return;
-    const itemIds = [
-      ...recommendation.items.map((i) => i.id),
-      ...(recommendation.watch ? [recommendation.watch.id] : []),
-      ...(recommendation.bag ? [recommendation.bag.id] : []),
-      ...(recommendation.belt ? [recommendation.belt.id] : []),
-    ];
+    const itemIds = recommendation.items.map((i) => i.id);
     setAccepting(true);
     try {
       await acceptOutfit(itemIds, recommendation.session_id);
@@ -260,15 +249,9 @@ export default function OutfitPage() {
     fetchOutfit(recommendation?.session_id, dressingFor);
   }, [fetchOutfit, recommendation, prefersReducedMotion, dressingFor]);
 
-  // Combine main outfit items with accessories for display
-  const displayItems: ClothingItem[] = (() => {
-    if (!recommendation) return [];
-    const items = [...recommendation.items];
-    if (recommendation.watch) items.push(recommendation.watch);
-    if (recommendation.bag) items.push(recommendation.bag);
-    if (recommendation.belt) items.push(recommendation.belt);
-    return items.slice(0, MAX_ITEMS);
-  })();
+  const displayItems: ClothingItem[] = recommendation
+    ? recommendation.items.slice(0, MAX_ITEMS)
+    : [];
   const hashtags = recommendation ? deriveHashtags(recommendation) : [];
   const weatherHint = recommendation?.weather
     ? staleWeatherHint(recommendation.weather.observed_at)
