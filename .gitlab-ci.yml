@@ -103,14 +103,15 @@ deploy-gcp:
   # never blocks `main` and we don't pile up junk failed revisions on every merge.
   # The running prod revision is unaffected by a failed deploy.
   #
-  # Deploy is build → compose up → productionise:
-  #   1. cloudbuild.yaml builds + pushes per-commit-tagged images (compose up only
-  #      DEPLOYS image refs in CI, it does not build them — without this it failed
-  #      with "Image ...:<sha> not found" / and a mutable :latest once shipped a
-  #      stale frontend whose nginx referenced ${RAILWAY_SERVICE_BACKEND_URL} and
-  #      crashed on startup). The frontend is built with VITE_GOOGLE_CLIENT_ID.
-  #   2. compose up deploys a revision from those images.
-  #   3. deploy-production.mjs reshapes it for prod (Cloud SQL proxy, ai→2Gi, secrets).
+  # Deploy is AppHost publish → validate → remote build → dry-run → compose up:
+  #   1. Aspire generates the production Compose artifact from apphost.mts.
+  #   2. The non-mutating validator proves the artifact has the Cloud Run topology
+  #      we expect before any mutating deploy command runs.
+  #   3. cloudbuild.yaml builds + pushes images tagged with $CI_COMMIT_TAG.
+  #   4. gcloud run compose up --dry-run validates provider translation with
+  #      the same public-access flag as the real deploy.
+  #   5. gcloud run compose up --no-build deploys only those prebuilt images
+  #      and allows unauthenticated access for the public frontend.
   #
   # NOTE: the deploy SA (thethinker-backend@) needs roles/cloudbuild.builds.editor
   # and Artifact Registry write to run step 1. If the build submit 403s, grant those.
@@ -122,6 +123,10 @@ deploy-gcp:
     # Install Node 22 on the gcloud image
     - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     - apt-get install -y nodejs
+    - npm ci
+    # Install Aspire CLI for AppHost-authored deployment artifacts.
+    - curl -sSL https://aspire.dev/install.sh | bash
+    - export PATH="$HOME/.aspire/bin:$PATH"
     # The slim image has the gcloud component manager disabled, so `gcloud run
     # compose up` is unavailable until its apt package is installed.
     - apt-get install -y google-cloud-cli-run-compose
@@ -131,28 +136,63 @@ deploy-gcp:
     - gcloud config set run/region us-central1
     - gcloud config set disable_prompts true
   script:
-    # 1. Materialise the .env that prepare-gcloud-compose.mjs substitutes into
-    #    compose.yaml (these reach the ai/backend containers; prod-only overrides
-    #    like DATABASE_URL are applied later by deploy-production.mjs).
-    #    IMAGE_TAG pins compose.yaml's image refs to this commit's SHA, matching the
-    #    tag the Cloud Build step (below) builds and pushes — so every deploy ships
-    #    freshly-built images, never a stale mutable `:latest`.
     - |
-      printf 'DB_PASSWORD=%s\nANTHROPICAPIKEY=%s\nJWTSECRET=%s\nWEATHERAPIKEY=%s\nIMAGE_TAG=%s\n' \
-        "$DB_PASSWORD" "$ANTHROPICAPIKEY" "$JWTSECRET" "$WEATHERAPIKEY" "$CI_COMMIT_SHORT_SHA" > .env
-    - node scripts/prepare-gcloud-compose.mjs
-    # 2. Build + push the per-commit-tagged images via Cloud Build. `gcloud run
-    #    compose up` only DEPLOYS image references in CI (no local Docker daemon to
-    #    build) — so the images must exist in Artifact Registry first, else it fails
-    #    with "Image ...:<sha> not found". The frontend image is built with
-    #    VITE_GOOGLE_CLIENT_ID so Google sign-in is enabled in production.
-    - gcloud builds submit --config cloudbuild.yaml --substitutions=_TAG=$CI_COMMIT_SHORT_SHA .
-    # 3. Deploy a revision from those freshly-built images.
-    - gcloud run compose up
-    # 4. Productionise the revision: swap the local Postgres container for the Cloud
-    #    SQL proxy and inject prod env (Cloud SQL DATABASE_URL, GCS creds, and the
-    #    Google client id/secret). GOOGLE_CLIENT_SECRET comes from a CI variable.
-    - cp "$GCS_KEY_JSON" gcs-key.json
-    - node scripts/deploy-production.mjs
+      test -n "$CI_COMMIT_TAG" || { echo "deploy-gcp only runs for Git tags"; exit 1; }
+
+      export REGISTRY="us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy"
+      export AI_IMAGE="${REGISTRY}/thethinker-ai:${CI_COMMIT_TAG}"
+      export BACKEND_IMAGE="${REGISTRY}/thethinker-backend:${CI_COMMIT_TAG}"
+      export FRONTEND_IMAGE="${REGISTRY}/thethinker-frontend:${CI_COMMIT_TAG}"
+
+      export ANTHROPICAPIKEY="${ANTHROPICAPIKEY:-$ANTHROPIC_API_KEY}"
+      export JWTSECRET="${JWTSECRET:-$JWT_SECRET}"
+      export WEATHERAPIKEY="${WEATHERAPIKEY:-$WEATHER_API_KEY}"
+      export DATABASEURL="${DATABASE_URL:-postgresql://postgres:${DB_PASSWORD}@127.0.0.1:5432/thethinker}"
+      export CLOUDSQLINSTANCE="${CLOUD_SQL_INSTANCE:-thethinker:us-central1:thethinker-db}"
+      export GCSBUCKET="${GCS_BUCKET:-thethinker-wardrobe-images}"
+      export GCSCREDENTIALSJSON="$(node -e 'const fs = require("fs"); process.stdout.write(JSON.stringify(JSON.parse(fs.readFileSync(process.env.GCS_KEY_JSON, "utf8"))));')"
+      export GOOGLECLIENTID="${GOOGLE_CLIENT_ID:-176526137598-8hme48480tc0gajdttlrpv9qu4g9c7a7.apps.googleusercontent.com}"
+      export GOOGLECLIENTSECRET="${GOOGLE_CLIENT_SECRET:-$GOOGLECLIENTSECRET}"
+
+      : "${ANTHROPICAPIKEY:?ANTHROPICAPIKEY or ANTHROPIC_API_KEY is required}"
+      : "${JWTSECRET:?JWTSECRET or JWT_SECRET is required}"
+      : "${WEATHERAPIKEY:?WEATHERAPIKEY or WEATHER_API_KEY is required}"
+      : "${GOOGLECLIENTSECRET:?GOOGLE_CLIENT_SECRET is required}"
+
+      export Parameters__databaseUrl="$DATABASEURL"
+      export Parameters__gcsBucket="$GCSBUCKET"
+      export Parameters__gcsCredentialsJson="$GCSCREDENTIALSJSON"
+      export Parameters__googleClientId="$GOOGLECLIENTID"
+      export Parameters__googleClientSecret="$GOOGLECLIENTSECRET"
+      export Parameters__jwtSecret="$JWTSECRET"
+      export Parameters__anthropicApiKey="$ANTHROPICAPIKEY"
+      export Parameters__weatherApiKey="$WEATHERAPIKEY"
+      export Parameters__cloudSqlInstance="$CLOUDSQLINSTANCE"
+
+      rm -rf aspire-output
+      aspire publish -o ./aspire-output --environment production --non-interactive
+      npm run validate:production-compose -- ./aspire-output/docker-compose.yaml --image-tag "$CI_COMMIT_TAG"
+
+      gcloud builds submit \
+        --config cloudbuild.yaml \
+        --substitutions=_TAG="$CI_COMMIT_TAG",_VITE_GOOGLE_CLIENT_ID="$GOOGLECLIENTID" \
+        .
+
+      for image in "$AI_IMAGE" "$BACKEND_IMAGE" "$FRONTEND_IMAGE"; do
+        gcloud artifacts docker images describe "$image"
+      done
+
+      gcloud run compose up ./aspire-output/docker-compose.yaml \
+        --dry-run \
+        --no-build \
+        --allow-unauthenticated \
+        --region us-central1 \
+        --project thethinker
+
+      gcloud run compose up ./aspire-output/docker-compose.yaml \
+        --no-build \
+        --allow-unauthenticated \
+        --region us-central1 \
+        --project thethinker
   only:
-    - main
+    - tags

@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY *.py .
+COPY *.py ./
 
 # Pre-download the u2netp model (~5 MB) so /remove-bg has no cold-start delay.
 # Must match the model loaded in classify.py (KAN-116: u2netp for low memory footprint).

@@ -16,6 +16,8 @@
     "dev": "npm run aspire:start",
     "prebuild": "npm run aspire:lint",
     "build": "npm run aspire:build",
+    "test:compose-validation": "node --test scripts/validate-production-compose.test.mjs",
+    "validate:production-compose": "node scripts/validate-production-compose.mjs",
     "watch": "npm run aspire:dev",
     "test:e2e": "playwright test --config frontend/playwright.config.ts",
     "test:e2e:ui": "playwright test --config frontend/playwright.config.ts --ui",
@@ -31,6 +33,7 @@
     "nodemon": "^3.1.14",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.57.1"
+    "typescript-eslint": "^8.57.1",
+    "yaml": "^2.9.0"
   }
 }
