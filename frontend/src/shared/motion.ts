@@ -18,3 +18,13 @@ export const fadeUpItem: Variants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease } },
 };
+
+// Route-level page transition: the whole screen fades and rises into place on
+// navigation, and fades up-and-out on the way back. Keep durations short so tab
+// switches stay snappy. Pair with `<AnimatePresence mode="wait">` keyed on the
+// route path so every redirect feels the same, no matter the page.
+export const pageTransition: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.24, ease } },
+  exit: { opacity: 0, y: -6, transition: { duration: 0.16, ease } },
+};

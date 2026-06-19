@@ -37,7 +37,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen-safe flex flex-col items-center bg-cream px-4 py-12">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: [0.4, 0, 0.2, 1] }}
+      className="min-h-screen-safe flex flex-col items-center bg-cream px-4 py-12"
+    >
       {/* Brand */}
       <div className="mb-8 text-center">
         <BrandLogo className="mx-auto mb-3 w-52" />
@@ -167,7 +172,7 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
