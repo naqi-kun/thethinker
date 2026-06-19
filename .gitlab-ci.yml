@@ -103,6 +103,9 @@ deploy-gcp:
     # Install Node 22 on the gcloud image
     - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     - apt-get install -y nodejs
+    # The slim image has the gcloud component manager disabled, so `gcloud run
+    # compose up` is unavailable until its apt package is installed.
+    - apt-get install -y google-cloud-cli-run-compose
     # Authenticate gcloud with the service account key
     - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
     - gcloud config set project thethinker
