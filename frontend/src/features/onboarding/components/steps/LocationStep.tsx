@@ -38,11 +38,11 @@ export default function LocationStep({
       setSuggestions([]);
       return;
     }
-    const timer = setTimeout(async () => {
-      const results = await searchCities(value);
-      setSuggestions(results);
-    }, 300);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    searchCities(value).then((results) => {
+      if (!cancelled) setSuggestions(results);
+    });
+    return () => { cancelled = true; };
   }, [value, manualMode]);
 
   function selectSuggestion(city: string) {
