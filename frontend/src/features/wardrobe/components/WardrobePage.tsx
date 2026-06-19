@@ -204,7 +204,6 @@ function ItemDetailModal({
 
   const category = subTypeToCategory(item.sub_type);
   const displayName = displayNameFor(item);
-  const colorIsMulticolor = form.color === 'multicolor';
   // Hovering the image previews the sampled colour; otherwise show the committed one.
   const previewColor = hoverColor ?? form.color;
   const previewSwatch = previewColor ? COLOR_SWATCHES[previewColor] : '';
