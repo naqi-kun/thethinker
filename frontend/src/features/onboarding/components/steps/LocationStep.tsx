@@ -79,7 +79,7 @@ export default function LocationStep({
             ? 'Finding your location…'
             : manualMode
               ? 'Tap to use automatic location instead'
-              : 'Weather-based outfits, tuned to where you are'}
+              : 'Tap to allow location access'}
         </p>
       </button>
 

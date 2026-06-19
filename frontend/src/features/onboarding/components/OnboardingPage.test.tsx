@@ -126,7 +126,7 @@ describe('OnboardingPage flow (KAN-94)', () => {
     await click(/continue/i);
     await screen.findByText(/where are you based/i);
 
-    await click(/weather-based outfits/i);
+    await click(/tap to allow location/i);
 
     await waitFor(() => expect(mocks.savePreferences).toHaveBeenCalledTimes(1));
     expect(mocks.savePreferences).toHaveBeenCalledWith(
@@ -145,7 +145,7 @@ describe('OnboardingPage flow (KAN-94)', () => {
     await click(/continue/i);
     await screen.findByText(/where are you based/i);
 
-    await click(/weather-based outfits/i);
+    await click(/tap to allow location/i);
 
     expect(await screen.findByText(/couldn't detect your location/i)).toBeTruthy();
     expect(screen.getByLabelText(/city or region/i)).toBeTruthy();
