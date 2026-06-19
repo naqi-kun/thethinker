@@ -165,6 +165,7 @@ export default function SettingsPage() {
   const [savingLocation, setSavingLocation] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [locationQuery, setLocationQuery] = useState('');
   const [style, setStyle] = useState<Aesthetic>(DEFAULT_AESTHETIC);
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleStatus, setStyleStatus] = useState<string | null>(null);
@@ -239,16 +240,16 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    if (location.trim().length < 2) {
+    if (locationQuery.trim().length < 2) {
       setLocationSuggestions([]);
       return;
     }
     let cancelled = false;
-    searchCities(location).then((results) => {
+    searchCities(locationQuery).then((results) => {
       if (!cancelled) setLocationSuggestions(results);
     });
     return () => { cancelled = true; };
-  }, [location]);
+  }, [locationQuery]);
 
   async function saveStyle(value: Aesthetic) {
     const previous = style;
@@ -476,7 +477,7 @@ export default function SettingsPage() {
                   id="location-input"
                   type="text"
                   value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  onChange={(e) => { setLocation(e.target.value); setLocationQuery(e.target.value); }}
                   onKeyDown={(e) => e.key === 'Enter' && saveLocation()}
                   onBlur={() => setLocationSuggestions([])}
                   placeholder="e.g. London"
@@ -491,6 +492,7 @@ export default function SettingsPage() {
                           onMouseDown={(e) => {
                             e.preventDefault();
                             setLocation(city);
+                            setLocationQuery('');
                             setLocationSuggestions([]);
                           }}
                           className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm hover:bg-muted first:rounded-t-xl last:rounded-b-xl"

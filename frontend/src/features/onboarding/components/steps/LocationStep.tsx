@@ -32,21 +32,26 @@ export default function LocationStep({
   onBack: () => void;
 }) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  // Tracks only what the user actually typed — not programmatic value updates
+  // (e.g. selecting a suggestion). This prevents the dropdown re-appearing
+  // after a suggestion is picked.
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (!manualMode || value.trim().length < 2) {
+    if (!manualMode || searchQuery.trim().length < 2) {
       setSuggestions([]);
       return;
     }
     let cancelled = false;
-    searchCities(value).then((results) => {
+    searchCities(searchQuery).then((results) => {
       if (!cancelled) setSuggestions(results);
     });
     return () => { cancelled = true; };
-  }, [value, manualMode]);
+  }, [searchQuery, manualMode]);
 
   function selectSuggestion(city: string) {
     onChange(city);
+    setSearchQuery('');
     setSuggestions([]);
   }
 
@@ -92,7 +97,7 @@ export default function LocationStep({
             <input
               type="text"
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e) => { onChange(e.target.value); setSearchQuery(e.target.value); }}
               onKeyDown={(e) => e.key === 'Enter' && value.trim() && onContinue()}
               placeholder="e.g. New York, London, Tokyo"
               autoFocus
