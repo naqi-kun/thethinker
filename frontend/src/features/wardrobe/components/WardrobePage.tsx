@@ -46,17 +46,10 @@ import {
 import { nearestNamedColor } from '../colorMatch';
 import EyedropperImage from './EyedropperImage';
 
-type WardrobeCategory = 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories';
+type WardrobeCategory = 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear';
 type FilterTab = 'All' | WardrobeCategory;
 
-const CATEGORY_TABS: FilterTab[] = [
-  'All',
-  'Tops',
-  'Bottoms',
-  'Shoes',
-  'Outerwear',
-  'Accessories',
-];
+const CATEGORY_TABS: FilterTab[] = ['All', 'Tops', 'Bottoms', 'Shoes', 'Outerwear'];
 
 // ── Form types ────────────────────────────────────────────────────────────────
 
@@ -93,13 +86,9 @@ function subTypeToCategory(subType: string): WardrobeCategory {
     )
   )
     return 'Shoes';
-  if (
-    ['jacket', 'coat', 'blazer', 'cardigan', 'outerwear', 'suit'].some((t) =>
-      s.includes(t),
-    )
-  )
-    return 'Outerwear';
-  return 'Accessories';
+  // Outerwear is the catch-all bucket for anything that isn't a top, bottom,
+  // or pair of shoes.
+  return 'Outerwear';
 }
 
 function seasonLabel(season: ClothingSeason): string {
@@ -142,8 +131,6 @@ function categoryIcon(category: WardrobeCategory) {
     case 'Shoes':
       return <Footprints className="h-5 w-5" />;
     case 'Outerwear':
-      return <Watch className="h-5 w-5" />;
-    case 'Accessories':
       return <Watch className="h-5 w-5" />;
   }
 }
@@ -635,24 +622,20 @@ function ReadinessHint({ items }: { items: ClothingItem[] }) {
   const hasBottoms = cats.includes('Bottoms');
   const hasShoes = cats.includes('Shoes');
   const ready = hasTops && hasBottoms && hasShoes;
+
+  // Once the user has the full set of items, hide the hint entirely.
+  if (ready) return null;
+
   const missing: string[] = [];
   if (!hasTops) missing.push('tops');
   if (!hasBottoms) missing.push('bottoms');
   if (!hasShoes) missing.push('shoes');
 
   return (
-    <div
-      className={`mb-6 rounded-xl border p-4 ${
-        ready ? 'border-success/30 bg-success/10' : 'border-warning/30 bg-warning/10'
-      }`}
-    >
-      <p className="text-sm font-semibold text-foreground">
-        {ready ? 'Ready for outfit recommendations' : 'Almost ready'}
-      </p>
+    <div className="mb-6 rounded-xl border border-warning/30 bg-warning/10 p-4">
+      <p className="text-sm font-semibold text-foreground">Almost ready</p>
       <p className="mt-0.5 text-xs text-muted-foreground">
-        {ready
-          ? 'You have enough items for daily outfit suggestions.'
-          : `Add ${missing.join(', ')} to unlock outfit recommendations.`}
+        {`Add ${missing.join(', ')} to unlock outfit recommendations.`}
       </p>
     </div>
   );
@@ -665,10 +648,7 @@ function StatsBar({ items }: { items: ClothingItem[] }) {
     { label: 'Tops', count: cats.filter((c) => c === 'Tops').length },
     { label: 'Bottoms', count: cats.filter((c) => c === 'Bottoms').length },
     { label: 'Shoes', count: cats.filter((c) => c === 'Shoes').length },
-    {
-      label: 'Other',
-      count: cats.filter((c) => c === 'Accessories' || c === 'Outerwear').length,
-    },
+    { label: 'Outerwear', count: cats.filter((c) => c === 'Outerwear').length },
   ];
 
   return (
