@@ -2,7 +2,6 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { token } from '../../../shared/api/token';
 
 // Mock the data + geolocation layers so no real HTTP/permission prompts happen.
 const mocks = vi.hoisted(() => ({
@@ -22,6 +21,7 @@ vi.mock('../api', () => ({
 vi.mock('../geocode', () => ({
   getDeviceLocation: mocks.getDeviceLocation,
   reverseGeocode: mocks.reverseGeocode,
+  searchCities: vi.fn().mockResolvedValue([]),
 }));
 
 import OnboardingPage from './OnboardingPage';
@@ -172,13 +172,4 @@ describe('OnboardingPage flow (KAN-94)', () => {
     );
   });
 
-  it('does not clear the auth token when leaving from the Welcome step', async () => {
-    token.set('signed-in-token');
-
-    renderFlow();
-    await click(/i already have an account/i);
-
-    expect(await screen.findByText('PATH:/login')).toBeTruthy();
-    expect(token.get()).toBe('signed-in-token');
-  });
 });

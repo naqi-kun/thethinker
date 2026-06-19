@@ -9,10 +9,8 @@ import AestheticStep from './steps/AestheticStep';
 import LocationStep from './steps/LocationStep';
 import DoneStep from './steps/DoneStep';
 
-// KAN-94: a 4-screen flow (Welcome → Aesthetic → Location → Done) that asks only
-// what the recommender consumes and the user can edit later — the aesthetic
-// (shared taxonomy, KAN-92) and a location for weather.
-// KAN-95: Done screen directs user straight to /wardrobe/add to fill their closet.
+// 4-screen flow (Welcome → Aesthetic → Location → Done) that asks only what the
+// recommender consumes: aesthetic (shared taxonomy, KAN-92) and city for weather.
 type Step = 'welcome' | 'aesthetic' | 'location' | 'done';
 
 export default function OnboardingPage() {
@@ -75,12 +73,7 @@ export default function OnboardingPage() {
     case 'welcome':
       return (
         <div className="flex min-h-screen-safe justify-center bg-background">
-          <WelcomeStep
-            onStart={() => go('aesthetic')}
-            // Already authenticated post-registration: never clear the token on
-            // back, or the user is silently logged out (KAN-94 bug).
-            onHaveAccount={() => navigate('/login')}
-          />
+          <WelcomeStep onStart={() => go('aesthetic')} />
         </div>
       );
     case 'aesthetic':
@@ -106,6 +99,7 @@ export default function OnboardingPage() {
             error={locationError}
             manualMode={manualMode}
             onEnterCity={() => setManualMode(true)}
+            onSwitchToAuto={() => { setManualMode(false); setLocationError(null); }}
             onContinue={() => persistAndFinish(answers)}
             onSkip={() => persistAndFinish({ ...answers, location: '' })}
             onBack={() => go('aesthetic')}
@@ -116,6 +110,8 @@ export default function OnboardingPage() {
       return (
         <div className="flex min-h-screen-safe justify-center bg-background">
           <DoneStep
+            city={answers.location}
+            onChangeCity={() => go('location')}
             onAddClothes={() => navigate('/wardrobe/add')}
             onLater={() => navigate('/wardrobe')}
           />

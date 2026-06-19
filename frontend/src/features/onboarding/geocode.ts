@@ -2,6 +2,8 @@
 // backend (OpenWeatherMap) is queried by city name, so we resolve coords to a
 // city string client-side and store that. KAN-111 will replace this shim with a
 // precise coords path through the backend.
+//
+// KAN-132: searchCities added for manual-entry autocomplete (Nominatim, keyless).
 
 export type Coords = { lat: number; lon: number };
 
@@ -44,4 +46,39 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string> 
     throw new Error('Could not determine a city from your location');
   }
   return city;
+}
+
+// Forward-geocode a partial city name and return up to 5 human-readable
+// "City, Country" strings. Uses Nominatim (OpenStreetMap) which is keyless
+// and CORS-enabled. Returns [] on any network/parse failure so the input
+// remains usable without suggestions.
+export async function searchCities(query: string): Promise<string[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+  const url =
+    `https://nominatim.openstreetmap.org/search` +
+    `?q=${encodeURIComponent(trimmed)}&format=json&addressdetails=1&limit=5`;
+  try {
+    const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    if (!res.ok) return [];
+    const data = (await res.json()) as Array<{
+      address?: {
+        city?: string;
+        town?: string;
+        village?: string;
+        county?: string;
+        country?: string;
+      };
+    }>;
+    return data
+      .map((item) => {
+        const a = item.address ?? {};
+        const city = a.city || a.town || a.village || a.county || '';
+        const country = a.country || '';
+        return [city, country].filter(Boolean).join(', ');
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
 }

@@ -1,5 +1,7 @@
 import { MapPin, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import OnboardingHeader from './OnboardingHeader';
+import { searchCities } from '../../geocode';
 
 // Onboarding 3 · Location. Leads with one-tap geolocation; "Enter a city
 // instead" (or any geolocation failure) reveals a manual city field. The
@@ -12,6 +14,7 @@ export default function LocationStep({
   error,
   manualMode,
   onEnterCity,
+  onSwitchToAuto,
   onContinue,
   onSkip,
   onBack,
@@ -23,10 +26,30 @@ export default function LocationStep({
   error: string | null;
   manualMode: boolean;
   onEnterCity: () => void;
+  onSwitchToAuto: () => void;
   onContinue: () => void;
   onSkip: () => void;
   onBack: () => void;
 }) {
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!manualMode || value.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      const results = await searchCities(value);
+      setSuggestions(results);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [value, manualMode]);
+
+  function selectSuggestion(city: string) {
+    onChange(city);
+    setSuggestions([]);
+  }
+
   return (
     <div className="flex min-h-screen-safe w-full max-w-md flex-col px-6 py-10">
       <OnboardingHeader step={2} total={2} onBack={onBack} />
@@ -37,14 +60,29 @@ export default function LocationStep({
         thing it's used for.
       </p>
 
-      <div className="mb-8 flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-10 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <MapPin className="h-6 w-6" />
+      {manualMode ? (
+        <button
+          type="button"
+          onClick={onSwitchToAuto}
+          className="mb-8 flex w-full flex-col items-center gap-3 rounded-xl bg-card px-6 py-10 text-center transition-opacity hover:opacity-80"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <MapPin className="h-6 w-6" />
+          </div>
+          <p className="helper-text max-w-[14rem]">
+            Tap to use automatic location instead
+          </p>
+        </button>
+      ) : (
+        <div className="mb-8 flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-10 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <MapPin className="h-6 w-6" />
+          </div>
+          <p className="helper-text max-w-[14rem]">
+            Weather-based outfits, tuned to where you are
+          </p>
         </div>
-        <p className="helper-text max-w-[14rem]">
-          Weather-based outfits, tuned to where you are
-        </p>
-      </div>
+      )}
 
       {error && <p className="error-text mb-4 text-center">{error}</p>}
 
@@ -62,6 +100,25 @@ export default function LocationStep({
               aria-label="City or region"
               className="input pl-9"
             />
+            {suggestions.length > 0 && (
+              <ul className="absolute left-0 right-0 top-full z-10 mt-1 rounded-xl border border-border bg-card shadow-md">
+                {suggestions.map((city) => (
+                  <li key={city}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectSuggestion(city);
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm hover:bg-muted first:rounded-t-xl last:rounded-b-xl"
+                    >
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      {city}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <button
             onClick={onContinue}
