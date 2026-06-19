@@ -5,10 +5,8 @@ const HERO_IMG = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=60
 
 export default function WelcomeStep({
   onStart,
-  onHaveAccount,
 }: {
   onStart: () => void;
-  onHaveAccount: () => void;
 }) {
   return (
     <div className="flex min-h-screen-safe w-full max-w-md flex-col px-6 py-10">
@@ -33,14 +31,9 @@ export default function WelcomeStep({
         every morning.
       </p>
 
-      <div className="mt-8 flex flex-col items-center gap-3">
-        <button onClick={onStart} className="btn-primary btn-lg w-full">
-          Get Started <ArrowRight className="h-4 w-4" />
-        </button>
-        <button onClick={onHaveAccount} className="btn-link btn-sm">
-          I already have an account
-        </button>
-      </div>
+      <button onClick={onStart} className="btn-primary btn-lg w-full">
+        Get Started <ArrowRight className="h-4 w-4" />
+      </button>
     </div>
   );
 }
