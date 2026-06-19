@@ -18,6 +18,9 @@ envContent.split("\n").forEach(line => {
 envVars["AI_IMAGE"] = envVars["AI_IMAGE"] || "thethinker-ai:latest";
 envVars["BACKEND_IMAGE"] = envVars["BACKEND_IMAGE"] || "thethinker-backend:latest";
 envVars["FRONTEND_IMAGE"] = envVars["FRONTEND_IMAGE"] || "thethinker-frontend:latest";
+// IMAGE_TAG tags the built images. CI sets it to the commit SHA so `gcloud run
+// compose up` always builds fresh; "latest" is only a local-run fallback.
+envVars["IMAGE_TAG"] = envVars["IMAGE_TAG"] || "latest";
 
 // 2. Read compose.yaml
 let composeContent = readFileSync("compose.yaml", "utf8");

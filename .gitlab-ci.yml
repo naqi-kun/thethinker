@@ -99,13 +99,21 @@ backend-build:
 deploy-gcp:
   stage: deploy
   image: google/cloud-sdk:slim
-  # TEMPORARILY NON-BLOCKING (KAN-134): `gcloud run compose up` currently fails its
-  # Cloud Run revision health check — the `ai` sidecar OOMs at the default 512Mi
-  # during model load, before deploy-production.mjs can bump it to 2Gi, which gates
-  # the ingress container behind the depends_on chain. Until that's fixed we make
-  # deploy a manual button (no auto-attempt on every merge → no junk failed revisions)
-  # and allow_failure so a red deploy never blocks `main`. The running prod revision
-  # is unaffected by a failed deploy. Revert both keys to restore automatic deploy.
+  # TEMPORARILY NON-BLOCKING (KAN-134): kept manual + allow_failure so a red deploy
+  # never blocks `main` and we don't pile up junk failed revisions on every merge.
+  # The running prod revision is unaffected by a failed deploy.
+  #
+  # Root cause of the health-check failures (confirmed from the revision logs of
+  # thethinker-00022-5vs): the deployed frontend image was a STALE pre-migration
+  # build whose nginx template still referenced ${RAILWAY_SERVICE_BACKEND_URL}
+  # (unset on Cloud Run) → `proxy_pass http:///;` → nginx aborts with "no host in
+  # upstream" → ingress never binds :8080. compose up was reusing the existing
+  # `:latest` registry image instead of building current source. The IMAGE_TAG
+  # change below (per-commit tags) forces a fresh build and fixes this. The `ai`
+  # sidecar started cleanly in those logs — its 512Mi→2Gi bump (deploy-production.mjs)
+  # is a separate runtime-load concern, not the deploy blocker.
+  #
+  # Once a manual deploy is confirmed green, revert both keys below for auto-deploy.
   when: manual
   allow_failure: true
   before_script:
@@ -124,9 +132,14 @@ deploy-gcp:
     # 1. Materialise the .env that prepare-gcloud-compose.mjs substitutes into
     #    compose.yaml (these reach the ai/backend containers; prod-only overrides
     #    like DATABASE_URL are applied later by deploy-production.mjs).
+    #    IMAGE_TAG pins the image tags to this commit so `gcloud run compose up`
+    #    rebuilds from source every deploy. With a mutable `:latest`, compose up
+    #    reuses the existing registry image and silently skips the build — which
+    #    once shipped a stale pre-migration frontend whose nginx still referenced
+    #    ${RAILWAY_SERVICE_BACKEND_URL} and crashed on startup.
     - |
-      printf 'DB_PASSWORD=%s\nANTHROPICAPIKEY=%s\nJWTSECRET=%s\nWEATHERAPIKEY=%s\n' \
-        "$DB_PASSWORD" "$ANTHROPICAPIKEY" "$JWTSECRET" "$WEATHERAPIKEY" > .env
+      printf 'DB_PASSWORD=%s\nANTHROPICAPIKEY=%s\nJWTSECRET=%s\nWEATHERAPIKEY=%s\nIMAGE_TAG=%s\n' \
+        "$DB_PASSWORD" "$ANTHROPICAPIKEY" "$JWTSECRET" "$WEATHERAPIKEY" "$CI_COMMIT_SHORT_SHA" > .env
     - node scripts/prepare-gcloud-compose.mjs
     # 2. Build + push images and deploy a revision from compose. The frontend image
     #    is baked with VITE_GOOGLE_CLIENT_ID (compose build.args) so Google sign-in
