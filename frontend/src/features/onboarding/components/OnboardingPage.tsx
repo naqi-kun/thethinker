@@ -106,7 +106,10 @@ export default function OnboardingPage() {
             error={locationError}
             manualMode={manualMode}
             onEnterCity={() => setManualMode(true)}
-            onSwitchToAuto={() => { setManualMode(false); setLocationError(null); }}
+            onSwitchToAuto={() => {
+              setManualMode(false);
+              setLocationError(null);
+            }}
             onContinue={() => persistAndFinish(answers)}
             onSkip={() => persistAndFinish({ ...answers, location: '' })}
             onBack={() => go('aesthetic')}

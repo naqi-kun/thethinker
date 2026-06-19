@@ -8,7 +8,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('motion/react', async () => {
   const { createElement, Fragment } = await import('react');
   // motion-only props that must not leak onto the real DOM <div>.
-  const MOTION_PROPS = ['initial', 'animate', 'exit', 'variants', 'transition', 'custom'];
+  const MOTION_PROPS = [
+    'initial',
+    'animate',
+    'exit',
+    'variants',
+    'transition',
+    'custom',
+  ];
   return {
     motion: {
       div: ({ children, ...props }: Record<string, unknown>) => {
@@ -190,5 +197,4 @@ describe('OnboardingPage flow (KAN-94)', () => {
       'Paris',
     );
   });
-
 });

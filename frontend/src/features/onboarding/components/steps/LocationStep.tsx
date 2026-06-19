@@ -46,7 +46,9 @@ export default function LocationStep({
     searchCities(searchQuery).then((results) => {
       if (!cancelled) setSuggestions(results);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [searchQuery, manualMode]);
 
   function selectSuggestion(city: string) {
@@ -97,7 +99,10 @@ export default function LocationStep({
             <input
               type="text"
               value={value}
-              onChange={(e) => { onChange(e.target.value); setSearchQuery(e.target.value); }}
+              onChange={(e) => {
+                onChange(e.target.value);
+                setSearchQuery(e.target.value);
+              }}
               onKeyDown={(e) => e.key === 'Enter' && value.trim() && onContinue()}
               placeholder="e.g. New York, London, Tokyo"
               autoFocus

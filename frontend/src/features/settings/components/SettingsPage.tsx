@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Download, Trash2, AlertTriangle, Plus, X, Pencil, MapPin } from 'lucide-react';
+import {
+  LogOut,
+  Download,
+  Trash2,
+  AlertTriangle,
+  Plus,
+  X,
+  Pencil,
+  MapPin,
+} from 'lucide-react';
 import { searchCities } from '../../../shared/geocode';
 import { token } from '../../../shared/api/token';
 import {
@@ -248,7 +257,9 @@ export default function SettingsPage() {
     searchCities(locationQuery).then((results) => {
       if (!cancelled) setLocationSuggestions(results);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [locationQuery]);
 
   async function saveStyle(value: Aesthetic) {
@@ -477,7 +488,10 @@ export default function SettingsPage() {
                   id="location-input"
                   type="text"
                   value={location}
-                  onChange={(e) => { setLocation(e.target.value); setLocationQuery(e.target.value); }}
+                  onChange={(e) => {
+                    setLocation(e.target.value);
+                    setLocationQuery(e.target.value);
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && saveLocation()}
                   onBlur={() => setLocationSuggestions([])}
                   placeholder="e.g. London"

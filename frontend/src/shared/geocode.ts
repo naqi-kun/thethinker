@@ -28,9 +28,13 @@ export async function searchCities(query: string): Promise<string[]> {
         // Include state only for large countries where cities share names
         // (US, Australia, Canada, India, Brazil) to aid disambiguation.
         const stateCountries = new Set([
-          'United States', 'Australia', 'Canada', 'India', 'Brazil',
+          'United States',
+          'Australia',
+          'Canada',
+          'India',
+          'Brazil',
         ]);
-        const state = stateCountries.has(country) ? (p.state || '') : '';
+        const state = stateCountries.has(country) ? p.state || '' : '';
         return [city, state, country].filter(Boolean).join(', ');
       })
       .filter((label) => {
