@@ -481,7 +481,7 @@ export interface paths {
                     "multipart/form-data": {
                         /**
                          * Format: binary
-                         * @description Photo of the clothing item (JPEG or PNG, max 10 MB)
+                         * @description Photo of the clothing item (JPEG, PNG, or WebP, max 10 MB)
                          */
                         image: string;
                     };

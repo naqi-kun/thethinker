@@ -216,7 +216,7 @@ func (h *WardrobeHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, wardrobe.ErrForbidden):
 			writeError(w, http.StatusForbidden, "FORBIDDEN", "access denied")
 		case errors.Is(err, wardrobe.ErrInvalidImage):
-			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "uploaded file is not a valid JPEG or PNG image")
+			writeError(w, http.StatusBadRequest, "BAD_REQUEST", "uploaded file is not a valid JPEG, PNG, or WebP image")
 		default:
 			writeError(w, http.StatusInternalServerError, "INTERNAL", "failed to upload image")
 		}

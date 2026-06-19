@@ -321,7 +321,7 @@ paths:
                 image:
                   type: string
                   format: binary
-                  description: Photo of the clothing item (JPEG or PNG, max 10 MB)
+                  description: Photo of the clothing item (JPEG, PNG, or WebP, max 10 MB)
       responses:
         '200':
           description: Image uploaded and URL updated

@@ -2,6 +2,7 @@ package wardrobe
 
 import (
 	"bytes"
+	"encoding/base64"
 	"image"
 	"image/png"
 	"testing"
@@ -56,6 +57,30 @@ func TestProcessImageKeepsSmallImageWithinBounds(t *testing.T) {
 	}
 	if cfg.Width != 200 || cfg.Height != 300 {
 		t.Errorf("small image resized to %dx%d, want unchanged 200x300", cfg.Width, cfg.Height)
+	}
+}
+
+// A minimal valid lossy WebP image (1x1). Phones and web downloads commonly
+// produce WebP, so the decoder must accept it and re-encode to JPEG.
+const tinyWebPBase64 = "UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA=="
+
+func TestProcessImageAcceptsWebP(t *testing.T) {
+	in, err := base64.StdEncoding.DecodeString(tinyWebPBase64)
+	if err != nil {
+		t.Fatalf("decode webp fixture: %v", err)
+	}
+
+	out, err := processImage(bytes.NewReader(in))
+	if err != nil {
+		t.Fatalf("processImage on webp returned error: %v", err)
+	}
+
+	_, format, err := image.DecodeConfig(bytes.NewReader(out))
+	if err != nil {
+		t.Fatalf("decode processed image: %v", err)
+	}
+	if format != "jpeg" {
+		t.Errorf("processed format = %q, want jpeg", format)
 	}
 }
 
