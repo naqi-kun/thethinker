@@ -105,9 +105,9 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 
 	var selected []*wardrobe.ClothingItem
 	var reasoning string
+	var rec AIRec
 	recommender := RecommenderRuleBased
 	if useAI {
-		var rec AIRec
 		if sessionID == "" {
 			sessionID, rec, err = s.startAISession(ctx, items, brief)
 		} else {
@@ -131,11 +131,19 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		}
 	}
 
+	var watch, bag, belt *wardrobe.ClothingItem
 	if len(selected) == 0 {
 		// Rule-based fallback: used when use_ai=false or AI service is unavailable.
 		sessionID = "" // no session ID for rule-based recommendations
 		recommender = RecommenderRuleBased
 		selected = ruleBasedOutfit(items, conditions, date)
+		// Also suggest accessories using the rule-based strategy
+		watch, bag, belt = ruleBasedAccessories(items, conditions, date)
+	} else {
+		// AI path: accessories come from AIRec
+		watch = pickItemByID(items, rec.WatchID)
+		bag = pickItemByID(items, rec.BagID)
+		belt = pickItemByID(items, rec.BeltID)
 	}
 
 	return &OutfitRecommendation{
@@ -143,6 +151,9 @@ func (s *Service) GetOutfit(ctx context.Context, userID string, date time.Time, 
 		UserID:      userID,
 		Date:        date,
 		Items:       selected,
+		Watch:       watch,
+		Bag:         bag,
+		Belt:        belt,
 		Occasion:    occasionLabel,
 		Weather:     conditions,
 		Recommender: recommender,
@@ -375,6 +386,19 @@ func pickItemsByID(items []*wardrobe.ClothingItem, rec AIRec) []*wardrobe.Clothi
 		}
 	}
 	return result
+}
+
+// pickItemByID returns a single item by ID, or nil if not found.
+func pickItemByID(items []*wardrobe.ClothingItem, id string) *wardrobe.ClothingItem {
+	if id == "" {
+		return nil
+	}
+	for _, item := range items {
+		if item.ID == id {
+			return item
+		}
+	}
+	return nil
 }
 
 func leastRecentlyWorn(items []*wardrobe.ClothingItem) *wardrobe.ClothingItem {

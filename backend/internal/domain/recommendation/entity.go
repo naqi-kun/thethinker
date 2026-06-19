@@ -19,6 +19,9 @@ type OutfitRecommendation struct {
 	UserID      string
 	Date        time.Time
 	Items       []*wardrobe.ClothingItem
+	Watch       *wardrobe.ClothingItem // nil if no suitable match found
+	Bag         *wardrobe.ClothingItem // nil if no suitable match found
+	Belt        *wardrobe.ClothingItem // nil if no suitable match found
 	Occasion    string
 	Weather     *weather.Conditions // nil when location is unknown
 	Recommender Recommender
@@ -32,6 +35,9 @@ type AIRec struct {
 	TopID     string
 	BottomID  string
 	ShoesID   string
+	WatchID   string // optional
+	BagID     string // optional
+	BeltID    string // optional
 	Reasoning string
 }
 

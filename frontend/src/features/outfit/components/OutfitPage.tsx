@@ -80,11 +80,18 @@ const FLAT_LAY_SLOTS = [
 function deriveHashtags(rec: OutfitRecommendation): string[] {
   const tags: string[] = [];
   if (rec.occasion) tags.push(rec.occasion);
+  // Collect all items including accessories
+  const allItems = [
+    ...rec.items,
+    ...(rec.watch ? [rec.watch] : []),
+    ...(rec.bag ? [rec.bag] : []),
+    ...(rec.belt ? [rec.belt] : []),
+  ];
   const seasons = [
-    ...new Set(rec.items.flatMap((i) => (i.season ? [i.season] : []))),
+    ...new Set(allItems.flatMap((i) => (i.season ? [i.season] : []))),
   ].filter((s) => s !== 'all');
   seasons.forEach((s) => tags.push(s.replace(/_/g, '-')));
-  const categories = [...new Set(rec.items.map((i) => i.category))];
+  const categories = [...new Set(allItems.map((i) => i.category))];
   categories.forEach((c) => tags.push(c));
   return [...new Set(tags)].slice(0, 5);
 }
@@ -207,7 +214,12 @@ export default function OutfitPage() {
 
   const handleAccept = useCallback(async () => {
     if (!recommendation || accepting || accepted) return;
-    const itemIds = recommendation.items.slice(0, MAX_ITEMS).map((i) => i.id);
+    const itemIds = [
+      ...recommendation.items.map((i) => i.id),
+      ...(recommendation.watch ? [recommendation.watch.id] : []),
+      ...(recommendation.bag ? [recommendation.bag.id] : []),
+      ...(recommendation.belt ? [recommendation.belt.id] : []),
+    ];
     setAccepting(true);
     try {
       await acceptOutfit(itemIds, recommendation.session_id);
@@ -248,7 +260,15 @@ export default function OutfitPage() {
     fetchOutfit(recommendation?.session_id, dressingFor);
   }, [fetchOutfit, recommendation, prefersReducedMotion, dressingFor]);
 
-  const displayItems: ClothingItem[] = recommendation?.items.slice(0, MAX_ITEMS) ?? [];
+  // Combine main outfit items with accessories for display
+  const displayItems: ClothingItem[] = (() => {
+    if (!recommendation) return [];
+    const items = [...recommendation.items];
+    if (recommendation.watch) items.push(recommendation.watch);
+    if (recommendation.bag) items.push(recommendation.bag);
+    if (recommendation.belt) items.push(recommendation.belt);
+    return items.slice(0, MAX_ITEMS);
+  })();
   const hashtags = recommendation ? deriveHashtags(recommendation) : [];
   const weatherHint = recommendation?.weather
     ? staleWeatherHint(recommendation.weather.observed_at)

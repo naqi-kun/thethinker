@@ -4,7 +4,7 @@
     "language": "typescript/nodejs"
   },
   "sdk": {
-    "version": "13.4.3"
+    "version": "13.4.5"
   },
   "profiles": {
     "https": {
@@ -16,9 +16,9 @@
     }
   },
   "packages": {
-    "Aspire.Hosting.PostgreSQL": "13.4.3",
-    "Aspire.Hosting.Go": "13.4.3-preview.1.26305.13",
-    "Aspire.Hosting.JavaScript": "13.4.3",
-    "Aspire.Hosting.Docker": "13.4.3"
+    "Aspire.Hosting.PostgreSQL": "13.4.5",
+    "Aspire.Hosting.Go": "13.4.5-preview.1.26316.12",
+    "Aspire.Hosting.JavaScript": "13.4.5",
+    "Aspire.Hosting.Docker": "13.4.5"
   }
 }

@@ -1376,6 +1376,12 @@ export interface components {
             occasion?: string;
             weather?: components["schemas"]["WeatherSnapshot"];
             items: components["schemas"]["ClothingItem"][];
+            /** @description Recommended watch accessory. Null if no suitable match found. */
+            watch?: components["schemas"]["ClothingItem"] | null;
+            /** @description Recommended bag accessory. Null if no suitable match found. */
+            bag?: components["schemas"]["ClothingItem"] | null;
+            /** @description Recommended belt accessory. Null if no suitable match found. */
+            belt?: components["schemas"]["ClothingItem"] | null;
         };
         OutfitHistoryResponse: {
             entries: components["schemas"]["HistoryEntry"][];

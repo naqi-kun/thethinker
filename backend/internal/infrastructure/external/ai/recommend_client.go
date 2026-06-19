@@ -42,6 +42,9 @@ type aiRecommendation struct {
 	TopID     string `json:"top_id"`
 	BottomID  string `json:"bottom_id"`
 	ShoesID   string `json:"shoes_id"`
+	WatchID   string `json:"watch_id,omitempty"`
+	BagID     string `json:"bag_id,omitempty"`
+	BeltID    string `json:"belt_id,omitempty"`
 	Reasoning string `json:"reasoning"`
 }
 
@@ -55,6 +58,9 @@ type startRequest struct {
 	TemperatureC *float64 `json:"temperature_c,omitempty"`
 	FeelsLikeC   *float64 `json:"feels_like_c,omitempty"`
 	Weather      string   `json:"weather,omitempty"` // conditions description, e.g. "light rain"
+	// IncludeAccessories signals to the AI that it should recommend accessories
+	// (watch, bag, belt) if suitable items are available.
+	IncludeAccessories bool `json:"include_accessories,omitempty"`
 }
 
 type startResponse struct {
@@ -89,10 +95,11 @@ func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.Cl
 
 	var resp startResponse
 	req := startRequest{
-		WardrobeItems: payload,
-		Occasion:      brief.Occasion,
-		EventName:     brief.EventName,
-		Aesthetic:     brief.Aesthetic,
+		WardrobeItems:      payload,
+		Occasion:           brief.Occasion,
+		EventName:          brief.EventName,
+		Aesthetic:          brief.Aesthetic,
+		IncludeAccessories: true,
 	}
 	if brief.Weather != nil {
 		temp := brief.Weather.Temperature
@@ -109,6 +116,9 @@ func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.Cl
 		TopID:     resp.Recommendation.TopID,
 		BottomID:  resp.Recommendation.BottomID,
 		ShoesID:   resp.Recommendation.ShoesID,
+		WatchID:   resp.Recommendation.WatchID,
+		BagID:     resp.Recommendation.BagID,
+		BeltID:    resp.Recommendation.BeltID,
 		Reasoning: resp.Recommendation.Reasoning,
 	}, nil
 }
@@ -125,6 +135,9 @@ func (c *RecommendClient) Regenerate(ctx context.Context, sessionID string) (rec
 		TopID:     resp.Recommendation.TopID,
 		BottomID:  resp.Recommendation.BottomID,
 		ShoesID:   resp.Recommendation.ShoesID,
+		WatchID:   resp.Recommendation.WatchID,
+		BagID:     resp.Recommendation.BagID,
+		BeltID:    resp.Recommendation.BeltID,
 		Reasoning: resp.Recommendation.Reasoning,
 	}, nil
 }

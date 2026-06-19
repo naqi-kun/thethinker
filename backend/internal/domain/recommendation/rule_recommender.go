@@ -136,3 +136,68 @@ func slotFor(sub wardrobe.SubType) string {
 	}
 	return ""
 }
+
+// accessorySlotFor maps a SubType to an accessory slot ("watch", "bag", "belt", or "").
+func accessorySlotFor(sub wardrobe.SubType) string {
+	switch sub {
+	case wardrobe.SubTypeWatch:
+		return "watch"
+	case wardrobe.SubTypeBag:
+		return "bag"
+	case wardrobe.SubTypeBelt:
+		return "belt"
+	}
+	return ""
+}
+
+// ruleBasedAccessories selects watch, bag, and belt using the same
+// least-recently-worn strategy as main outfit items.
+func ruleBasedAccessories(items []*wardrobe.ClothingItem, conditions *weather.Conditions, now time.Time) (watch, bag, belt *wardrobe.ClothingItem) {
+	season := deriveSeason(conditions, now)
+
+	var watches, bags, belts []*wardrobe.ClothingItem
+	for _, item := range items {
+		if !seasonMatches(item.Season, season) {
+			continue
+		}
+		slot := accessorySlotFor(item.SubType)
+		switch slot {
+		case "watch":
+			watches = append(watches, item)
+		case "bag":
+			bags = append(bags, item)
+		case "belt":
+			belts = append(belts, item)
+		}
+	}
+
+	// Relax season filter for any empty slot.
+	if len(watches) == 0 || len(bags) == 0 || len(belts) == 0 {
+		var fallWatches, fallBags, fallBelts []*wardrobe.ClothingItem
+		for _, item := range items {
+			slot := accessorySlotFor(item.SubType)
+			switch slot {
+			case "watch":
+				fallWatches = append(fallWatches, item)
+			case "bag":
+				fallBags = append(fallBags, item)
+			case "belt":
+				fallBelts = append(fallBelts, item)
+			}
+		}
+		if len(watches) == 0 {
+			watches = fallWatches
+		}
+		if len(bags) == 0 {
+			bags = fallBags
+		}
+		if len(belts) == 0 {
+			belts = fallBelts
+		}
+	}
+
+	watch = leastRecentlyWorn(watches)
+	bag = leastRecentlyWorn(bags)
+	belt = leastRecentlyWorn(belts)
+	return
+}

@@ -1089,6 +1089,24 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ClothingItem'
+        watch:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/ClothingItem'
+          nullable: true
+          description: Recommended watch accessory. Null if no suitable match found.
+        bag:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/ClothingItem'
+          nullable: true
+          description: Recommended bag accessory. Null if no suitable match found.
+        belt:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/ClothingItem'
+          nullable: true
+          description: Recommended belt accessory. Null if no suitable match found.
 
     OutfitHistoryResponse:
       type: object
