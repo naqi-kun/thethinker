@@ -1,12 +1,16 @@
-import { Check, Plus } from 'lucide-react';
+import { Check, Plus, MapPin } from 'lucide-react';
 
 // Onboarding 4 · Done — preferences are already saved by the time we land here
 // (persisted on the Location→Done transition), so this screen only routes the
 // user into filling their wardrobe.
 export default function DoneStep({
+  city,
+  onChangeCity,
   onAddClothes,
   onLater,
 }: {
+  city: string;
+  onChangeCity: () => void;
   onAddClothes: () => void;
   onLater: () => void;
 }) {
@@ -20,6 +24,28 @@ export default function DoneStep({
         Scan · Schedule · Style
       </p>
       <h2 className="mb-3">You're all set.</h2>
+
+      <div className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <MapPin className="h-3.5 w-3.5 shrink-0" />
+        {city ? (
+          <>
+            <span>{city}</span>
+            <span>·</span>
+            <button onClick={onChangeCity} className="btn-link text-sm">
+              Change
+            </button>
+          </>
+        ) : (
+          <>
+            <span>No location set</span>
+            <span>·</span>
+            <button onClick={onChangeCity} className="btn-link text-sm">
+              Add one
+            </button>
+          </>
+        )}
+      </div>
+
       <p className="helper-text mb-auto max-w-xs">
         Now let's fill your closet so TheThinker can style you — adding a few pieces
         only takes a minute.

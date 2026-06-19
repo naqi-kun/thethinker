@@ -2,7 +2,32 @@ import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { token } from '../../../shared/api/token';
+
+// Strip animations so AnimatePresence never holds exiting elements in the DOM,
+// which would cause getByRole to find duplicate buttons between transitions.
+vi.mock('motion/react', async () => {
+  const { createElement, Fragment } = await import('react');
+  // motion-only props that must not leak onto the real DOM <div>.
+  const MOTION_PROPS = [
+    'initial',
+    'animate',
+    'exit',
+    'variants',
+    'transition',
+    'custom',
+  ];
+  return {
+    motion: {
+      div: ({ children, ...props }: Record<string, unknown>) => {
+        const domProps = { ...props };
+        for (const key of MOTION_PROPS) delete domProps[key];
+        return createElement('div', domProps as object, children as never);
+      },
+    },
+    AnimatePresence: ({ children }: { children: unknown }) =>
+      createElement(Fragment, null, children as never),
+  };
+});
 
 // Mock the data + geolocation layers so no real HTTP/permission prompts happen.
 const mocks = vi.hoisted(() => ({
@@ -22,6 +47,7 @@ vi.mock('../api', () => ({
 vi.mock('../geocode', () => ({
   getDeviceLocation: mocks.getDeviceLocation,
   reverseGeocode: mocks.reverseGeocode,
+  searchCities: vi.fn().mockResolvedValue([]),
 }));
 
 import OnboardingPage from './OnboardingPage';
@@ -126,7 +152,7 @@ describe('OnboardingPage flow (KAN-94)', () => {
     await click(/continue/i);
     await screen.findByText(/where are you based/i);
 
-    await click(/allow location/i);
+    await click(/tap to allow location/i);
 
     await waitFor(() => expect(mocks.savePreferences).toHaveBeenCalledTimes(1));
     expect(mocks.savePreferences).toHaveBeenCalledWith(
@@ -145,7 +171,7 @@ describe('OnboardingPage flow (KAN-94)', () => {
     await click(/continue/i);
     await screen.findByText(/where are you based/i);
 
-    await click(/allow location/i);
+    await click(/tap to allow location/i);
 
     expect(await screen.findByText(/couldn't detect your location/i)).toBeTruthy();
     expect(screen.getByLabelText(/city or region/i)).toBeTruthy();
@@ -170,15 +196,5 @@ describe('OnboardingPage flow (KAN-94)', () => {
     expect((screen.getByLabelText(/city or region/i) as HTMLInputElement).value).toBe(
       'Paris',
     );
-  });
-
-  it('does not clear the auth token when leaving from the Welcome step', async () => {
-    token.set('signed-in-token');
-
-    renderFlow();
-    await click(/i already have an account/i);
-
-    expect(await screen.findByText('PATH:/login')).toBeTruthy();
-    expect(token.get()).toBe('signed-in-token');
   });
 });

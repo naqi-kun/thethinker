@@ -2,6 +2,8 @@
 // backend (OpenWeatherMap) is queried by city name, so we resolve coords to a
 // city string client-side and store that. KAN-111 will replace this shim with a
 // precise coords path through the backend.
+//
+// KAN-132: searchCities added for manual-entry autocomplete (Photon/Komoot, keyless).
 
 export type Coords = { lat: number; lon: number };
 
@@ -45,3 +47,6 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string> 
   }
   return city;
 }
+
+// Re-exported from shared so existing imports and test mocks keep working.
+export { searchCities } from '../../shared/geocode';

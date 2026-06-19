@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Download, Trash2, AlertTriangle, Plus, X, Pencil } from 'lucide-react';
+import {
+  LogOut,
+  Download,
+  Trash2,
+  AlertTriangle,
+  Plus,
+  X,
+  Pencil,
+  MapPin,
+} from 'lucide-react';
+import { searchCities } from '../../../shared/geocode';
 import { token } from '../../../shared/api/token';
 import {
   AESTHETICS,
@@ -163,6 +173,8 @@ export default function SettingsPage() {
   const [savedLocation, setSavedLocation] = useState('');
   const [savingLocation, setSavingLocation] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
+  const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
+  const [locationQuery, setLocationQuery] = useState('');
   const [style, setStyle] = useState<Aesthetic>(DEFAULT_AESTHETIC);
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleStatus, setStyleStatus] = useState<string | null>(null);
@@ -235,6 +247,20 @@ export default function SettingsPage() {
         /* best-effort; location stays empty */
       });
   }, []);
+
+  useEffect(() => {
+    if (locationQuery.trim().length < 2) {
+      setLocationSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    searchCities(locationQuery).then((results) => {
+      if (!cancelled) setLocationSuggestions(results);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locationQuery]);
 
   async function saveStyle(value: Aesthetic) {
     const previous = style;
@@ -457,15 +483,42 @@ export default function SettingsPage() {
                 description="City or postcode used for weather."
                 htmlFor="location-input"
               />
-              <input
-                id="location-input"
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && saveLocation()}
-                placeholder="e.g. London"
-                className="input w-32 text-sm"
-              />
+              <div className="relative">
+                <input
+                  id="location-input"
+                  type="text"
+                  value={location}
+                  onChange={(e) => {
+                    setLocation(e.target.value);
+                    setLocationQuery(e.target.value);
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && saveLocation()}
+                  onBlur={() => setLocationSuggestions([])}
+                  placeholder="e.g. London"
+                  className="input w-32 text-sm"
+                />
+                {locationSuggestions.length > 0 && (
+                  <ul className="absolute right-0 top-full z-10 mt-1 min-w-52 rounded-xl border border-border bg-card shadow-md">
+                    {locationSuggestions.map((city) => (
+                      <li key={city}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setLocation(city);
+                            setLocationQuery('');
+                            setLocationSuggestions([]);
+                          }}
+                          className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm hover:bg-muted first:rounded-t-xl last:rounded-b-xl"
+                        >
+                          <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          {city}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
             {(location !== savedLocation || locationStatus) && (
               <div className="mt-2.5 flex items-center justify-end gap-3">

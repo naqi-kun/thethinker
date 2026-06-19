@@ -4,12 +4,7 @@ import BrandLogo from '../../../../shared/components/BrandLogo';
 // Onboarding 1 · Welcome — intro screen shown right after registration.
 const HERO_IMG = 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=600&q=80';
 
-type WelcomeStepProps = {
-  onStart: () => void;
-  onHaveAccount?: () => void;
-};
-
-export default function WelcomeStep({ onStart, onHaveAccount }: WelcomeStepProps) {
+export default function WelcomeStep({ onStart }: { onStart: () => void }) {
   return (
     <div className="flex min-h-screen-safe w-full max-w-md flex-col px-6 py-10">
       <BrandLogo className="mx-auto mb-8 w-44" />
@@ -35,11 +30,6 @@ export default function WelcomeStep({ onStart, onHaveAccount }: WelcomeStepProps
         <button onClick={onStart} className="btn-primary btn-lg w-full">
           Get Started <ArrowRight className="h-4 w-4" />
         </button>
-        {onHaveAccount ? (
-          <button onClick={onHaveAccount} className="btn-secondary btn-lg w-full">
-            I already have an account
-          </button>
-        ) : null}
       </div>
     </div>
   );
