@@ -128,7 +128,8 @@ deploy-gcp:
     - export PATH="$HOME/.aspire/bin:$PATH"
     # The slim image has the gcloud component manager disabled, so `gcloud run
     # compose up` is unavailable until its apt package is installed.
-    - apt-get install -y google-cloud-cli-run-compose
+    # Aspire CLI is .NET and needs ICU libs missing from the slim base image.
+    - apt-get install -y google-cloud-cli-run-compose libicu-dev
     # Authenticate gcloud with the service account key
     - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
     - gcloud config set project thethinker
