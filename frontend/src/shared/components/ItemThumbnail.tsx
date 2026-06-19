@@ -27,9 +27,7 @@ interface ItemThumbnailProps {
 // Map a sub_type to a rough display category for the fallback icon. Kept local so
 // this shared component never reaches into a feature folder; the wardrobe feature
 // keeps its own copy for filtering/stats.
-function fallbackCategory(
-  subType: string,
-): 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' | 'Accessories' {
+function fallbackCategory(subType: string): 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' {
   const s = subType.toLowerCase();
   if (
     ['shirt', 't-shirt', 'blouse', 'top', 'sweater', 'hoodie', 'tee'].some((t) =>
@@ -45,13 +43,8 @@ function fallbackCategory(
     )
   )
     return 'Shoes';
-  if (
-    ['jacket', 'coat', 'blazer', 'cardigan', 'outerwear', 'suit'].some((t) =>
-      s.includes(t),
-    )
-  )
-    return 'Outerwear';
-  return 'Accessories';
+  // Outerwear is the catch-all bucket for anything else.
+  return 'Outerwear';
 }
 
 function categoryIcon(subType: string) {
