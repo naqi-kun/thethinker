@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { Shirt, Sparkles, CalendarDays, History } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { listItems, WARDROBE_STATUS_EVENT } from '../../features/wardrobe/api';
@@ -67,23 +68,34 @@ export default function BottomNav() {
               className={({ isActive }) =>
                 `relative flex flex-col items-center gap-0.5 rounded-full px-3.5 py-1.5 text-[10px] font-medium transition-colors ${
                   isActive
-                    ? 'bg-terracotta/10 font-semibold text-terracotta'
+                    ? 'font-semibold text-terracotta'
                     : 'text-muted-foreground hover:text-foreground'
                 }`
               }
             >
-              <span className="relative">
-                <Icon className="h-5 w-5" aria-hidden="true" />
-                {showBadge && (
-                  <span
-                    aria-label={`${basketCount} item${basketCount !== 1 ? 's' : ''} in laundry basket`}
-                    className="badge-dirty absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold leading-none"
-                  >
-                    {basketCount > 9 ? '9+' : basketCount}
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.span
+                      layoutId="bottomNavPill"
+                      className="absolute inset-0 rounded-full bg-terracotta/10"
+                      transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+                    />
+                  )}
+                  <span className="relative">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                    {showBadge && (
+                      <span
+                        aria-label={`${basketCount} item${basketCount !== 1 ? 's' : ''} in laundry basket`}
+                        className="badge-dirty absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold leading-none"
+                      >
+                        {basketCount > 9 ? '9+' : basketCount}
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-              {label}
+                  {label}
+                </>
+              )}
             </NavLink>
           );
         })}

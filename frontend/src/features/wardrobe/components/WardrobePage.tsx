@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import {
   Footprints,
@@ -259,12 +259,19 @@ function ItemDetailModal({
   }
 
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm md:items-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       onClick={onClose}
     >
-      <div
+      <motion.div
         className="w-full max-w-lg rounded-t-[24px] md:rounded-[24px] bg-background pb-safe max-h-[90vh] overflow-y-auto scrollbar-hide"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 24 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 280 }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
@@ -450,8 +457,8 @@ function ItemDetailModal({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -720,6 +727,12 @@ export default function WardrobePage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('All');
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     listItems()
@@ -830,17 +843,20 @@ export default function WardrobePage() {
             </div>
 
             {filtered.length > 0 ? (
-              // key by tab so switching categories replays the stagger; typing
-              // in search keeps the container mounted (only new matches fade in).
               <motion.div
-                key={activeTab}
+                key={activeTab + '|' + debouncedSearch}
                 className="grid grid-cols-2 gap-3"
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
               >
                 {filtered.map((item) => (
-                  <motion.div key={item.id} variants={fadeUpItem}>
+                  <motion.div
+                    key={item.id}
+                    variants={fadeUpItem}
+                    whileHover={{ y: -3, transition: { duration: 0.18 } }}
+                    whileTap={{ scale: 0.97, transition: { duration: 0.1 } }}
+                  >
                     <ItemCard
                       item={item}
                       onCardClick={setSelectedItem}
@@ -876,13 +892,16 @@ export default function WardrobePage() {
         )}
       </main>
 
-      {selectedItem && (
-        <ItemDetailModal
-          item={selectedItem}
-          onClose={() => setSelectedItem(null)}
-          onSaved={handleItemUpdated}
-        />
-      )}
+      <AnimatePresence>
+        {selectedItem && (
+          <ItemDetailModal
+            key={selectedItem.id}
+            item={selectedItem}
+            onClose={() => setSelectedItem(null)}
+            onSaved={handleItemUpdated}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

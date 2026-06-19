@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { LogOut, Trash2, AlertTriangle, Pencil, MapPin } from 'lucide-react';
 import { searchCities } from '../../../shared/geocode';
 import { token } from '../../../shared/api/token';
@@ -311,9 +312,19 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="mt-2.5 flex items-center justify-end gap-3">
-                {nameStatus && (
-                  <span className="text-xs text-muted-foreground">{nameStatus}</span>
-                )}
+                <AnimatePresence>
+                  {nameStatus && (
+                    <motion.span
+                      initial={{ opacity: 0, x: 6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {nameStatus}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
                 <button
                   onClick={cancelEditName}
                   disabled={savingName}
@@ -334,9 +345,19 @@ export default function SettingsPage() {
             <Row>
               <RowLabel label="Name" />
               <div className="flex items-center gap-3">
-                {nameStatus && (
-                  <span className="text-xs text-muted-foreground">{nameStatus}</span>
-                )}
+                <AnimatePresence>
+                  {nameStatus && (
+                    <motion.span
+                      initial={{ opacity: 0, x: 6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {nameStatus}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
                 <span className="text-sm text-muted-foreground">
                   {savedName || '—'}
                 </span>
@@ -405,36 +426,52 @@ export default function SettingsPage() {
                   placeholder="e.g. London"
                   className="input w-32 text-sm"
                 />
-                {locationSuggestions.length > 0 && (
-                  <ul className="absolute right-0 top-full z-10 mt-1 min-w-52 rounded-xl border border-border bg-card shadow-md">
-                    {locationSuggestions.map((city) => (
-                      <li key={city}>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setLocation(city);
-                            setLocationQuery('');
-                            setLocationSuggestions([]);
-                          }}
-                          className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm hover:bg-muted first:rounded-t-xl last:rounded-b-xl"
-                        >
-                          <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                          {city}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <AnimatePresence>
+                  {locationSuggestions.length > 0 && (
+                    <motion.ul
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.18 }}
+                      className="absolute right-0 top-full z-10 mt-1 min-w-52 rounded-xl border border-border bg-card shadow-md"
+                    >
+                      {locationSuggestions.map((city) => (
+                        <li key={city}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setLocation(city);
+                              setLocationQuery('');
+                              setLocationSuggestions([]);
+                            }}
+                            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm hover:bg-muted first:rounded-t-xl last:rounded-b-xl"
+                          >
+                            <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            {city}
+                          </button>
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
             {(location !== savedLocation || locationStatus) && (
               <div className="mt-2.5 flex items-center justify-end gap-3">
-                {locationStatus && (
-                  <span className="text-xs text-muted-foreground">
-                    {locationStatus}
-                  </span>
-                )}
+                <AnimatePresence>
+                  {locationStatus && (
+                    <motion.span
+                      initial={{ opacity: 0, x: 6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {locationStatus}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
                 {location !== savedLocation && (
                   <button
                     onClick={saveLocation}
@@ -450,13 +487,31 @@ export default function SettingsPage() {
           <StackedRow>
             <div className="mb-2.5 flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-foreground">Aesthetic</p>
-              {styleStatus ? (
-                <span className="text-xs text-muted-foreground">{styleStatus}</span>
-              ) : (
-                savingStyle && (
-                  <span className="text-xs text-muted-foreground">Saving…</span>
-                )
-              )}
+              <AnimatePresence mode="wait">
+                {styleStatus ? (
+                  <motion.span
+                    key="status"
+                    initial={{ opacity: 0, x: 6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-xs text-muted-foreground"
+                  >
+                    {styleStatus}
+                  </motion.span>
+                ) : savingStyle ? (
+                  <motion.span
+                    key="saving"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="text-xs text-muted-foreground"
+                  >
+                    Saving…
+                  </motion.span>
+                ) : null}
+              </AnimatePresence>
             </div>
             <Segmented<Aesthetic>
               options={[...AESTHETICS]}
