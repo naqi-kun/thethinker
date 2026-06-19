@@ -27,9 +27,7 @@ interface ItemThumbnailProps {
 // Map a sub_type to a rough display category for the fallback icon. Kept local so
 // this shared component never reaches into a feature folder; the wardrobe feature
 // keeps its own copy for filtering/stats.
-function fallbackCategory(
-  subType: string,
-): 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' {
+function fallbackCategory(subType: string): 'Tops' | 'Bottoms' | 'Shoes' | 'Outerwear' {
   const s = subType.toLowerCase();
   if (
     ['shirt', 't-shirt', 'blouse', 'top', 'sweater', 'hoodie', 'tee'].some((t) =>
