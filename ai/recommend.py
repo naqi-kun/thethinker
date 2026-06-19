@@ -129,8 +129,13 @@ def _build_prompt(state: RecommendationState) -> str:
     aesthetic = (state.get("aesthetic") or "").strip()
     if aesthetic:
         brief_lines.append(
-            f"- Aesthetic / vibe: {aesthetic}. Let this steer the overall look — "
-            "favor items and combinations that read as this style."
+            f"- Aesthetic / vibe: {aesthetic}. This is the PRIMARY driver of the look. "
+            "An aesthetic emerges from how pieces are combined, not from any single item — "
+            "the same piece reads differently depending on what it is paired with (a polo "
+            "with relaxed jeans reads streetwear; the same polo with tailored chinos reads "
+            "preppy). Pick the top, bottom and shoes that TOGETHER most convincingly read "
+            f"as {aesthetic}, even if that means choosing bolder pieces over safe neutrals. "
+            f"If the wardrobe cannot truly achieve {aesthetic}, get as close as you can."
         )
     temp = state.get("temperature_c")
     if temp is not None:
@@ -181,12 +186,18 @@ def _build_prompt(state: RecommendationState) -> str:
         "1. Avoid clashing colors (e.g. bright red top + bright green bottom).\n"
         "2. Match formality: casual tops with casual bottoms; formal with formal.\n"
         "3. Complementary fits: slim top pairs well with slim or regular bottom.\n"
-        "4. Neutral colors (black, white, grey, navy, beige) pair with anything.\n"
+        "4. Neutral colors (black, white, grey, navy, beige) pair with anything, but a "
+        "strong aesthetic match outranks playing it safe with neutrals.\n"
+        "5. Let the requested aesthetic drive category and silhouette: athletic / "
+        "athleisure looks call for sport pieces (joggers, sweats, trainers) over denim or "
+        "tailoring; old-money / classic / preppy looks call for tailored, formal pieces "
+        "over sporty ones. The whole outfit should commit to the vibe.\n"
         f"{blocklist_section}\n"
         f"TOPS:\n{fmt(state['tops'])}\n\n"
         f"BOTTOMS:\n{fmt(state['bottoms'])}\n\n"
         f"FOOTWEAR:\n{fmt(state['footwear'])}\n\n"
-        "Call the select_outfit tool with your choice."
+        "Call the select_outfit tool with your choice. In the reasoning, name the pieces "
+        "and say in one sentence why this combination works together as a look."
     )
 
 
