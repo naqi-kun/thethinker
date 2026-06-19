@@ -1,0 +1,8 @@
+# Keep the source upload to Cloud Build (`gcloud builds submit .`) lean: only the
+# three build contexts (./ai, ./backend, ./frontend Dockerfiles + source) are needed.
+.git
+**/node_modules
+frontend/dist
+backend/server
+aspire-output
+tmp
