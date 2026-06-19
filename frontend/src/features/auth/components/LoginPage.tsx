@@ -141,7 +141,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={startGoogleSignIn}
-            disabled={!isGoogleConfigured()}
+            disabled={false}
             className="btn-secondary btn-lg w-full flex items-center justify-center gap-3"
           >
             <GoogleIcon />
