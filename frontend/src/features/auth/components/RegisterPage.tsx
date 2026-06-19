@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { Eye, EyeOff } from 'lucide-react';
 import { register } from '../api';
 import { startGoogleSignIn, isGoogleConfigured } from '../google';
@@ -68,11 +69,20 @@ export default function RegisterPage() {
             }}
             className="space-y-5"
           >
-            {error && (
-              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-                {error}
-              </p>
-            )}
+            <AnimatePresence>
+              {error && (
+                <motion.p
+                  key={error}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0, x: [0, -6, 6, -4, 4, 0] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35 }}
+                  className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600"
+                >
+                  {error}
+                </motion.p>
+              )}
+            </AnimatePresence>
 
             <div className="space-y-1.5">
               <label

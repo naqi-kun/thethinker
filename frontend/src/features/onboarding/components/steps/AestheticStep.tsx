@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import { motion } from 'motion/react';
 import { AESTHETICS, type Aesthetic } from '../../../../shared/aesthetics';
 import OnboardingHeader from './OnboardingHeader';
 
@@ -29,8 +30,9 @@ export default function AestheticStep({
         Change it anytime.
       </p>
 
-      <button
+      <motion.button
         onClick={() => onChange('Basic')}
+        whileTap={{ scale: 0.97 }}
         className={`mb-6 flex items-center justify-between rounded-xl border-2 p-4 text-left transition-colors ${
           value === 'Basic'
             ? 'border-primary bg-primary/10'
@@ -44,7 +46,7 @@ export default function AestheticStep({
           </span>
         </span>
         {value === 'Basic' && <Check className="h-5 w-5 shrink-0 text-primary" />}
-      </button>
+      </motion.button>
 
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Or choose a vibe
@@ -53,9 +55,10 @@ export default function AestheticStep({
         {VIBES.map((vibe) => {
           const selected = value === vibe;
           return (
-            <button
+            <motion.button
               key={vibe}
               onClick={() => onChange(vibe)}
+              whileTap={{ scale: 0.95 }}
               className={`flex items-center justify-between gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
                 selected
                   ? 'border-primary bg-primary text-primary-foreground'
@@ -64,7 +67,7 @@ export default function AestheticStep({
             >
               <span className="truncate">{vibe}</span>
               {selected && <Check className="h-4 w-4 shrink-0" />}
-            </button>
+            </motion.button>
           );
         })}
       </div>

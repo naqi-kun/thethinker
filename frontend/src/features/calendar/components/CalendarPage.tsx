@@ -162,9 +162,19 @@ export default function CalendarPage() {
             </p>
           </motion.div>
 
-          {error && (
-            <p className="mb-4 text-center text-sm text-destructive">{error}</p>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.p
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2 }}
+                className="mb-4 text-center text-sm text-destructive"
+              >
+                {error}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           {/* Add via ICS URL */}
           <motion.form
@@ -307,41 +317,52 @@ export default function CalendarPage() {
                         </button>
                       </div>
 
-                      {isOpen && (
-                        <div className="mt-4 border-t border-border pt-4">
-                          <ol className="mb-3 list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
-                            {provider.steps.map((step) => (
-                              <li key={step}>{step}</li>
-                            ))}
-                          </ol>
-                          <a
-                            href={provider.helpUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-terracotta hover:underline"
+                      <AnimatePresence>
+                        {isOpen && (
+                          <motion.div
+                            key="panel"
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease }}
+                            className="overflow-hidden"
                           >
-                            Open {provider.name}
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                          <div className="space-y-3">
-                            <input
-                              type="text"
-                              value={providerUrl}
-                              onChange={(e) => setProviderUrl(e.target.value)}
-                              placeholder="Paste your calendar link here"
-                              className="input w-full"
-                            />
-                            <button
-                              onClick={() => handleConnectProvider(provider)}
-                              disabled={connecting || !providerUrl.trim()}
-                              className="btn-primary btn-sm w-full gap-2 disabled:opacity-50"
-                            >
-                              <Plus className="h-4 w-4" />
-                              {connecting ? 'Connecting…' : `Connect ${provider.name}`}
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                            <div className="mt-4 border-t border-border pt-4">
+                              <ol className="mb-3 list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+                                {provider.steps.map((step) => (
+                                  <li key={step}>{step}</li>
+                                ))}
+                              </ol>
+                              <a
+                                href={provider.helpUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-terracotta hover:underline"
+                              >
+                                Open {provider.name}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                              <div className="space-y-3">
+                                <input
+                                  type="text"
+                                  value={providerUrl}
+                                  onChange={(e) => setProviderUrl(e.target.value)}
+                                  placeholder="Paste your calendar link here"
+                                  className="input w-full"
+                                />
+                                <button
+                                  onClick={() => handleConnectProvider(provider)}
+                                  disabled={connecting || !providerUrl.trim()}
+                                  className="btn-primary btn-sm w-full gap-2 disabled:opacity-50"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                  {connecting ? 'Connecting…' : `Connect ${provider.name}`}
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   );
                 })}
