@@ -107,8 +107,22 @@ deploy-gcp:
     - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
     - gcloud config set project thethinker
     - gcloud config set run/region us-central1
+    - gcloud config set disable_prompts true
   script:
-    # deploy-production.mjs expects gcs-key.json in the working directory
+    # 1. Materialise the .env that prepare-gcloud-compose.mjs substitutes into
+    #    compose.yaml (these reach the ai/backend containers; prod-only overrides
+    #    like DATABASE_URL are applied later by deploy-production.mjs).
+    - |
+      printf 'DB_PASSWORD=%s\nANTHROPICAPIKEY=%s\nJWTSECRET=%s\nWEATHERAPIKEY=%s\n' \
+        "$DB_PASSWORD" "$ANTHROPICAPIKEY" "$JWTSECRET" "$WEATHERAPIKEY" > .env
+    - node scripts/prepare-gcloud-compose.mjs
+    # 2. Build + push images and deploy a revision from compose. The frontend image
+    #    is baked with VITE_GOOGLE_CLIENT_ID (compose build.args) so Google sign-in
+    #    is enabled in production.
+    - gcloud run compose up
+    # 3. Productionise the revision: swap the local Postgres container for the Cloud
+    #    SQL proxy and inject prod env (Cloud SQL DATABASE_URL, GCS creds, and the
+    #    Google client id/secret). GOOGLE_CLIENT_SECRET comes from a CI variable.
     - cp "$GCS_KEY_JSON" gcs-key.json
     - node scripts/deploy-production.mjs
   only:
