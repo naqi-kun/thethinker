@@ -3,6 +3,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# Vite inlines VITE_* at build time, so the Google OAuth client ID must be a
+# build arg (it's the public client ID — the secret stays backend-only). Supplied
+# via compose build.args; without it the "Continue with Google" button is disabled.
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 RUN npm run build
 
 FROM nginx:alpine

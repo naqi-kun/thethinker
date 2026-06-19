@@ -20,6 +20,14 @@ try {
   process.exit(1);
 }
 
+// Google OAuth client secret comes from the environment (a GitLab CI variable or
+// your local shell), never committed. The public client ID is set inline below.
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+if (!googleClientSecret) {
+  console.error("Error: GOOGLE_CLIENT_SECRET env var not set (required for Google sign-in).");
+  process.exit(1);
+}
+
 console.log("Querying the latest created Cloud Run revision name dynamically...");
 const getLatestResult = spawnSync("gcloud", [
   "run", "services", "describe", "thethinker",
@@ -153,7 +161,9 @@ for (const container of revision.spec.containers) {
       DATABASE_URL: "postgresql://postgres:TheThinker2026!@127.0.0.1:5432/thethinker",
       GCS_CREDENTIALS_JSON: gcsKeyContent,
       GCS_BUCKET: "thethinker-wardrobe-images",
-      PORT: "8081"
+      PORT: "8081",
+      GOOGLE_CLIENT_ID: "176526137598-8hme48480tc0gajdttlrpv9qu4g9c7a7.apps.googleusercontent.com",
+      GOOGLE_CLIENT_SECRET: googleClientSecret
     };
 
     for (const [key, val] of Object.entries(prodEnv)) {
