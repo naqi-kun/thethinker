@@ -356,7 +356,9 @@ export default function CalendarPage() {
                                   className="btn-primary btn-sm w-full gap-2 disabled:opacity-50"
                                 >
                                   <Plus className="h-4 w-4" />
-                                  {connecting ? 'Connecting…' : `Connect ${provider.name}`}
+                                  {connecting
+                                    ? 'Connecting…'
+                                    : `Connect ${provider.name}`}
                                 </button>
                               </div>
                             </div>
