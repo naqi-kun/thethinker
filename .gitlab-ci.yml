@@ -99,9 +99,10 @@ backend-build:
 deploy-gcp:
   stage: deploy
   image: google/cloud-sdk:slim
-  # TEMPORARILY NON-BLOCKING (KAN-134): kept manual + allow_failure so a red deploy
-  # never blocks `main` and we don't pile up junk failed revisions on every merge.
-  # The running prod revision is unaffected by a failed deploy.
+  # Tag-gated auto-deploy: only runs on tag pipelines (`only: tags` below).
+  # Pushing a tag is the intentional release trigger; no manual Play step.
+  # allow_failure stays on so a failed deploy does not block the tag pipeline
+  # while we are still validating the new AppHost path (KAN-134).
   #
   # Deploy is AppHost publish → validate → remote build → dry-run → compose up:
   #   1. Aspire generates the production Compose artifact from apphost.mts.
@@ -116,8 +117,6 @@ deploy-gcp:
   # NOTE: the deploy SA (thethinker-backend@) needs roles/cloudbuild.builds.editor
   # and Artifact Registry write to run step 1. If the build submit 403s, grant those.
   #
-  # Once a manual deploy is confirmed green, revert both keys below for auto-deploy.
-  when: manual
   allow_failure: true
   before_script:
     # Install Node 22 on the gcloud image

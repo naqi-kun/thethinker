@@ -31,13 +31,15 @@ Those resources are excluded from `aspire publish`.
 
 ## Deployment pipeline
 
-GitLab job `deploy-gcp` (manual, tag-only) runs:
+GitLab job `deploy-gcp` runs automatically on **tag pipelines** (`only: tags`):
 
 1. **Publish** — `aspire publish -o ./aspire-output --environment production --non-interactive`
 2. **Validate** — `npm run validate:production-compose -- ./aspire-output/docker-compose.yaml --image-tag $CI_COMMIT_TAG`
 3. **Build images** — `gcloud builds submit --config cloudbuild.yaml` (Cloud Build has no local Docker daemon)
 4. **Dry-run deploy** — `gcloud run compose up ... --dry-run --no-build --allow-unauthenticated`
 5. **Deploy** — `gcloud run compose up ... --no-build --allow-unauthenticated`
+
+Pushing a Git tag is the intentional release trigger. Branch pushes run lint/test/build only.
 
 `gcloud run compose up` deploys pre-built image references; it does **not** build images.
 That is why `cloudbuild.yaml` exists as a separate step.
@@ -100,7 +102,32 @@ When validating against a personal test project (e.g. `xpp-experiments`), overri
 | `GCS_CREDENTIALS_JSON` | from `GCS_KEY_JSON` | real SA JSON with bucket access — **never `{}`** |
 
 Track cloud mutations in `.superpowers/sdd/gcloud-test-resources.md`.
-Do not delete test resources without explicit approval.
+Do not delete test resources without explicit approval. See
+[aspire-deploy-cleanup-plan.md](./aspire-deploy-cleanup-plan.md) Phase 5 for ledger teardown.
+
+### Disposable test project preflight
+
+From verification in `xpp-experiments` — run before first `gcloud run compose up` in a new project:
+
+| Prerequisite | Why |
+|---|---|
+| Enable APIs: `run`, `cloudbuild`, `cloudresourcemanager`, `artifactregistry`, `sqladmin` | Provider translation and image pull fail without them |
+| Install Run Compose: `apt-get install google-cloud-cli-run-compose` (CI) or `gcloud components install run-compose` (local) | `gcloud run compose up` unavailable otherwise |
+| Build images into **the same project's** Artifact Registry | Cross-project image pull denied unless IAM allows it |
+| Grant `roles/cloudsql.client` to the Cloud Run runtime service account | Proxy sidecar cannot connect without it |
+| Cloud SQL test instance: use `--edition=ENTERPRISE` (not `db-f1-micro` on ENTERPRISE_PLUS) | Instance create fails otherwise |
+| Export `AI_IMAGE` / `BACKEND_IMAGE` / `FRONTEND_IMAGE` before `validate:production-compose` | Validator resolves `${AI_IMAGE}` placeholders in generated Compose |
+| Never set `GCS_CREDENTIALS_JSON` to `{}` in manual tests | Backend swaps in unavailable image store; uploads return 500 |
+
+Local disposable test flow:
+
+```bash
+export Parameters__cloudSqlInstance="xpp-experiments:us-central1:<your-test-instance>"
+export REGISTRY="us-central1-docker.pkg.dev/xpp-experiments/cloud-run-source-deploy"
+# ... build images, aspire publish, validate, then compose up with --allow-unauthenticated
+```
+
+Record every mutating command in the ledger **before and after** it runs.
 
 ## Production Compose invariants
 
@@ -169,17 +196,31 @@ curl -s -X POST https://<service-url>/api/auth/login \
 |---|---|
 | Browser 403 on `/` | Missing `allUsers` invoker; redeploy with `--allow-unauthenticated` |
 | `Image ...:<tag> not found` | Cloud Build step skipped or tag mismatch |
+| `artifactregistry.repositories.downloadArtifacts` denied | Compose images point at another project's registry |
+| `run-compose binary not installed` | Install Run Compose component (see disposable preflight above) |
 | `reserved env names: PORT` on frontend | Regenerate Compose after `apphost.mts` strips frontend `PORT` |
 | `GCS unavailable — image uploads disabled` | Empty/invalid `GCS_CREDENTIALS_JSON` (e.g. `'{}'` in manual test) |
 | `failed to upload image` (500) | GCS client failed to init; check SA has Storage Object Admin on bucket |
 | Backend can't reach DB | Cloud SQL proxy not ready, wrong connection name, or missing `roles/cloudsql.client` on runtime SA |
 | Upload works but image 403 | Bucket objects not public-read (see prod-image-storage.md) |
+| `Cannot use value of type object in reference expression` | Missing `await` on `builder.addParameter()` before `refExpr` in `apphost.mts` |
 
 ## Legacy manual deploy
 
 `scripts/deploy-production.mjs` predates the AppHost pipeline. It patches a single Cloud Run
 revision directly. **CI uses the AppHost path** (`deploy-gcp`). Keep the script for
 emergency one-off patches only; new work should go through `apphost.mts` + `.gitlab-ci.yml`.
+
+## AppHost publish target
+
+```typescript
+const compose = await builder.addDockerComposeEnvironment("compose");
+```
+
+`"compose"` is the Aspire **environment resource name** only. It does not read
+`compose.yaml` or `compose.prod.yaml` at the repo root. Publish output goes to
+`aspire-output/docker-compose.yaml`. Customize production Compose in
+`compose.configureComposeFile(...)` — not by hand-editing generated files.
 
 ## Design decisions (summary)
 
@@ -191,3 +232,5 @@ emergency one-off patches only; new work should go through `apphost.mts` + `.git
 | Separate Cloud Build step | GitLab runner has no Docker daemon; Compose deploy is image-reference-only |
 | Frontend nginx, not Vite, in prod | Static bundle + reverse proxy to backend; `PORT` injected by Cloud Run at runtime |
 | `validate-production-compose.mjs` | Catches topology mistakes before `gcloud run compose up` mutates cloud resources |
+| Tag-gated auto-deploy | Pushing a tag is intentional; no manual Play step on `deploy-gcp` |
+| Resource ledger | `.superpowers/sdd/gcloud-test-resources.md` tracks disposable test mutations |
