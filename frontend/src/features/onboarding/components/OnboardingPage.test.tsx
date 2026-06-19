@@ -7,11 +7,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // which would cause getByRole to find duplicate buttons between transitions.
 vi.mock('motion/react', async () => {
   const { createElement, Fragment } = await import('react');
+  // motion-only props that must not leak onto the real DOM <div>.
+  const MOTION_PROPS = ['initial', 'animate', 'exit', 'variants', 'transition', 'custom'];
   return {
     motion: {
-      div: ({ children, initial: _i, animate: _a, exit: _e, variants: _v,
-               transition: _t, custom: _c, ...props }: Record<string, unknown>) =>
-        createElement('div', props as object, children as never),
+      div: ({ children, ...props }: Record<string, unknown>) => {
+        const domProps = { ...props };
+        for (const key of MOTION_PROPS) delete domProps[key];
+        return createElement('div', domProps as object, children as never);
+      },
     },
     AnimatePresence: ({ children }: { children: unknown }) =>
       createElement(Fragment, null, children as never),
