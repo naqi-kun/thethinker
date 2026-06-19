@@ -3,7 +3,7 @@
 // city string client-side and store that. KAN-111 will replace this shim with a
 // precise coords path through the backend.
 //
-// KAN-132: searchCities added for manual-entry autocomplete (Nominatim, keyless).
+// KAN-132: searchCities added for manual-entry autocomplete (Photon/Komoot, keyless).
 
 export type Coords = { lat: number; lon: number };
 
@@ -48,36 +48,47 @@ export async function reverseGeocode(lat: number, lon: number): Promise<string> 
   return city;
 }
 
-// Forward-geocode a partial city name and return up to 5 human-readable
-// "City, Country" strings. Uses Nominatim (OpenStreetMap) which is keyless
-// and CORS-enabled. Returns [] on any network/parse failure so the input
-// remains usable without suggestions.
+// Forward-geocode a partial city name using Photon (Komoot). Photon is built
+// on OSM data but exposes a layer=city filter so results are cities/towns only
+// — not streets or buildings. Keyless, CORS-enabled. Returns [] on failure so
+// the plain input remains usable without suggestions.
 export async function searchCities(query: string): Promise<string[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
   const url =
-    `https://nominatim.openstreetmap.org/search` +
-    `?q=${encodeURIComponent(trimmed)}&format=json&addressdetails=1&limit=5`;
+    `https://photon.komoot.io/api/` +
+    `?q=${encodeURIComponent(trimmed)}&limit=7&layer=city&layer=state`;
   try {
     const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
     if (!res.ok) return [];
-    const data = (await res.json()) as Array<{
-      address?: {
-        city?: string;
-        town?: string;
-        village?: string;
-        county?: string;
-        country?: string;
-      };
-    }>;
-    return data
-      .map((item) => {
-        const a = item.address ?? {};
-        const city = a.city || a.town || a.village || a.county || '';
-        const country = a.country || '';
-        return [city, country].filter(Boolean).join(', ');
+    const data = (await res.json()) as {
+      features: Array<{
+        properties: {
+          name?: string;
+          state?: string;
+          country?: string;
+          type?: string;
+        };
+      }>;
+    };
+    const seen = new Set<string>();
+    return data.features
+      .map(({ properties: p }) => {
+        const city = p.name || '';
+        const country = p.country || '';
+        // Include state only for large countries where cities share names
+        // (US, Australia, Canada, India, Brazil) to aid disambiguation.
+        const stateCountries = new Set([
+          'United States', 'Australia', 'Canada', 'India', 'Brazil',
+        ]);
+        const state = stateCountries.has(country) ? (p.state || '') : '';
+        return [city, state, country].filter(Boolean).join(', ');
       })
-      .filter(Boolean);
+      .filter((label) => {
+        if (!label || seen.has(label)) return false;
+        seen.add(label);
+        return true;
+      });
   } catch {
     return [];
   }
