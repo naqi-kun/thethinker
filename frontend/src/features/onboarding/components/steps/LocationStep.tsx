@@ -60,29 +60,28 @@ export default function LocationStep({
         thing it's used for.
       </p>
 
-      {manualMode ? (
-        <button
-          type="button"
-          onClick={onSwitchToAuto}
-          className="mb-8 flex w-full flex-col items-center gap-3 rounded-xl bg-card px-6 py-10 text-center transition-opacity hover:opacity-80"
-        >
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
+      {/* The card is the primary location action in both modes. */}
+      <button
+        type="button"
+        onClick={manualMode ? onSwitchToAuto : onAllowLocation}
+        disabled={resolving}
+        className="mb-8 flex w-full flex-col items-center gap-3 rounded-xl bg-card px-6 py-10 text-center transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          {resolving ? (
+            <Loader2 className="h-6 w-6 animate-spin" />
+          ) : (
             <MapPin className="h-6 w-6" />
-          </div>
-          <p className="helper-text max-w-[14rem]">
-            Tap to use automatic location instead
-          </p>
-        </button>
-      ) : (
-        <div className="mb-8 flex flex-col items-center gap-3 rounded-xl bg-card px-6 py-10 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <MapPin className="h-6 w-6" />
-          </div>
-          <p className="helper-text max-w-[14rem]">
-            Weather-based outfits, tuned to where you are
-          </p>
+          )}
         </div>
-      )}
+        <p className="helper-text max-w-[14rem]">
+          {resolving
+            ? 'Finding your location…'
+            : manualMode
+              ? 'Tap to use automatic location instead'
+              : 'Weather-based outfits, tuned to where you are'}
+        </p>
+      </button>
 
       {error && <p className="error-text mb-4 text-center">{error}</p>}
 
@@ -132,26 +131,9 @@ export default function LocationStep({
           </button>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={onAllowLocation}
-            disabled={resolving}
-            className="btn-primary btn-lg w-full"
-          >
-            {resolving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Finding you…
-              </>
-            ) : (
-              <>
-                <MapPin className="h-4 w-4" /> Allow Location
-              </>
-            )}
-          </button>
-          <button onClick={onEnterCity} className="btn-secondary btn-lg w-full">
-            Enter a city instead
-          </button>
-        </div>
+        <button onClick={onEnterCity} className="btn-secondary btn-lg w-full">
+          Enter a city instead
+        </button>
       )}
 
       <p className="helper-text mt-6 text-center text-xs">
