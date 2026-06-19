@@ -225,7 +225,7 @@ export default function BulkAddPage() {
         {phase === 'upload' && (
           <>
             <div className="mb-6">
-              <h2 className="mb-2">Add your closet</h2>
+              <h2 className="mb-2">Add your Wardrobe</h2>
               <p className="text-muted-foreground">
                 Upload photos of your pieces and we'll tag and sort them for you — add
                 as many as you like.
@@ -250,22 +250,16 @@ export default function BulkAddPage() {
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-linen">
                 <Images className="h-7 w-7 text-primary" />
               </span>
-              <span className="flex flex-col gap-1">
-                <span className="font-medium text-foreground">Drag photos here</span>
+              <span className="flex flex-col items-center gap-1">
+                <span className="font-medium text-foreground">Tap to add photos</span>
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Camera className="h-4 w-4" />
+                  Use your photo library or camera
+                </span>
                 <span className="text-sm text-muted-foreground">
                   JPG or PNG · several at once
                 </span>
               </span>
-              <span className="btn-secondary btn-sm mt-1">Browse Files</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate('/wardrobe/add/camera')}
-              className="btn-ghost btn-md w-full gap-2"
-            >
-              <Camera className="h-5 w-5" />
-              Take a photo instead
             </button>
 
             <div className="mt-8 flex items-start gap-3 rounded-lg bg-linen p-4">
