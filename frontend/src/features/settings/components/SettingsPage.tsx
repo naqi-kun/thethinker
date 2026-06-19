@@ -9,12 +9,7 @@ import {
   normalizeAesthetic,
   type Aesthetic,
 } from '../../../shared/aesthetics';
-import {
-  getPreferences,
-  getProfile,
-  updatePreferences,
-  updateProfile,
-} from '../api';
+import { getPreferences, getProfile, updatePreferences, updateProfile } from '../api';
 
 // Derive a friendly display name from an email's local-part, since the backend
 // stores no separate name field — e.g. "alex.rivera@example.com" → "Alex Rivera".
@@ -166,7 +161,6 @@ export default function SettingsPage() {
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleStatus, setStyleStatus] = useState<string | null>(null);
   const [fit, setFit] = useState<FitPref>('Regular');
-
 
   useEffect(() => {
     getProfile()
