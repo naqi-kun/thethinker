@@ -146,20 +146,23 @@
   .btn-outline,
   .btn-ghost,
   .btn-link {
-    @apply inline-flex items-center justify-center gap-2 font-sans font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+    /* `transition-transform duration-75` keeps the active-press scale snappy so
+       a quick tap registers, while colour/other changes ride the slower 200ms.
+       Press feedback (active:scale) is defined per-variant below. */
+    @apply inline-flex items-center justify-center gap-2 font-sans font-medium transition-[color,background-color,border-color,box-shadow] duration-200 active:transition-transform active:duration-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
     border-radius: var(--radius-button);
   }
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-rust active:scale-[0.98];
+    @apply bg-primary text-primary-foreground hover:bg-rust active:scale-[0.97];
   }
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground border border-border hover:bg-sand/50 active:scale-[0.98];
+    @apply bg-secondary text-secondary-foreground border border-border hover:bg-sand/50 active:scale-[0.97];
   }
   .btn-outline {
-    @apply bg-transparent text-foreground border-2 border-primary hover:bg-primary hover:text-primary-foreground active:scale-[0.98];
+    @apply bg-transparent text-foreground border-2 border-primary hover:bg-primary hover:text-primary-foreground active:scale-[0.97];
   }
   .btn-ghost {
-    @apply bg-transparent text-foreground hover:bg-secondary active:scale-[0.98];
+    @apply bg-transparent text-foreground hover:bg-secondary active:scale-[0.97];
   }
   .btn-link {
     @apply bg-transparent text-primary underline-offset-4 hover:underline p-0;

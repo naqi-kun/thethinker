@@ -768,108 +768,131 @@ export default function WardrobePage() {
           </button>
         </div>
 
-        {loading ? (
-          <div aria-busy="true">
-            {/* stats bar */}
-            <Skeleton className="mb-6 h-16 rounded-xl" />
-            {/* readiness hint */}
-            <Skeleton className="mb-6 h-17 rounded-xl" />
-            {/* search field */}
-            <Skeleton className="mb-4 h-11 rounded-md" />
-            {/* category tabs */}
-            <div className="mb-6 flex gap-2">
-              {['w-12', 'w-14', 'w-20', 'w-16', 'w-24', 'w-28'].map((w, i) => (
-                <Skeleton key={i} className={`h-7 ${w} rounded-full`} />
-              ))}
-            </div>
-            {/* card grid */}
-            <div className="grid grid-cols-2 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="aspect-4/5 rounded-2xl" />
-              ))}
-            </div>
-          </div>
-        ) : error ? (
-          <p className="py-20 text-center text-sm text-destructive">{error}</p>
-        ) : (
-          <>
-            <StatsBar items={items} />
-            <ReadinessHint items={items} />
-            <LaundryBanner items={items} />
-
-            <div className="relative mb-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                placeholder="Search by name, color, or style..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="input pl-9"
-              />
-            </div>
-
-            <div className="mb-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {CATEGORY_TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`shrink-0 cursor-pointer transition-all ${
-                    activeTab === tab ? 'badge-primary' : 'badge-outline'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {filtered.length > 0 ? (
-              <motion.div
-                key={activeTab + '|' + debouncedSearch}
-                className="grid grid-cols-2 gap-3"
-                variants={staggerContainer}
-                initial="hidden"
-                animate="visible"
-              >
-                {filtered.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    variants={fadeUpItem}
-                    whileHover={{ y: -3, transition: { duration: 0.18 } }}
-                    whileTap={{ scale: 0.97, transition: { duration: 0.1 } }}
-                  >
-                    <ItemCard
-                      item={item}
-                      onCardClick={setSelectedItem}
-                      onImageUploaded={handleImageUploaded}
-                      onDeleted={handleDeleted}
-                    />
-                  </motion.div>
+        <AnimatePresence mode="wait" initial={false}>
+          {loading ? (
+            <motion.div
+              key="loading"
+              aria-busy="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {/* stats bar */}
+              <Skeleton className="mb-6 h-16 rounded-xl" />
+              {/* readiness hint */}
+              <Skeleton className="mb-6 h-17 rounded-xl" />
+              {/* search field */}
+              <Skeleton className="mb-4 h-11 rounded-md" />
+              {/* category tabs */}
+              <div className="mb-6 flex gap-2">
+                {['w-12', 'w-14', 'w-20', 'w-16', 'w-24', 'w-28'].map((w, i) => (
+                  <Skeleton key={i} className={`h-7 ${w} rounded-full`} />
                 ))}
-              </motion.div>
-            ) : (
-              <div className="flex flex-col items-center py-20 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
-                  <Shirt className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <h5 className="mb-1">No items found</h5>
-                <p className="helper-text mb-6">
-                  {search
-                    ? `No results for "${search}". Try a different search term.`
-                    : items.length === 0
-                      ? 'Scan your first item to build your wardrobe.'
-                      : `You have no ${activeTab.toLowerCase()} in your wardrobe yet.`}
-                </p>
-                <button
-                  onClick={() => navigate('/wardrobe/add')}
-                  className="btn-primary btn-md gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Your First Item
-                </button>
               </div>
-            )}
-          </>
-        )}
+              {/* card grid */}
+              <div className="grid grid-cols-2 gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="aspect-4/5 rounded-2xl" />
+                ))}
+              </div>
+            </motion.div>
+          ) : error ? (
+            <motion.p
+              key="error"
+              className="py-20 text-center text-sm text-destructive"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+            >
+              {error}
+            </motion.p>
+          ) : (
+            <motion.div
+              key="content"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              <StatsBar items={items} />
+              <ReadinessHint items={items} />
+              <LaundryBanner items={items} />
+
+              <div className="relative mb-4">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="search"
+                  placeholder="Search by name, color, or style..."
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="input pl-9"
+                />
+              </div>
+
+              <div className="mb-6 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {CATEGORY_TABS.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`shrink-0 cursor-pointer transition-all ${
+                      activeTab === tab ? 'badge-primary' : 'badge-outline'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {filtered.length > 0 ? (
+                <motion.div
+                  key={activeTab + '|' + debouncedSearch}
+                  className="grid grid-cols-2 gap-3"
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {filtered.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      variants={fadeUpItem}
+                      whileHover={{ y: -3, transition: { duration: 0.18 } }}
+                      whileTap={{ scale: 0.97, transition: { duration: 0.1 } }}
+                    >
+                      <ItemCard
+                        item={item}
+                        onCardClick={setSelectedItem}
+                        onImageUploaded={handleImageUploaded}
+                        onDeleted={handleDeleted}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              ) : (
+                <div className="flex flex-col items-center py-20 text-center">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
+                    <Shirt className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h5 className="mb-1">No items found</h5>
+                  <p className="helper-text mb-6">
+                    {search
+                      ? `No results for "${search}". Try a different search term.`
+                      : items.length === 0
+                        ? 'Scan your first item to build your wardrobe.'
+                        : `You have no ${activeTab.toLowerCase()} in your wardrobe yet.`}
+                  </p>
+                  <button
+                    onClick={() => navigate('/wardrobe/add')}
+                    className="btn-primary btn-md gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Your First Item
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <AnimatePresence>

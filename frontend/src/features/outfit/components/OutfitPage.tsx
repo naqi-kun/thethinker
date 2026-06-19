@@ -490,7 +490,7 @@ export default function OutfitPage() {
                 for the rule-based fallback, so the card simply doesn't render. */}
             {recommendation.reasoning && (
               <motion.div
-                className="mt-3 flex shrink-0 items-start gap-2 rounded-xl border border-border bg-card/60 px-3 py-2.5"
+                className="mt-2 flex shrink-0 items-start gap-2 rounded-xl border border-border bg-card/60 px-3 py-2"
                 initial={ceremony ? { opacity: 0, y: 8 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease, delay: whyDelay }}
@@ -500,7 +500,9 @@ export default function OutfitPage() {
                   <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     Why this look
                   </p>
-                  <p className="mt-0.5 text-sm leading-snug text-foreground">
+                  {/* Capped + scrollable so a long rationale can't squeeze the
+                      flat-lay canvas above — the outfit visual stays the hero. */}
+                  <p className="mt-0.5 max-h-[4.5rem] overflow-y-auto pr-1 text-sm leading-snug text-foreground">
                     {recommendation.reasoning}
                   </p>
                 </div>
@@ -509,7 +511,7 @@ export default function OutfitPage() {
 
             {/* Hashtags + shuffle on one compact row. Hashtags land after the
                 garments settle during the reveal ceremony. */}
-            <div className="mt-3 flex shrink-0 items-center justify-between gap-3">
+            <div className="mt-2 flex shrink-0 items-center justify-between gap-3">
               <motion.div
                 className="flex min-w-0 flex-wrap gap-2 overflow-hidden"
                 initial={ceremony ? { opacity: 0, y: 8 } : false}
