@@ -31,15 +31,15 @@ Those resources are excluded from `aspire publish`.
 
 ## Deployment pipeline
 
-### Main-branch CD (`main` / validation branch)
+### Main-branch CD (`main`)
 
-On `main` (and temporarily `test-new-deploy` while validating):
+On `main`:
 
 ```text
-bump-version → build-images → deploy-staging (auto)
-  → tag-version (main only)
+lint/test/build → bump-version → build-images → deploy-staging (auto)
+  → tag-version
   → deploy-production (manual)
-  → release-production (main only)
+  → release-production
 ```
 
 `deploy-staging` and `deploy-production` both call `scripts/deploy-cloud-run.sh`
@@ -47,19 +47,8 @@ bump-version → build-images → deploy-staging (auto)
 `RELEASE_VERSION` (semver patch bump). Staging and production reuse the **same image tag**;
 only GCP resource targets differ (see [Environments](#environments)).
 
-### Legacy tag deploy (`deploy-gcp`)
-
-GitLab job `deploy-gcp` still runs on **non-semver Git tags** (`allow_failure: true`) until the
-new CD flow is proven. Semver tags `v*.*.*` from `tag-version` are excluded to avoid double-deploy.
-
-1. **Publish** — `aspire publish -o ./aspire-output --environment production --non-interactive`
-2. **Validate** — `npm run validate:production-compose -- ./aspire-output/docker-compose.yaml --image-tag $CI_COMMIT_TAG`
-3. **Build images** — `gcloud builds submit --config cloudbuild.yaml` (Cloud Build has no local Docker daemon)
-4. **Dry-run deploy** — `gcloud run compose up ... --dry-run --no-build --allow-unauthenticated`
-5. **Deploy** — `gcloud run compose up ... --no-build --allow-unauthenticated`
-
 `gcloud run compose up` deploys pre-built image references; it does **not** build images.
-That is why `cloudbuild.yaml` exists as a separate step.
+That is why `cloudbuild.yaml` exists as a separate step in `build-images`.
 
 ## Environments
 
@@ -108,16 +97,16 @@ Creates (or skips if present):
 | Cloud SQL instance | `thethinker-staging-db` | POSTGRES_15, ENTERPRISE, `db-f1-micro`, 10GB SSD — mirrors prod |
 | Database | `thethinker` | on the staging instance |
 
-**Provisioning status (2026-06-20):**
+**Provisioning status (2026-06-20):** staging infra provisioned and deploy-validated.
 
 | Resource | Status |
 |---|---|
 | `gs://thethinker-staging-wardrobe-images` | ✅ created + IAM applied |
-| `thethinker-staging-db` | ⏳ pending — run script as project admin |
-| `thethinker` database on staging instance | ⏳ pending — same script |
+| `thethinker-staging-db` | ✅ RUNNABLE |
+| `thethinker` database on staging instance | ✅ created |
 
-After Cloud SQL exists, re-run the `deploy-staging` pipeline (or `./scripts/deploy-cloud-run.sh`
-with staging env vars locally).
+`DB_PASSWORD` in GitLab CI must match the postgres password on **both** Cloud SQL instances
+(staging and production). Mismatch surfaces as backend auth failure → misleading `PORT=8080` timeout.
 
 **OAuth:** staging Cloud Run URL must be added to Google OAuth authorized redirect URIs before
 "Continue with Google" works on staging (checklist item — not blocking deploy health).
@@ -487,5 +476,5 @@ const compose = await builder.addDockerComposeEnvironment("compose");
 | `configureComposeFile` loopback patches (`BACKEND_URL`, `AI_SERVICE_URL`) | Cloud Run multi-container shares one network namespace — sidecars use `127.0.0.1`, not Docker DNS; patches are required for any environment (staging and prod) |
 | `validate-production-compose.mjs` | Catches topology mistakes before `gcloud run compose up` mutates cloud resources |
 | Infra provisioned outside CD | Cloud SQL + GCS are long-lived; `scripts/provision-staging-infra.sh` before first staging deploy |
-| Tag-gated legacy deploy | `deploy-gcp` on non-semver tags until main-branch CD is proven |
+| Main-branch CD | `main` → staging auto, production manual, semver tags from `tag-version` |
 | Resource ledger | `.superpowers/sdd/gcloud-test-resources.md` tracks disposable test mutations |

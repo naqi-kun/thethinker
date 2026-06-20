@@ -10,34 +10,18 @@ variables:
   NODE_VERSION: "22.16.0"
   GO_VERSION: "1.25"
 
-# TEMP: run CD jobs on test-new-deploy to validate before merge to main.
-# Remove test-new-deploy from these anchors after validation.
 .rules-cd-branch:
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test-new-deploy"
+    - if: $CI_COMMIT_BRANCH == "main"
 
 .rules-cd-branch-manual:
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test-new-deploy"
-      when: manual
-
-# TEMP: on test-new-deploy skip lint/test/build for faster deploy iteration.
-# Remove this anchor (and extends) once CD is validated.
-.rules-not-cd-test-branch:
-  rules:
-    - if: $CI_COMMIT_BRANCH == "test-new-deploy"
-      when: never
-    - when: on_success
-
-# TEMP: tag + release jobs only on main until staging deploy is stable.
-.rules-cd-main-only:
-  rules:
     - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
 
 # ── Frontend ────────────────────────────────────────────────
 
 frontend-schema-sync:
-  extends: .rules-not-cd-test-branch
   stage: lint
   image: node:${NODE_VERSION}-alpine
   script:
@@ -49,7 +33,6 @@ frontend-schema-sync:
     - git diff --exit-code src/shared/api/schema.d.ts
 
 frontend-lint:
-  extends: .rules-not-cd-test-branch
   stage: lint
   image: node:${NODE_VERSION}-alpine
   script:
@@ -60,7 +43,6 @@ frontend-lint:
     - npm run format:check
 
 frontend-test:
-  extends: .rules-not-cd-test-branch
   stage: test
   image: node:${NODE_VERSION}-alpine
   script:
@@ -70,7 +52,6 @@ frontend-test:
     - npm run test -- --run --passWithNoTests
 
 frontend-build:
-  extends: .rules-not-cd-test-branch
   stage: build
   image: node:${NODE_VERSION}-alpine
   script:
@@ -82,7 +63,6 @@ frontend-build:
 # ── Backend ─────────────────────────────────────────────────
 
 backend-lint:
-  extends: .rules-not-cd-test-branch
   stage: lint
   image: golang:${GO_VERSION}-alpine
   script:
@@ -90,7 +70,6 @@ backend-lint:
     # TODO: add golangci-lint when linter config is settled
 
 backend-test:
-  extends: .rules-not-cd-test-branch
   stage: test
   image: golang:${GO_VERSION}-alpine
   variables:
@@ -114,7 +93,6 @@ backend-test:
   coverage: '/^total:\s+\(statements\)\s+\d+\.\d+%/'
 
 backend-build:
-  extends: .rules-not-cd-test-branch
   stage: build
   image: golang:${GO_VERSION}-alpine
   script:
@@ -124,7 +102,7 @@ backend-build:
       - backend/server
     expire_in: 1 hour
 
-# ── Version (main / test-new-deploy) ────────────────────────
+# ── Version (main only) ─────────────────────────────────────
 
 bump-version:
   stage: version
@@ -147,27 +125,29 @@ bump-version:
 #
 # Main-branch CD (staging auto, production manual):
 #   bump-version → build-images → deploy-staging → tag-version → deploy-production → release-production
-#
-# Legacy tag deploy (deploy-gcp) kept until new flow is proven. Semver v*.*.* tags
-# from CD are excluded so they do not double-deploy production.
 
-.gcp-deploy-setup:
+.gcp-cloudbuild-setup:
   image: google/cloud-sdk:slim
   before_script:
+    - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
+    - gcloud config set project thethinker
+    - gcloud config set run/region us-central1
+    - gcloud config set disable_prompts true
+
+.gcp-deploy-setup:
+  extends: .gcp-cloudbuild-setup
+  before_script:
+    - !reference [.gcp-cloudbuild-setup, before_script]
     - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     - apt-get install -y nodejs
     - npm ci
     - curl -sSL https://aspire.dev/install.sh | bash
     - export PATH="$HOME/.aspire/bin:$PATH"
     - apt-get install -y google-cloud-cli-run-compose libicu-dev
-    - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
-    - gcloud config set project thethinker
-    - gcloud config set run/region us-central1
-    - gcloud config set disable_prompts true
 
 build-images:
   extends:
-    - .gcp-deploy-setup
+    - .gcp-cloudbuild-setup
     - .rules-cd-branch
   stage: build
   needs: [bump-version]
@@ -198,7 +178,7 @@ deploy-staging:
 
 tag-version:
   stage: deploy
-  extends: .rules-cd-main-only
+  extends: .rules-cd-branch
   image: alpine:3.20
   needs: [deploy-staging, bump-version]
   resource_group: release
@@ -237,7 +217,7 @@ deploy-production:
 
 release-production:
   stage: release
-  extends: .rules-cd-main-only
+  extends: .rules-cd-branch
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs: [deploy-production, bump-version]
   script:
@@ -246,89 +226,3 @@ release-production:
     tag_name: v$RELEASE_VERSION
     name: "v$RELEASE_VERSION"
     description: "Production release for commit ${CI_COMMIT_SHA}. Pipeline ${CI_PIPELINE_URL}."
-
-deploy-gcp:
-  stage: deploy
-  image: google/cloud-sdk:slim
-  # Tag-gated auto-deploy: only runs on tag pipelines (`only: tags` below).
-  # Pushing a tag is the intentional release trigger; no manual Play step.
-  # allow_failure stays on so a failed deploy does not block the tag pipeline
-  # while we are still validating the new AppHost path.
-  #
-  # Deploy is AppHost publish → validate → remote build → dry-run → compose up:
-  #   1. Aspire generates the production Compose artifact from apphost.mts.
-  #   2. The non-mutating validator proves the artifact has the Cloud Run topology
-  #      we expect before any mutating deploy command runs.
-  #   3. cloudbuild.yaml builds + pushes images tagged with $CI_COMMIT_TAG.
-  #   4. gcloud run compose up --dry-run validates provider translation with
-  #      the same public-access flag as the real deploy.
-  #   5. gcloud run compose up --no-build deploys only those prebuilt images
-  #      and allows unauthenticated access for the public frontend.
-  #
-  # NOTE: the deploy SA (thethinker-backend@) needs roles/cloudbuild.builds.editor
-  # and Artifact Registry write to run step 1. If the build submit 403s, grant those.
-  #
-  allow_failure: true
-  extends: .gcp-deploy-setup
-  script:
-    - |
-      test -n "$CI_COMMIT_TAG" || { echo "deploy-gcp only runs for Git tags"; exit 1; }
-
-      export REGISTRY="us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy"
-      export AI_IMAGE="${REGISTRY}/thethinker-ai:${CI_COMMIT_TAG}"
-      export BACKEND_IMAGE="${REGISTRY}/thethinker-backend:${CI_COMMIT_TAG}"
-      export FRONTEND_IMAGE="${REGISTRY}/thethinker-frontend:${CI_COMMIT_TAG}"
-
-      export ANTHROPICAPIKEY="${ANTHROPICAPIKEY:-$ANTHROPIC_API_KEY}"
-      export JWTSECRET="${JWTSECRET:-$JWT_SECRET}"
-      export WEATHERAPIKEY="${WEATHERAPIKEY:-$WEATHER_API_KEY}"
-      export DATABASEURL="${DATABASE_URL:-postgresql://postgres:${DB_PASSWORD}@127.0.0.1:5432/thethinker}"
-      export CLOUDSQLINSTANCE="${CLOUD_SQL_INSTANCE:-thethinker:us-central1:thethinker-db}"
-      export GCSBUCKET="${GCS_BUCKET:-thethinker-wardrobe-images}"
-      export GOOGLECLIENTID="${GOOGLE_CLIENT_ID:-176526137598-8hme48480tc0gajdttlrpv9qu4g9c7a7.apps.googleusercontent.com}"
-      export GOOGLECLIENTSECRET="${GOOGLE_CLIENT_SECRET:-$GOOGLECLIENTSECRET}"
-
-      : "${ANTHROPICAPIKEY:?ANTHROPICAPIKEY or ANTHROPIC_API_KEY is required}"
-      : "${JWTSECRET:?JWTSECRET or JWT_SECRET is required}"
-      : "${WEATHERAPIKEY:?WEATHERAPIKEY or WEATHER_API_KEY is required}"
-      : "${GOOGLECLIENTSECRET:?GOOGLE_CLIENT_SECRET is required}"
-
-      export Parameters__databaseUrl="$DATABASEURL"
-      export Parameters__gcsBucket="$GCSBUCKET"
-      export Parameters__googleClientId="$GOOGLECLIENTID"
-      export Parameters__googleClientSecret="$GOOGLECLIENTSECRET"
-      export Parameters__jwtSecret="$JWTSECRET"
-      export Parameters__anthropicApiKey="$ANTHROPICAPIKEY"
-      export Parameters__weatherApiKey="$WEATHERAPIKEY"
-      export Parameters__cloudSqlInstance="$CLOUDSQLINSTANCE"
-
-      rm -rf aspire-output
-      aspire publish -o ./aspire-output --environment production --non-interactive
-      npm run validate:production-compose -- ./aspire-output/docker-compose.yaml --image-tag "$CI_COMMIT_TAG"
-
-      gcloud builds submit \
-        --config cloudbuild.yaml \
-        --substitutions=_TAG="$CI_COMMIT_TAG",_VITE_GOOGLE_CLIENT_ID="$GOOGLECLIENTID" \
-        .
-
-      for image in "$AI_IMAGE" "$BACKEND_IMAGE" "$FRONTEND_IMAGE"; do
-        gcloud artifacts docker images describe "$image"
-      done
-
-      gcloud run compose up ./aspire-output/docker-compose.yaml \
-        --dry-run \
-        --no-build \
-        --allow-unauthenticated \
-        --region us-central1 \
-        --project thethinker
-
-      gcloud run compose up ./aspire-output/docker-compose.yaml \
-        --no-build \
-        --allow-unauthenticated \
-        --region us-central1 \
-        --project thethinker
-  rules:
-    # Legacy manual tag deploys (e.g. deploy-test-*). Skip semver tags created by CD.
-    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
-      when: never
-    - if: $CI_COMMIT_TAG

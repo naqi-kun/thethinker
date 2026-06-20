@@ -24,12 +24,15 @@ options:
 steps:
   - name: gcr.io/cloud-builders/docker
     id: build-ai
+    waitFor: ["-"]
     args: ["build", "-t", "${_REGISTRY}/thethinker-ai:${_TAG}", "./ai"]
   - name: gcr.io/cloud-builders/docker
     id: build-backend
+    waitFor: ["-"]
     args: ["build", "-t", "${_REGISTRY}/thethinker-backend:${_TAG}", "./backend"]
   - name: gcr.io/cloud-builders/docker
     id: build-frontend
+    waitFor: ["-"]
     args:
       - "build"
       - "--build-arg"

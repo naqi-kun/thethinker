@@ -16,7 +16,7 @@ const BACKEND_LISTEN_PORT = "8081";
 const AI_LISTEN_PORT = "8001";
 const DEFAULT_COMPOSE_SERVICE_NAME = "thethinker";
 
-// Release pipelines use RELEASE_VERSION; legacy tag pipelines use CI_COMMIT_TAG; local smoke uses IMAGE_TAG.
+// Release pipelines use RELEASE_VERSION; local smoke uses IMAGE_TAG.
 const imageTag =
   process.env.RELEASE_VERSION ??
   process.env.CI_COMMIT_TAG ??
