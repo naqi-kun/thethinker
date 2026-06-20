@@ -4,8 +4,9 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 
-const ARTIFACT_REGISTRY_PREFIX =
+const DEFAULT_ARTIFACT_REGISTRY_PREFIX =
   "us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy/";
+const DEFAULT_COMPOSE_SERVICE_NAME = "thethinker";
 
 function asObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
@@ -46,13 +47,13 @@ function isParameterReference(value, parameterNames) {
   return parameterNames.some((name) => value === `\${${name}}`);
 }
 
-function imageUsesTag(image, imageTag) {
+function imageUsesTag(image, imageTag, registryPrefix) {
   if (typeof image !== "string") return false;
   const placeholder = image.match(/^\$\{([A-Z0-9_]+)\}$/);
   if (placeholder) {
-    return imageUsesTag(process.env[placeholder[1]], imageTag);
+    return imageUsesTag(process.env[placeholder[1]], imageTag, registryPrefix);
   }
-  if (!image.startsWith(ARTIFACT_REGISTRY_PREFIX)) return false;
+  if (!image.startsWith(registryPrefix)) return false;
   if (imageTag) return image.endsWith(`:${imageTag}`);
   return /\$\{(?:IMAGE_TAG|IMAGETAG)\}$/.test(image) || /:[^/:]+$/.test(image);
 }
@@ -62,14 +63,28 @@ function isCloudSqlConnectionName(value) {
 }
 
 export async function validateProductionCompose(filePath, options = {}) {
-  const imageTag = options.imageTag ?? process.env.CI_COMMIT_TAG ?? process.env.IMAGE_TAG;
+  const imageTag =
+    options.imageTag ??
+    process.env.RELEASE_VERSION ??
+    process.env.CI_COMMIT_TAG ??
+    process.env.IMAGE_TAG;
+  const serviceName =
+    options.serviceName ??
+    process.env.COMPOSE_SERVICE_NAME ??
+    DEFAULT_COMPOSE_SERVICE_NAME;
+  const registryPrefix =
+    options.registryPrefix ??
+    process.env.ARTIFACT_REGISTRY_PREFIX ??
+    DEFAULT_ARTIFACT_REGISTRY_PREFIX;
   const contents = await readFile(filePath, "utf8");
   const compose = parse(contents);
   const services = asObject(compose?.services);
   const errors = [];
 
-  if (compose?.name !== "thethinker") {
-    errors.push('production Compose project name must be "thethinker" (Cloud Run service name)');
+  if (compose?.name !== serviceName) {
+    errors.push(
+      `Compose project name must be "${serviceName}" (Cloud Run service name)`,
+    );
   }
 
   if (!Object.keys(services).length) {
@@ -175,9 +190,11 @@ export async function validateProductionCompose(filePath, options = {}) {
     errors.push("cloudsql-proxy must target the configured Cloud SQL instance");
   }
 
-  for (const serviceName of ["ai", "backend", "frontend"]) {
-    if (!imageUsesTag(asObject(services[serviceName]).image, imageTag)) {
-      errors.push(`${serviceName} image must point to Artifact Registry and include the deployment tag`);
+  for (const appServiceName of ["ai", "backend", "frontend"]) {
+    if (!imageUsesTag(asObject(services[appServiceName]).image, imageTag, registryPrefix)) {
+      errors.push(
+        `${appServiceName} image must point to Artifact Registry and include the deployment tag`,
+      );
     }
   }
 
@@ -185,11 +202,22 @@ export async function validateProductionCompose(filePath, options = {}) {
 }
 
 function parseArgs(argv) {
-  const args = { filePath: "aspire-output/docker-compose.yaml", imageTag: undefined };
+  const args = {
+    filePath: "aspire-output/docker-compose.yaml",
+    imageTag: undefined,
+    serviceName: undefined,
+    registryPrefix: undefined,
+  };
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--image-tag") {
       args.imageTag = argv[i + 1];
+      i += 1;
+    } else if (arg === "--service-name") {
+      args.serviceName = argv[i + 1];
+      i += 1;
+    } else if (arg === "--registry-prefix") {
+      args.registryPrefix = argv[i + 1];
       i += 1;
     } else {
       args.filePath = arg;
@@ -199,8 +227,12 @@ function parseArgs(argv) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const { filePath, imageTag } = parseArgs(process.argv);
-  const { errors } = await validateProductionCompose(filePath, { imageTag });
+  const { filePath, imageTag, serviceName, registryPrefix } = parseArgs(process.argv);
+  const { errors } = await validateProductionCompose(filePath, {
+    imageTag,
+    serviceName,
+    registryPrefix,
+  });
   if (errors.length) {
     console.error(`Production Compose validation failed for ${filePath}:`);
     for (const error of errors) {

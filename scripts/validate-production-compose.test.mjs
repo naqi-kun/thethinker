@@ -71,6 +71,20 @@ test("accepts the production Cloud Run Compose topology", async () => {
   assert.deepEqual(result.errors, []);
 });
 
+test("accepts staging service name and commit SHA image tags", async () => {
+  const stagingCompose = validCompose
+    .replace('name: "thethinker"', 'name: "thethinker-staging"')
+    .replaceAll(":v1.2.3", ":b23a3eb");
+  const filePath = await writeCompose(stagingCompose);
+
+  const result = await validateProductionCompose(filePath, {
+    imageTag: "b23a3eb",
+    serviceName: "thethinker-staging",
+  });
+
+  assert.deepEqual(result.errors, []);
+});
+
 test("rejects backend GCS_CREDENTIALS_JSON in production compose", async () => {
   const filePath = await writeCompose(`
 services:

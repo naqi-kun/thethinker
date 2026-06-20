@@ -1,12 +1,25 @@
 stages:
   - lint
   - test
+  - version
   - build
   - deploy
+  - release
 
 variables:
   NODE_VERSION: "22.16.0"
   GO_VERSION: "1.25"
+
+# TEMP: run CD jobs on test-new-deploy to validate before merge to main.
+# Remove test-new-deploy from these anchors after validation.
+.rules-cd-branch:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test-new-deploy"
+
+.rules-cd-branch-manual:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test-new-deploy"
+      when: manual
 
 # ── Frontend ────────────────────────────────────────────────
 
@@ -91,10 +104,128 @@ backend-build:
       - backend/server
     expire_in: 1 hour
 
+# ── Version (main / test-new-deploy) ────────────────────────
+
+bump-version:
+  stage: version
+  image: node:${NODE_VERSION}-alpine
+  resource_group: release
+  extends: .rules-cd-branch
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - apk add --no-cache git
+  script:
+    - node scripts/bump-version.mjs --output release.env
+  artifacts:
+    reports:
+      dotenv: release.env
+
 # ── Deploy ──────────────────────────────────────────────────
-# Requires one GitLab CI/CD variable:
-#   GCS_KEY_JSON  (type: File) — the GCP service account JSON key.
-#                 The service account needs Cloud Run Admin + Storage Object Admin.
+# Requires GitLab CI/CD variable:
+#   GCS_KEY_JSON  (type: File) — GCP service account JSON for deploy jobs.
+#
+# Main-branch CD (staging auto, production manual):
+#   bump-version → build-images → deploy-staging → tag-version → deploy-production → release-production
+#
+# Legacy tag deploy (deploy-gcp) kept until new flow is proven. Semver v*.*.* tags
+# from CD are excluded so they do not double-deploy production.
+
+.gcp-deploy-setup:
+  image: google/cloud-sdk:slim
+  before_script:
+    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    - apt-get install -y nodejs
+    - npm ci
+    - curl -sSL https://aspire.dev/install.sh | bash
+    - export PATH="$HOME/.aspire/bin:$PATH"
+    - apt-get install -y google-cloud-cli-run-compose libicu-dev
+    - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
+    - gcloud config set project thethinker
+    - gcloud config set run/region us-central1
+    - gcloud config set disable_prompts true
+
+build-images:
+  extends:
+    - .gcp-deploy-setup
+    - .rules-cd-branch
+  stage: build
+  needs: [bump-version]
+  script:
+    - |
+      export GOOGLECLIENTID="${GOOGLE_CLIENT_ID:-176526137598-8hme48480tc0gajdttlrpv9qu4g9c7a7.apps.googleusercontent.com}"
+      gcloud builds submit \
+        --config cloudbuild.yaml \
+        --substitutions="_TAG=${RELEASE_VERSION},_VITE_GOOGLE_CLIENT_ID=${GOOGLECLIENTID}" \
+        .
+
+deploy-staging:
+  extends:
+    - .gcp-deploy-setup
+    - .rules-cd-branch
+  stage: deploy
+  needs: [bump-version, build-images]
+  environment:
+    name: staging
+  variables:
+    COMPOSE_SERVICE_NAME: thethinker-staging
+    CLOUD_SQL_INSTANCE: thethinker:us-central1:thethinker-staging-db
+    GCS_BUCKET: thethinker-staging-wardrobe-images
+    SKIP_BUILD: "true"
+    SKIP_DRY_RUN: "true"
+  script:
+    - ./scripts/deploy-cloud-run.sh
+
+tag-version:
+  stage: deploy
+  extends: .rules-cd-branch
+  image: alpine:3.20
+  needs: [deploy-staging, bump-version]
+  resource_group: release
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - apk add --no-cache git
+    - git config user.email "ci@gitlab.com"
+    - git config user.name "GitLab CI"
+    - git remote set-url origin "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+  script:
+    - |
+      if git rev-parse -q --verify "refs/tags/v${RELEASE_VERSION}" >/dev/null; then
+        echo "Tag v${RELEASE_VERSION} already exists — skipping push"
+        exit 0
+      fi
+      git tag "v${RELEASE_VERSION}" "${CI_COMMIT_SHA}"
+      git push origin "v${RELEASE_VERSION}"
+
+deploy-production:
+  extends:
+    - .gcp-deploy-setup
+    - .rules-cd-branch-manual
+  stage: deploy
+  needs: [deploy-staging, bump-version, build-images]
+  environment:
+    name: production
+  variables:
+    COMPOSE_SERVICE_NAME: thethinker
+    CLOUD_SQL_INSTANCE: thethinker:us-central1:thethinker-db
+    GCS_BUCKET: thethinker-wardrobe-images
+    SKIP_BUILD: "true"
+    SKIP_DRY_RUN: "false"
+  script:
+    - ./scripts/deploy-cloud-run.sh
+
+release-production:
+  stage: release
+  extends: .rules-cd-branch
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs: [deploy-production, bump-version]
+  script:
+    - echo "Creating GitLab release v${RELEASE_VERSION}"
+  release:
+    tag_name: v$RELEASE_VERSION
+    name: "v$RELEASE_VERSION"
+    description: "Production release for commit ${CI_COMMIT_SHA}. Pipeline ${CI_PIPELINE_URL}."
 
 deploy-gcp:
   stage: deploy
@@ -118,23 +249,7 @@ deploy-gcp:
   # and Artifact Registry write to run step 1. If the build submit 403s, grant those.
   #
   allow_failure: true
-  before_script:
-    # Install Node 22 on the gcloud image
-    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-    - apt-get install -y nodejs
-    - npm ci
-    # Install Aspire CLI for AppHost-authored deployment artifacts.
-    - curl -sSL https://aspire.dev/install.sh | bash
-    - export PATH="$HOME/.aspire/bin:$PATH"
-    # The slim image has the gcloud component manager disabled, so `gcloud run
-    # compose up` is unavailable until its apt package is installed.
-    # Aspire CLI is .NET and needs ICU libs missing from the slim base image.
-    - apt-get install -y google-cloud-cli-run-compose libicu-dev
-    # Authenticate gcloud with the service account key
-    - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
-    - gcloud config set project thethinker
-    - gcloud config set run/region us-central1
-    - gcloud config set disable_prompts true
+  extends: .gcp-deploy-setup
   script:
     - |
       test -n "$CI_COMMIT_TAG" || { echo "deploy-gcp only runs for Git tags"; exit 1; }
@@ -192,5 +307,8 @@ deploy-gcp:
         --allow-unauthenticated \
         --region us-central1 \
         --project thethinker
-  only:
-    - tags
+  rules:
+    # Legacy manual tag deploys (e.g. deploy-test-*). Skip semver tags created by CD.
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+      when: never
+    - if: $CI_COMMIT_TAG

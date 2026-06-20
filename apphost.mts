@@ -13,7 +13,17 @@ const ARTIFACT_REGISTRY = "us-central1-docker.pkg.dev/thethinker/cloud-run-sourc
 const DEFAULT_CLOUD_SQL_INSTANCE = "thethinker:us-central1:thethinker-db";
 const CLOUD_SQL_PROXY_IMAGE = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.0";
 const BACKEND_LISTEN_PORT = "8081";
-const imageTag = process.env.CI_COMMIT_TAG ?? process.env.IMAGE_TAG ?? "latest";
+const DEFAULT_COMPOSE_SERVICE_NAME = "thethinker";
+
+// Release pipelines use RELEASE_VERSION; legacy tag pipelines use CI_COMMIT_TAG; local smoke uses IMAGE_TAG.
+const imageTag =
+  process.env.RELEASE_VERSION ??
+  process.env.CI_COMMIT_TAG ??
+  process.env.IMAGE_TAG ??
+  "latest";
+
+const composeServiceName =
+  process.env.COMPOSE_SERVICE_NAME ?? DEFAULT_COMPOSE_SERVICE_NAME;
 
 function resolveCloudSqlInstance(): string {
   return (
@@ -199,8 +209,9 @@ await compose.configureComposeFile(async (composeFile) => {
   if (!isPublish) return;
 
   // Cloud Run service name comes from the Compose project `name:` field (defaults to
-  // the output directory name, e.g. aspire-output). Pin to the production service.
-  await composeFile.name.set("thethinker");
+  // the output directory name, e.g. aspire-output). Override via COMPOSE_SERVICE_NAME
+  // for staging (e.g. thethinker-staging) while keeping production on thethinker.
+  await composeFile.name.set(composeServiceName);
 
   await composeFile.services.remove("compose-dashboard");
   await composeFile.volumes.remove("thethinker-pgdata");
