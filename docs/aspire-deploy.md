@@ -67,6 +67,9 @@ Treat dry-run as potentially mutating when testing in disposable projects.
 
 Do not hand-edit `aspire-output/docker-compose.yaml`. Regenerate with `aspire publish`.
 
+Legacy hand-written `compose.yaml` / `compose.prod.yaml` and the old deploy scripts were removed.
+`addDockerComposeEnvironment("compose")` generates the artifact from `apphost.mts` only.
+
 The publish output directory stays `aspire-output/` (Aspire default). The Cloud Run **service**
 name is the Compose project `name:` field, set to `thethinker` in `configureComposeFile` so
 `gcloud run compose up` updates `https://thethinker-…a.run.app` instead of creating a new service
@@ -113,8 +116,7 @@ When validating against a personal test project (e.g. `xpp-experiments`), overri
 | `GCS_BUCKET` | `thethinker-wardrobe-images` | test bucket in test project |
 
 Track cloud mutations in `.superpowers/sdd/gcloud-test-resources.md`.
-Do not delete test resources without explicit approval. See
-[aspire-deploy-cleanup-plan.md](./aspire-deploy-cleanup-plan.md) Phase 5 for ledger teardown.
+Do not delete test resources without explicit approval.
 
 ### Disposable test project preflight
 
@@ -260,7 +262,7 @@ needs a **Docker-only override** for the database host — not an AppHost change
 nginx proxies `/api/*` to `http://${BACKEND_URL}/` (`frontend/nginx.conf`).
 
 - **Cloud Run:** frontend and backend share localhost. nginx must target `127.0.0.1:8081` (backend
-  listens on `PORT=8081`, off the ingress port `8080`). Proven in `scripts/deploy-production.mjs`.
+  listens on `PORT=8081`, off the ingress port `8080`). Wired in `configureComposeFile`.
 - **Docker Compose:** each container has its own localhost. nginx reaches backend via Compose DNS:
   `backend:8081`. Override the published artifact in a local merge file.
 
@@ -380,12 +382,6 @@ curl -s -X POST https://<service-url>/api/auth/login \
 | Backend can't reach DB | Cloud SQL proxy not ready, wrong connection name, or missing `roles/cloudsql.client` on runtime SA |
 | Upload works but image 403 | Bucket objects not public-read (see prod-image-storage.md) |
 | `Cannot use value of type object in reference expression` | Missing `await` on `builder.addParameter()` before `refExpr` in `apphost.mts` |
-
-## Legacy manual deploy
-
-`scripts/deploy-production.mjs` predates the AppHost pipeline. It patches a single Cloud Run
-revision directly. **CI uses the AppHost path** (`deploy-gcp`). Keep the script for
-emergency one-off patches only; new work should go through `apphost.mts` + `.gitlab-ci.yml`.
 
 ## AppHost publish target
 

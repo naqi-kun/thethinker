@@ -13,7 +13,7 @@ substitutions:
   _REGISTRY: us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy
   # Public OAuth client ID, inlined into the static frontend bundle at Vite build
   # time so the "Continue with Google" button is enabled in production (KAN-97).
-  # Kept in sync with compose.yaml frontend build.args.
+  # Kept in sync with apphost.mts googleClientId parameter / frontend build arg.
   _VITE_GOOGLE_CLIENT_ID: "176526137598-8hme48480tc0gajdttlrpv9qu4g9c7a7.apps.googleusercontent.com"
 
 # A user-specified service account (the activated thethinker-backend@ SA) requires

@@ -10,7 +10,6 @@ AI-powered outfit recommendation app. Users scan their wardrobe, sync their cale
 backend/       ← Go API server (DDD)
 frontend/      ← React SPA (Vite + Tailwind v4)
 api/           ← OpenAPI spec (shared contract)
-k8s/           ← Kubernetes manifests
 apphost.mts    ← Aspire AppHost (all services wired here)
 ```
 
@@ -71,6 +70,8 @@ aspire publish --output-path ./aspire-output
 ```
 
 This writes `aspire-output/docker-compose.yaml` and `aspire-output/.env` (fill in image tags and secrets before deploying). The `aspire-output/` folder is gitignored — re-generate it when deploying.
+
+For production Cloud Run deploys (CI, parameters, validation gates), see [docs/aspire-deploy.md](docs/aspire-deploy.md).
 
 ### Aspire Rules
 
@@ -146,7 +147,7 @@ The Vite dev server runs on `http://localhost:5173` and proxies `/api/*` to `htt
 | API contract | OpenAPI 3.0 (`api/openapi.yaml`) |
 | Database | Postgres via pgx/v5 + golang-migrate |
 | CI/CD | GitLab CI (`.gitlab-ci.yml`) |
-| Deployment | Kubernetes (`k8s/`) |
+| Deployment | Cloud Run via Aspire (`docs/aspire-deploy.md`) |
 | Observability | Datadog (`dd-trace-go` — not yet wired) |
 
 ### Directory Layout

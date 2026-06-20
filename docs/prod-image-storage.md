@@ -32,11 +32,12 @@ so the bucket must allow public reads.
 4. Create a **service account** with **Storage Object Admin** scoped to the bucket.
    Create and download its **JSON key** — this becomes `GCS_CREDENTIALS_JSON`.
 
-### Cloud Run (via deploy-production.mjs)
-5. Place the JSON key file as `gcs-key.json` in the repo root (gitignored).
-6. Set `GCS_BUCKET` in `scripts/deploy-production.mjs` (already set to `thethinker-wardrobe-images`).
-7. Run `node scripts/deploy-production.mjs` — the script minifies and injects
-   `GCS_CREDENTIALS_JSON` directly into the Cloud Run backend container env.
+### Cloud Run (AppHost pipeline)
+5. Grant the Cloud Run **runtime service account** `roles/storage.objectAdmin` on the bucket
+   (see [gcp-deploy-iam-request.md](./gcp-deploy-iam-request.md)).
+6. Set `GCS_BUCKET` via the AppHost `gcsBucket` parameter (default `thethinker-wardrobe-images`).
+7. Deploy through the GitLab `deploy-gcp` tag pipeline — see [aspire-deploy.md](./aspire-deploy.md).
+   Production uses Application Default Credentials; do **not** inject `GCS_CREDENTIALS_JSON` into Compose.
 
 ## Verify
 - Backend startup logs: the `WARNING: GCS unavailable` line is absent.
