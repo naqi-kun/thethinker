@@ -21,9 +21,23 @@ variables:
     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test-new-deploy"
       when: manual
 
+# TEMP: on test-new-deploy skip lint/test/build for faster deploy iteration.
+# Remove this anchor (and extends) once CD is validated.
+.rules-not-cd-test-branch:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test-new-deploy"
+      when: never
+    - when: on_success
+
+# TEMP: tag + release jobs only on main until staging deploy is stable.
+.rules-cd-main-only:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
 # ── Frontend ────────────────────────────────────────────────
 
 frontend-schema-sync:
+  extends: .rules-not-cd-test-branch
   stage: lint
   image: node:${NODE_VERSION}-alpine
   script:
@@ -35,6 +49,7 @@ frontend-schema-sync:
     - git diff --exit-code src/shared/api/schema.d.ts
 
 frontend-lint:
+  extends: .rules-not-cd-test-branch
   stage: lint
   image: node:${NODE_VERSION}-alpine
   script:
@@ -45,6 +60,7 @@ frontend-lint:
     - npm run format:check
 
 frontend-test:
+  extends: .rules-not-cd-test-branch
   stage: test
   image: node:${NODE_VERSION}-alpine
   script:
@@ -54,6 +70,7 @@ frontend-test:
     - npm run test -- --run --passWithNoTests
 
 frontend-build:
+  extends: .rules-not-cd-test-branch
   stage: build
   image: node:${NODE_VERSION}-alpine
   script:
@@ -65,6 +82,7 @@ frontend-build:
 # ── Backend ─────────────────────────────────────────────────
 
 backend-lint:
+  extends: .rules-not-cd-test-branch
   stage: lint
   image: golang:${GO_VERSION}-alpine
   script:
@@ -72,6 +90,7 @@ backend-lint:
     # TODO: add golangci-lint when linter config is settled
 
 backend-test:
+  extends: .rules-not-cd-test-branch
   stage: test
   image: golang:${GO_VERSION}-alpine
   variables:
@@ -95,6 +114,7 @@ backend-test:
   coverage: '/^total:\s+\(statements\)\s+\d+\.\d+%/'
 
 backend-build:
+  extends: .rules-not-cd-test-branch
   stage: build
   image: golang:${GO_VERSION}-alpine
   script:
@@ -178,7 +198,7 @@ deploy-staging:
 
 tag-version:
   stage: deploy
-  extends: .rules-cd-branch
+  extends: .rules-cd-main-only
   image: alpine:3.20
   needs: [deploy-staging, bump-version]
   resource_group: release
@@ -217,7 +237,7 @@ deploy-production:
 
 release-production:
   stage: release
-  extends: .rules-cd-branch
+  extends: .rules-cd-main-only
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs: [deploy-production, bump-version]
   script:
