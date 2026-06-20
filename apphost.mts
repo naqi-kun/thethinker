@@ -13,6 +13,7 @@ const ARTIFACT_REGISTRY = "us-central1-docker.pkg.dev/thethinker/cloud-run-sourc
 const DEFAULT_CLOUD_SQL_INSTANCE = "thethinker:us-central1:thethinker-db";
 const CLOUD_SQL_PROXY_IMAGE = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.0";
 const BACKEND_LISTEN_PORT = "8081";
+const AI_LISTEN_PORT = "8001";
 const DEFAULT_COMPOSE_SERVICE_NAME = "thethinker";
 
 // Release pipelines use RELEASE_VERSION; legacy tag pipelines use CI_COMMIT_TAG; local smoke uses IMAGE_TAG.
@@ -224,6 +225,10 @@ await compose.configureComposeFile(async (composeFile) => {
 
   const backendService = await composeFile.services.get("backend");
   await backendService.environment.remove("GCS_CREDENTIALS_JSON");
+  await backendService.environment.set(
+    "AI_SERVICE_URL",
+    `http://127.0.0.1:${AI_LISTEN_PORT}`,
+  );
 
   const frontendService = await composeFile.services.get("frontend");
   await frontendService.environment.remove("PORT");

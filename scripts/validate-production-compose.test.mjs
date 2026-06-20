@@ -30,7 +30,7 @@ services:
       PORT: "8081"
       DATABASE_URL: "\${DATABASEURL}"
       JWT_SECRET: "\${JWTSECRET}"
-      AI_SERVICE_URL: "http://ai:8001"
+      AI_SERVICE_URL: "http://127.0.0.1:8001"
       GCS_BUCKET: "\${GCSBUCKET}"
       WEATHER_API_KEY: "\${WEATHERAPIKEY}"
       GOOGLE_CLIENT_ID: "\${GOOGLECLIENTID}"

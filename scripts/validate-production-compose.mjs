@@ -147,6 +147,11 @@ export async function validateProductionCompose(filePath, options = {}) {
       "production frontend BACKEND_URL must target the backend via shared loopback (127.0.0.1:<port>)",
     );
   }
+  if (backendEnv.AI_SERVICE_URL !== "http://127.0.0.1:8001") {
+    errors.push(
+      "backend AI_SERVICE_URL must target the ai sidecar via shared loopback (http://127.0.0.1:8001)",
+    );
+  }
 
   if (
     !isParameterReference(backendEnv.DATABASE_URL, ["DATABASEURL", "DATABASE_URL"]) &&
