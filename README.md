@@ -14,7 +14,6 @@ Xsolla School Project · 2025
 backend/       ← Go API server (DDD)
 frontend/      ← React SPA (Vite + Tailwind v4)
 api/           ← OpenAPI spec (shared contract)
-k8s/           ← Kubernetes manifests
 apphost.mts    ← Aspire AppHost — all services wired here
 ```
 

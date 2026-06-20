@@ -1,19 +1,19 @@
 # Builds the three service images via Cloud Build and pushes them to Artifact
-# Registry tagged with the commit SHA. This exists because `gcloud run compose up`
+# Registry tagged with the Git tag being deployed. This exists because `gcloud run compose up`
 # in CI only DEPLOYS image references — it does not build them — so without a real
-# build+push step the deploy fails with "Image ...:<sha> not found" (KAN-134).
+# build+push step the deploy fails with "Image ...:<tag> not found"
 #
 # The runner is a Docker executor without a local Docker daemon, so builds must run
 # server-side on Cloud Build rather than via `docker build` in the job.
 #
 # Invoked from .gitlab-ci.yml:
-#   gcloud builds submit --config cloudbuild.yaml --substitutions=_TAG=$CI_COMMIT_SHORT_SHA .
+#   gcloud builds submit --config cloudbuild.yaml --substitutions=_TAG=$CI_COMMIT_TAG .
 substitutions:
   _TAG: latest
   _REGISTRY: us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy
   # Public OAuth client ID, inlined into the static frontend bundle at Vite build
   # time so the "Continue with Google" button is enabled in production (KAN-97).
-  # Kept in sync with compose.yaml frontend build.args.
+  # Kept in sync with apphost.mts googleClientId parameter / frontend build arg.
   _VITE_GOOGLE_CLIENT_ID: "176526137598-8hme48480tc0gajdttlrpv9qu4g9c7a7.apps.googleusercontent.com"
 
 # A user-specified service account (the activated thethinker-backend@ SA) requires
@@ -24,12 +24,15 @@ options:
 steps:
   - name: gcr.io/cloud-builders/docker
     id: build-ai
+    waitFor: ["-"]
     args: ["build", "-t", "${_REGISTRY}/thethinker-ai:${_TAG}", "./ai"]
   - name: gcr.io/cloud-builders/docker
     id: build-backend
+    waitFor: ["-"]
     args: ["build", "-t", "${_REGISTRY}/thethinker-backend:${_TAG}", "./backend"]
   - name: gcr.io/cloud-builders/docker
     id: build-frontend
+    waitFor: ["-"]
     args:
       - "build"
       - "--build-arg"

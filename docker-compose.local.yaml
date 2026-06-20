@@ -1,0 +1,21 @@
+# Docker-only overrides for smoke-testing aspire-output/docker-compose.yaml locally.
+# Cloud Run does not use this file — see docs/aspire-deploy.md#local-compose-smoke
+#
+# Host key path uses LOCAL_GCP_KEY_FILE (not GOOGLE_APPLICATION_CREDENTIALS) so Compose
+# volume interpolation does not pick up the in-container path from service env.
+services:
+  backend:
+    environment:
+      DATABASE_URL: "postgresql://postgres:${DB_PASSWORD}@cloudsql-proxy:5432/thethinker"
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp/credentials.json
+    volumes:
+      - ${LOCAL_GCP_KEY_FILE:-.local/thethinker-backend-key.json}:/secrets/gcp/credentials.json:ro
+  frontend:
+    environment:
+      PORT: "8080"
+      BACKEND_URL: "backend:8081"
+  cloudsql-proxy:
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/gcp/credentials.json
+    volumes:
+      - ${LOCAL_GCP_KEY_FILE:-.local/thethinker-backend-key.json}:/secrets/gcp/credentials.json:ro

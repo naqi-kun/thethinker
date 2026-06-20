@@ -1,12 +1,23 @@
 stages:
   - lint
   - test
+  - version
   - build
   - deploy
+  - release
 
 variables:
   NODE_VERSION: "22.16.0"
   GO_VERSION: "1.25"
+
+.rules-cd-branch:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+.rules-cd-branch-manual:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
 
 # ── Frontend ────────────────────────────────────────────────
 
@@ -91,68 +102,127 @@ backend-build:
       - backend/server
     expire_in: 1 hour
 
-# ── Deploy ──────────────────────────────────────────────────
-# Requires one GitLab CI/CD variable:
-#   GCS_KEY_JSON  (type: File) — the GCP service account JSON key.
-#                 The service account needs Cloud Run Admin + Storage Object Admin.
+# ── Version (main only) ─────────────────────────────────────
 
-deploy-gcp:
-  stage: deploy
-  image: google/cloud-sdk:slim
-  # TEMPORARILY NON-BLOCKING (KAN-134): kept manual + allow_failure so a red deploy
-  # never blocks `main` and we don't pile up junk failed revisions on every merge.
-  # The running prod revision is unaffected by a failed deploy.
-  #
-  # Deploy is build → compose up → productionise:
-  #   1. cloudbuild.yaml builds + pushes per-commit-tagged images (compose up only
-  #      DEPLOYS image refs in CI, it does not build them — without this it failed
-  #      with "Image ...:<sha> not found" / and a mutable :latest once shipped a
-  #      stale frontend whose nginx referenced ${RAILWAY_SERVICE_BACKEND_URL} and
-  #      crashed on startup). The frontend is built with VITE_GOOGLE_CLIENT_ID.
-  #   2. compose up deploys a revision from those images.
-  #   3. deploy-production.mjs reshapes it for prod (Cloud SQL proxy, ai→2Gi, secrets).
-  #
-  # NOTE: the deploy SA (thethinker-backend@) needs roles/cloudbuild.builds.editor
-  # and Artifact Registry write to run step 1. If the build submit 403s, grant those.
-  #
-  # Once a manual deploy is confirmed green, revert both keys below for auto-deploy.
-  when: manual
-  allow_failure: true
+bump-version:
+  stage: version
+  image: node:${NODE_VERSION}-alpine
+  resource_group: release
+  extends: .rules-cd-branch
+  variables:
+    GIT_DEPTH: "0"
   before_script:
-    # Install Node 22 on the gcloud image
-    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-    - apt-get install -y nodejs
-    # The slim image has the gcloud component manager disabled, so `gcloud run
-    # compose up` is unavailable until its apt package is installed.
-    - apt-get install -y google-cloud-cli-run-compose
-    # Authenticate gcloud with the service account key
+    - apk add --no-cache git
+  script:
+    - node scripts/bump-version.mjs --output release.env
+  artifacts:
+    reports:
+      dotenv: release.env
+
+# ── Deploy ──────────────────────────────────────────────────
+# Requires GitLab CI/CD variable:
+#   GCS_KEY_JSON  (type: File) — GCP service account JSON for deploy jobs.
+#
+# Main-branch CD (staging auto, production manual):
+#   bump-version → build-images → deploy-staging → tag-version → deploy-production → release-production
+
+.gcp-cloudbuild-setup:
+  image: google/cloud-sdk:slim
+  before_script:
     - gcloud auth activate-service-account --key-file="$GCS_KEY_JSON"
     - gcloud config set project thethinker
     - gcloud config set run/region us-central1
     - gcloud config set disable_prompts true
+
+.gcp-deploy-setup:
+  extends: .gcp-cloudbuild-setup
+  before_script:
+    - !reference [.gcp-cloudbuild-setup, before_script]
+    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    - apt-get install -y nodejs
+    - npm ci
+    - curl -sSL https://aspire.dev/install.sh | bash
+    - export PATH="$HOME/.aspire/bin:$PATH"
+    - apt-get install -y google-cloud-cli-run-compose libicu-dev
+
+build-images:
+  extends:
+    - .gcp-cloudbuild-setup
+    - .rules-cd-branch
+  stage: build
+  needs: [bump-version]
   script:
-    # 1. Materialise the .env that prepare-gcloud-compose.mjs substitutes into
-    #    compose.yaml (these reach the ai/backend containers; prod-only overrides
-    #    like DATABASE_URL are applied later by deploy-production.mjs).
-    #    IMAGE_TAG pins compose.yaml's image refs to this commit's SHA, matching the
-    #    tag the Cloud Build step (below) builds and pushes — so every deploy ships
-    #    freshly-built images, never a stale mutable `:latest`.
     - |
-      printf 'DB_PASSWORD=%s\nANTHROPICAPIKEY=%s\nJWTSECRET=%s\nWEATHERAPIKEY=%s\nIMAGE_TAG=%s\n' \
-        "$DB_PASSWORD" "$ANTHROPICAPIKEY" "$JWTSECRET" "$WEATHERAPIKEY" "$CI_COMMIT_SHORT_SHA" > .env
-    - node scripts/prepare-gcloud-compose.mjs
-    # 2. Build + push the per-commit-tagged images via Cloud Build. `gcloud run
-    #    compose up` only DEPLOYS image references in CI (no local Docker daemon to
-    #    build) — so the images must exist in Artifact Registry first, else it fails
-    #    with "Image ...:<sha> not found". The frontend image is built with
-    #    VITE_GOOGLE_CLIENT_ID so Google sign-in is enabled in production.
-    - gcloud builds submit --config cloudbuild.yaml --substitutions=_TAG=$CI_COMMIT_SHORT_SHA .
-    # 3. Deploy a revision from those freshly-built images.
-    - gcloud run compose up
-    # 4. Productionise the revision: swap the local Postgres container for the Cloud
-    #    SQL proxy and inject prod env (Cloud SQL DATABASE_URL, GCS creds, and the
-    #    Google client id/secret). GOOGLE_CLIENT_SECRET comes from a CI variable.
-    - cp "$GCS_KEY_JSON" gcs-key.json
-    - node scripts/deploy-production.mjs
-  only:
-    - main
+      export GOOGLECLIENTID="${GOOGLE_CLIENT_ID:-176526137598-8hme48480tc0gajdttlrpv9qu4g9c7a7.apps.googleusercontent.com}"
+      gcloud builds submit \
+        --config cloudbuild.yaml \
+        --substitutions="_TAG=${RELEASE_VERSION},_VITE_GOOGLE_CLIENT_ID=${GOOGLECLIENTID}" \
+        .
+
+deploy-staging:
+  extends:
+    - .gcp-deploy-setup
+    - .rules-cd-branch
+  stage: deploy
+  needs: [bump-version, build-images]
+  environment:
+    name: staging
+  variables:
+    COMPOSE_SERVICE_NAME: thethinker-staging
+    CLOUD_SQL_INSTANCE: thethinker:us-central1:thethinker-staging-db
+    GCS_BUCKET: thethinker-staging-wardrobe-images
+    SKIP_BUILD: "true"
+    SKIP_DRY_RUN: "true"
+  script:
+    - ./scripts/deploy-cloud-run.sh
+
+tag-version:
+  stage: deploy
+  extends: .rules-cd-branch
+  image: alpine:3.20
+  needs: [deploy-staging, bump-version]
+  resource_group: release
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - apk add --no-cache git
+    - git config user.email "ci@gitlab.com"
+    - git config user.name "GitLab CI"
+    - git remote set-url origin "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+  script:
+    - |
+      if git rev-parse -q --verify "refs/tags/v${RELEASE_VERSION}" >/dev/null; then
+        echo "Tag v${RELEASE_VERSION} already exists — skipping push"
+        exit 0
+      fi
+      git tag "v${RELEASE_VERSION}" "${CI_COMMIT_SHA}"
+      git push origin "v${RELEASE_VERSION}"
+
+deploy-production:
+  extends:
+    - .gcp-deploy-setup
+    - .rules-cd-branch-manual
+  stage: deploy
+  needs: [deploy-staging, bump-version, build-images]
+  environment:
+    name: production
+  variables:
+    COMPOSE_SERVICE_NAME: thethinker
+    CLOUD_SQL_INSTANCE: thethinker:us-central1:thethinker-db
+    GCS_BUCKET: thethinker-wardrobe-images
+    SKIP_BUILD: "true"
+    SKIP_DRY_RUN: "false"
+  script:
+    - ./scripts/deploy-cloud-run.sh
+
+release-production:
+  stage: release
+  extends: .rules-cd-branch
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs: [deploy-production, bump-version]
+  script:
+    - echo "Creating GitLab release v${RELEASE_VERSION}"
+  release:
+    tag_name: v$RELEASE_VERSION
+    name: "v$RELEASE_VERSION"
+    description: "Production release for commit ${CI_COMMIT_SHA}. Pipeline ${CI_PIPELINE_URL}."

@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: thethinker-config
-data:
-  PORT: "8080"
-  # TODO: add non-sensitive runtime config (e.g., LOG_LEVEL, WEATHER_API_BASE_URL)
