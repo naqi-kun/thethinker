@@ -16,6 +16,7 @@ async function writeCompose(contents) {
 }
 
 const validCompose = `
+name: "thethinker"
 services:
   ai:
     image: "us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy/thethinker-ai:v1.2.3"
@@ -31,7 +32,6 @@ services:
       JWT_SECRET: "\${JWTSECRET}"
       AI_SERVICE_URL: "http://ai:8001"
       GCS_BUCKET: "\${GCSBUCKET}"
-      GCS_CREDENTIALS_JSON: "\${GCSCREDENTIALSJSON}"
       WEATHER_API_KEY: "\${WEATHERAPIKEY}"
       GOOGLE_CLIENT_ID: "\${GOOGLECLIENTID}"
       GOOGLE_CLIENT_SECRET: "\${GOOGLECLIENTSECRET}"
@@ -54,7 +54,7 @@ services:
     image: "us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy/thethinker-frontend:v1.2.3"
     environment:
       NODE_ENV: "production"
-      BACKEND_URL: "backend:8081"
+      BACKEND_URL: "127.0.0.1:8081"
       VITE_GOOGLE_CLIENT_ID: "\${GOOGLECLIENTID}"
     ports:
       - "8080:8080"
@@ -69,6 +69,51 @@ test("accepts the production Cloud Run Compose topology", async () => {
   const result = await validateProductionCompose(filePath, { imageTag: "v1.2.3" });
 
   assert.deepEqual(result.errors, []);
+});
+
+test("rejects backend GCS_CREDENTIALS_JSON in production compose", async () => {
+  const filePath = await writeCompose(`
+services:
+  ai:
+    image: "us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy/thethinker-ai:v1.2.3"
+    expose:
+      - "8001"
+  backend:
+    image: "us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy/thethinker-backend:v1.2.3"
+    environment:
+      PORT: "8081"
+      DATABASE_URL: "\${DATABASEURL}"
+      GCS_BUCKET: "\${GCSBUCKET}"
+      GCS_CREDENTIALS_JSON: "\${GCSCREDENTIALSJSON}"
+    expose:
+      - "8081"
+    depends_on:
+      ai:
+        condition: "service_started"
+      cloudsql-proxy:
+        condition: "service_started"
+  cloudsql-proxy:
+    image: "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.0"
+    command:
+      - "--port=5432"
+      - "--address=0.0.0.0"
+      - "thethinker:us-central1:thethinker-db"
+    expose:
+      - "5432"
+  frontend:
+    image: "us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy/thethinker-frontend:v1.2.3"
+    environment:
+      BACKEND_URL: "127.0.0.1:8081"
+    ports:
+      - "8080:8080"
+    depends_on:
+      backend:
+        condition: "service_started"
+`);
+
+  const result = await validateProductionCompose(filePath, { imageTag: "v1.2.3" });
+
+  assert.match(result.errors.join("\n"), /must not set GCS_CREDENTIALS_JSON/);
 });
 
 test("rejects the current dev-style Aspire Compose topology", async () => {

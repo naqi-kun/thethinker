@@ -68,6 +68,10 @@ export async function validateProductionCompose(filePath, options = {}) {
   const services = asObject(compose?.services);
   const errors = [];
 
+  if (compose?.name !== "thethinker") {
+    errors.push('production Compose project name must be "thethinker" (Cloud Run service name)');
+  }
+
   if (!Object.keys(services).length) {
     errors.push("docker-compose.yaml must define services");
     return { errors };
@@ -122,8 +126,11 @@ export async function validateProductionCompose(filePath, options = {}) {
   if (frontendEnv.VITE_BACKEND_URL) {
     errors.push("production frontend must use nginx BACKEND_URL instead of Vite dev proxy env");
   }
-  if (frontendEnv.BACKEND_URL !== `backend:${backendEnv.PORT}`) {
-    errors.push("production frontend BACKEND_URL must target the backend service host and port");
+  const backendPort = backendEnv.PORT ?? "8081";
+  if (frontendEnv.BACKEND_URL !== `127.0.0.1:${backendPort}`) {
+    errors.push(
+      "production frontend BACKEND_URL must target the backend via shared loopback (127.0.0.1:<port>)",
+    );
   }
 
   if (
@@ -132,8 +139,8 @@ export async function validateProductionCompose(filePath, options = {}) {
   ) {
     errors.push("backend DATABASE_URL must come from a parameter/env value for Cloud SQL proxy localhost");
   }
-  if (!isParameterReference(backendEnv.GCS_CREDENTIALS_JSON, ["GCSCREDENTIALSJSON", "GCS_CREDENTIALS_JSON"])) {
-    errors.push("backend GCS_CREDENTIALS_JSON must come from a parameter/env value");
+  if (backendEnv.GCS_CREDENTIALS_JSON) {
+    errors.push("backend must not set GCS_CREDENTIALS_JSON in production — use Cloud Run ADC instead");
   }
   if (!isParameterReference(backendEnv.GCS_BUCKET, ["GCSBUCKET", "GCS_BUCKET"])) {
     errors.push("backend GCS_BUCKET must come from a parameter/env value");

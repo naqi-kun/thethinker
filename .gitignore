@@ -53,6 +53,7 @@ dist/
 aspire-output/
 
 # Secrets / credentials — never commit
+.local/
 gcs-key.json
 *-key.json
 

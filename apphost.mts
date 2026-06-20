@@ -12,6 +12,7 @@ const isPublish = await builder.executionContext().isPublishMode();
 const ARTIFACT_REGISTRY = "us-central1-docker.pkg.dev/thethinker/cloud-run-source-deploy";
 const DEFAULT_CLOUD_SQL_INSTANCE = "thethinker:us-central1:thethinker-db";
 const CLOUD_SQL_PROXY_IMAGE = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.0";
+const BACKEND_LISTEN_PORT = "8081";
 const imageTag = process.env.CI_COMMIT_TAG ?? process.env.IMAGE_TAG ?? "latest";
 
 function resolveCloudSqlInstance(): string {
@@ -42,10 +43,6 @@ const googleClientSecret = builder.addParameter("googleClientSecret", {
 
 const gcsBucket = builder.addParameter("gcsBucket", {
   value: process.env.GCS_BUCKET ?? (isPublish ? "thethinker-wardrobe-images" : "wardrobe-images"),
-});
-const gcsCredentialsJson = builder.addParameter("gcsCredentialsJson", {
-  secret: true,
-  value: process.env.GCS_CREDENTIALS_JSON ?? "",
 });
 
 // ── Database ────────────────────────────────────────────────────────────────
@@ -78,7 +75,7 @@ if (isPublish) {
 }
 
 // ── Image storage ───────────────────────────────────────────────────────────
-// Dev: fake-gcs-server emulator. Production: real GCS via service-account JSON.
+// Dev: fake-gcs-server emulator. Production: real GCS via Cloud Run ADC (no JSON in env).
 
 let gcs: Awaited<ReturnType<typeof builder.addContainer>> | null = null;
 if (!isPublish) {
@@ -117,8 +114,6 @@ await backend.withEnvironment("GCS_BUCKET", gcsBucket);
 if (!isPublish && gcs) {
   await backend.withEnvironment("GCS_EMULATOR_HOST", "localhost:4443");
   await backend.waitFor(gcs);
-} else {
-  await backend.withEnvironment("GCS_CREDENTIALS_JSON", gcsCredentialsJson);
 }
 await backend.withEnvironment("WEATHER_API_KEY", weatherApiKey);
 await backend.withEnvironment("GOOGLE_CLIENT_ID", googleClientId);
@@ -203,6 +198,10 @@ const compose = await builder.addDockerComposeEnvironment("compose");
 await compose.configureComposeFile(async (composeFile) => {
   if (!isPublish) return;
 
+  // Cloud Run service name comes from the Compose project `name:` field (defaults to
+  // the output directory name, e.g. aspire-output). Pin to the production service.
+  await composeFile.name.set("thethinker");
+
   await composeFile.services.remove("compose-dashboard");
   await composeFile.volumes.remove("thethinker-pgdata");
 
@@ -212,8 +211,18 @@ await compose.configureComposeFile(async (composeFile) => {
     await service.environment.remove("OTEL_EXPORTER_OTLP_PROTOCOL");
   }
 
+  const backendService = await composeFile.services.get("backend");
+  await backendService.environment.remove("GCS_CREDENTIALS_JSON");
+
   const frontendService = await composeFile.services.get("frontend");
   await frontendService.environment.remove("PORT");
+
+  // Cloud Run multi-container shares one network namespace — sidecars reach each
+  // other via 127.0.0.1:<port>, not Docker DNS names like backend:8081.
+  await frontendService.environment.set(
+    "BACKEND_URL",
+    `127.0.0.1:${BACKEND_LISTEN_PORT}`,
+  );
 });
 
 await builder.build().run();

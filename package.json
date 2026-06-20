@@ -18,6 +18,7 @@
     "build": "npm run aspire:build",
     "test:compose-validation": "node --test scripts/validate-production-compose.test.mjs",
     "validate:production-compose": "node scripts/validate-production-compose.mjs",
+    "smoke:production-compose": "node scripts/smoke-production-compose.mjs",
     "watch": "npm run aspire:dev",
     "test:e2e": "playwright test --config frontend/playwright.config.ts",
     "test:e2e:ui": "playwright test --config frontend/playwright.config.ts --ui",

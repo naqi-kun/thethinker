@@ -1,7 +1,7 @@
 # Builds the three service images via Cloud Build and pushes them to Artifact
 # Registry tagged with the Git tag being deployed. This exists because `gcloud run compose up`
 # in CI only DEPLOYS image references — it does not build them — so without a real
-# build+push step the deploy fails with "Image ...:<tag> not found" (KAN-134).
+# build+push step the deploy fails with "Image ...:<tag> not found"
 #
 # The runner is a Docker executor without a local Docker daemon, so builds must run
 # server-side on Cloud Build rather than via `docker build` in the job.

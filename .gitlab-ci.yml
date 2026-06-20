@@ -8,18 +8,9 @@ variables:
   NODE_VERSION: "22.16.0"
   GO_VERSION: "1.25"
 
-# TEMP(KAN-134): skip lint/test/build on tag pipelines while validating deploy-gcp.
-# Revert this anchor before merging to main.
-.skip-on-tag-pipeline-temp:
-  rules:
-    - if: $CI_COMMIT_TAG
-      when: never
-    - when: always
-
 # ── Frontend ────────────────────────────────────────────────
 
 frontend-schema-sync:
-  extends: .skip-on-tag-pipeline-temp
   stage: lint
   image: node:${NODE_VERSION}-alpine
   script:
@@ -31,7 +22,6 @@ frontend-schema-sync:
     - git diff --exit-code src/shared/api/schema.d.ts
 
 frontend-lint:
-  extends: .skip-on-tag-pipeline-temp
   stage: lint
   image: node:${NODE_VERSION}-alpine
   script:
@@ -42,7 +32,6 @@ frontend-lint:
     - npm run format:check
 
 frontend-test:
-  extends: .skip-on-tag-pipeline-temp
   stage: test
   image: node:${NODE_VERSION}-alpine
   script:
@@ -52,7 +41,6 @@ frontend-test:
     - npm run test -- --run --passWithNoTests
 
 frontend-build:
-  extends: .skip-on-tag-pipeline-temp
   stage: build
   image: node:${NODE_VERSION}-alpine
   script:
@@ -64,7 +52,6 @@ frontend-build:
 # ── Backend ─────────────────────────────────────────────────
 
 backend-lint:
-  extends: .skip-on-tag-pipeline-temp
   stage: lint
   image: golang:${GO_VERSION}-alpine
   script:
@@ -72,7 +59,6 @@ backend-lint:
     # TODO: add golangci-lint when linter config is settled
 
 backend-test:
-  extends: .skip-on-tag-pipeline-temp
   stage: test
   image: golang:${GO_VERSION}-alpine
   variables:
@@ -96,7 +82,6 @@ backend-test:
   coverage: '/^total:\s+\(statements\)\s+\d+\.\d+%/'
 
 backend-build:
-  extends: .skip-on-tag-pipeline-temp
   stage: build
   image: golang:${GO_VERSION}-alpine
   script:
@@ -117,7 +102,7 @@ deploy-gcp:
   # Tag-gated auto-deploy: only runs on tag pipelines (`only: tags` below).
   # Pushing a tag is the intentional release trigger; no manual Play step.
   # allow_failure stays on so a failed deploy does not block the tag pipeline
-  # while we are still validating the new AppHost path (KAN-134).
+  # while we are still validating the new AppHost path.
   #
   # Deploy is AppHost publish → validate → remote build → dry-run → compose up:
   #   1. Aspire generates the production Compose artifact from apphost.mts.
@@ -165,7 +150,6 @@ deploy-gcp:
       export DATABASEURL="${DATABASE_URL:-postgresql://postgres:${DB_PASSWORD}@127.0.0.1:5432/thethinker}"
       export CLOUDSQLINSTANCE="${CLOUD_SQL_INSTANCE:-thethinker:us-central1:thethinker-db}"
       export GCSBUCKET="${GCS_BUCKET:-thethinker-wardrobe-images}"
-      export GCSCREDENTIALSJSON="$(node -e 'const fs = require("fs"); process.stdout.write(JSON.stringify(JSON.parse(fs.readFileSync(process.env.GCS_KEY_JSON, "utf8"))));')"
       export GOOGLECLIENTID="${GOOGLE_CLIENT_ID:-176526137598-8hme48480tc0gajdttlrpv9qu4g9c7a7.apps.googleusercontent.com}"
       export GOOGLECLIENTSECRET="${GOOGLE_CLIENT_SECRET:-$GOOGLECLIENTSECRET}"
 
@@ -176,7 +160,6 @@ deploy-gcp:
 
       export Parameters__databaseUrl="$DATABASEURL"
       export Parameters__gcsBucket="$GCSBUCKET"
-      export Parameters__gcsCredentialsJson="$GCSCREDENTIALSJSON"
       export Parameters__googleClientId="$GOOGLECLIENTID"
       export Parameters__googleClientSecret="$GOOGLECLIENTSECRET"
       export Parameters__jwtSecret="$JWTSECRET"
@@ -186,8 +169,7 @@ deploy-gcp:
 
       rm -rf aspire-output
       aspire publish -o ./aspire-output --environment production --non-interactive
-      # TEMP(KAN-134): already green on deploy-test-20260619-3 — skip to save time.
-      # npm run validate:production-compose -- ./aspire-output/docker-compose.yaml --image-tag "$CI_COMMIT_TAG"
+      npm run validate:production-compose -- ./aspire-output/docker-compose.yaml --image-tag "$CI_COMMIT_TAG"
 
       gcloud builds submit \
         --config cloudbuild.yaml \
@@ -198,13 +180,12 @@ deploy-gcp:
         gcloud artifacts docker images describe "$image"
       done
 
-      # TEMP(KAN-134): skip dry-run while iterating on Cloud Build + compose deploy.
-      # gcloud run compose up ./aspire-output/docker-compose.yaml \
-      #   --dry-run \
-      #   --no-build \
-      #   --allow-unauthenticated \
-      #   --region us-central1 \
-      #   --project thethinker
+      gcloud run compose up ./aspire-output/docker-compose.yaml \
+        --dry-run \
+        --no-build \
+        --allow-unauthenticated \
+        --region us-central1 \
+        --project thethinker
 
       gcloud run compose up ./aspire-output/docker-compose.yaml \
         --no-build \
