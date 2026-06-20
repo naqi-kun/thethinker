@@ -61,7 +61,9 @@ export default function DressingForSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-medium text-foreground transition-all duration-200 hover:border-terracotta/60 hover:bg-linen/60 hover:text-espresso hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta/40 disabled:opacity-60 disabled:hover:border-border disabled:hover:bg-card disabled:hover:shadow-none ${
-          open ? 'border-terracotta/60 bg-linen/60 text-espresso' : 'border-border bg-card'
+          open
+            ? 'border-terracotta/60 bg-linen/60 text-espresso'
+            : 'border-border bg-card'
         }`}
       >
         <span className="max-w-[12rem] truncate">{selected?.label ?? 'Select…'}</span>
@@ -77,15 +79,11 @@ export default function DressingForSelect({
           <motion.ul
             role="listbox"
             initial={
-              prefersReducedMotion
-                ? { opacity: 0 }
-                : { opacity: 0, y: -6, scale: 0.96 }
+              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.96 }
             }
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={
-              prefersReducedMotion
-                ? { opacity: 0 }
-                : { opacity: 0, y: -6, scale: 0.96 }
+              prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.96 }
             }
             transition={{ duration: 0.16, ease }}
             style={{ transformOrigin: 'top center' }}
@@ -108,9 +106,7 @@ export default function DressingForSelect({
                     }`}
                   >
                     <span className="min-w-0 flex-1 truncate">{opt.label}</span>
-                    {active && (
-                      <Check className="h-4 w-4 shrink-0 text-terracotta" />
-                    )}
+                    {active && <Check className="h-4 w-4 shrink-0 text-terracotta" />}
                   </button>
                 </li>
               );

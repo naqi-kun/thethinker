@@ -416,9 +416,8 @@ export default function CalendarPage() {
     >
       TheThinker values your privacy. We only read event titles, times, and{' '}
       <span className="text-terracotta underline">locations</span> to provide context
-      for your outfit{' '}
-      <span className="text-terracotta underline">recommendations</span>. Your calendar
-      data is never shared with third parties.
+      for your outfit <span className="text-terracotta underline">recommendations</span>
+      . Your calendar data is never shared with third parties.
     </motion.p>
   );
 
@@ -562,7 +561,11 @@ export default function CalendarPage() {
                       className="btn-link shrink-0 text-sm font-medium text-muted-foreground hover:text-destructive disabled:opacity-50"
                       aria-label={`Remove ${cal.name || 'calendar'}`}
                     >
-                      {removingId === cal.id ? 'Removing…' : <Trash2 className="h-4 w-4" />}
+                      {removingId === cal.id ? (
+                        'Removing…'
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </button>
                   </motion.div>
                 ))}
