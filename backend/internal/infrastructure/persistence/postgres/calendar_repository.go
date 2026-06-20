@@ -115,6 +115,30 @@ func (r *CalendarRepository) ListCalendars(ctx context.Context, userID string) (
 	return cals, rows.Err()
 }
 
+// ListAllCalendars returns every calendar across all users, for the background
+// sync. Ordered by user so a single user's calendars sync together.
+func (r *CalendarRepository) ListAllCalendars(ctx context.Context) ([]*calendar.Calendar, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT id, user_id, name, source, ics_url, created_at
+		 FROM calendars
+		 ORDER BY user_id, created_at ASC`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var cals []*calendar.Calendar
+	for rows.Next() {
+		c := &calendar.Calendar{}
+		if err := rows.Scan(&c.ID, &c.UserID, &c.Name, &c.Source, &c.ICSURL, &c.CreatedAt); err != nil {
+			return nil, err
+		}
+		cals = append(cals, c)
+	}
+	return cals, rows.Err()
+}
+
 func (r *CalendarRepository) FindCalendar(ctx context.Context, id, userID string) (*calendar.Calendar, error) {
 	c := &calendar.Calendar{}
 	err := r.db.QueryRow(ctx,
@@ -141,13 +165,35 @@ func (r *CalendarRepository) DeleteCalendar(ctx context.Context, id, userID stri
 }
 
 // ReplaceCalendarEvents swaps the stored event snapshot for a calendar in one
-// transaction: delete the old rows, insert the new ones.
+// transaction: delete the old rows, insert the new ones. Events the user had
+// ignored stay ignored if they reappear in the new snapshot — otherwise the
+// (now automatic) background sync would silently un-hide them.
 func (r *CalendarRepository) ReplaceCalendarEvents(ctx context.Context, calendarID string, events []*calendar.Event) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
+
+	// Remember which events were ignored before we drop the old snapshot.
+	ignoredRows, err := tx.Query(ctx,
+		`SELECT id FROM calendar_events WHERE calendar_id = $1 AND ignored = true`, calendarID)
+	if err != nil {
+		return err
+	}
+	ignored := make(map[string]bool)
+	for ignoredRows.Next() {
+		var id string
+		if err := ignoredRows.Scan(&id); err != nil {
+			ignoredRows.Close()
+			return err
+		}
+		ignored[id] = true
+	}
+	ignoredRows.Close()
+	if err := ignoredRows.Err(); err != nil {
+		return err
+	}
 
 	if _, err := tx.Exec(ctx, `DELETE FROM calendar_events WHERE calendar_id = $1`, calendarID); err != nil {
 		return err
@@ -170,6 +216,20 @@ func (r *CalendarRepository) ReplaceCalendarEvents(ctx context.Context, calendar
 			   location    = EXCLUDED.location,
 			   all_day     = EXCLUDED.all_day`,
 			e.ID, e.UserID, calendarID, e.Title, e.Type, e.StartsAt, endsAt, e.Location, e.AllDay,
+		); err != nil {
+			return err
+		}
+	}
+
+	// Re-apply the user's ignore choices to any events that survived the resync.
+	if len(ignored) > 0 {
+		ids := make([]string, 0, len(ignored))
+		for id := range ignored {
+			ids = append(ids, id)
+		}
+		if _, err := tx.Exec(ctx,
+			`UPDATE calendar_events SET ignored = true WHERE calendar_id = $1 AND id = ANY($2)`,
+			calendarID, ids,
 		); err != nil {
 			return err
 		}

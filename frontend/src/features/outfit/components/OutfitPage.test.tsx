@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   acceptOutfit: vi.fn(),
   getTodayEvents: vi.fn(),
   ignoreEvent: vi.fn(),
+  resyncAllCalendars: vi.fn(),
 }));
 vi.mock('../api', () => ({
   getOutfit: mocks.getOutfit,
@@ -20,6 +21,7 @@ vi.mock('../api', () => ({
 vi.mock('../../calendar/api', () => ({
   getTodayEvents: mocks.getTodayEvents,
   ignoreEvent: mocks.ignoreEvent,
+  resyncAllCalendars: mocks.resyncAllCalendars,
 }));
 
 import OutfitPage from './OutfitPage';
@@ -47,6 +49,8 @@ beforeEach(() => {
   mocks.acceptOutfit.mockReset();
   mocks.getTodayEvents.mockReset();
   mocks.getTodayEvents.mockResolvedValue([]);
+  mocks.resyncAllCalendars.mockReset();
+  mocks.resyncAllCalendars.mockResolvedValue([]);
   localStorage.clear();
 });
 
@@ -119,8 +123,14 @@ describe('OutfitPage outfit loading (KAN-90)', () => {
 
     expect(await screen.findByText('#Board meeting')).toBeTruthy();
 
-    const select = await screen.findByLabelText(/dressing for/i);
-    await userEvent.selectOptions(select, 'ev-1');
+    // Open the custom "Dressing for" listbox (its trigger shows the current
+    // selection), then pick the event option.
+    await userEvent.click(
+      await screen.findByRole('button', { name: /best for today/i }),
+    );
+    await userEvent.click(
+      await screen.findByRole('button', { name: /board meeting/i }),
+    );
 
     await waitFor(() => expect(mocks.getOutfit).toHaveBeenCalledTimes(2));
     // Choosing an event starts a fresh session (undefined) dressing for it.

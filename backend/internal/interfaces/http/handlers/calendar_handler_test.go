@@ -26,6 +26,9 @@ func (r *stubRepo) SaveCalendar(_ context.Context, cal *calendar.Calendar) error
 func (r *stubRepo) ListCalendars(context.Context, string) ([]*calendar.Calendar, error) {
 	return r.cals, nil
 }
+func (r *stubRepo) ListAllCalendars(context.Context) ([]*calendar.Calendar, error) {
+	return r.cals, nil
+}
 func (r *stubRepo) FindCalendar(_ context.Context, id, userID string) (*calendar.Calendar, error) {
 	for _, c := range r.cals {
 		if c.ID == id && c.UserID == userID {

@@ -192,6 +192,15 @@ func main() {
 		WriteTimeout: 120 * time.Second,
 	}
 
+	// Periodic calendar refresh so events stay current without the user pressing
+	// Sync (the manual Sync button still works). Set CALENDAR_SYNC_INTERVAL=0 to
+	// disable. Stops when the root context is cancelled (graceful shutdown).
+	if interval := calendarSyncInterval(); interval > 0 {
+		go runCalendarSync(ctx, calendarSvc, interval)
+	} else {
+		log.Print("calendar background sync disabled (CALENDAR_SYNC_INTERVAL=0)")
+	}
+
 	go func() {
 		log.Printf("listening on %s", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -209,6 +218,47 @@ func main() {
 
 func healthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+// calendarSyncInterval reads CALENDAR_SYNC_INTERVAL (a Go duration like "30m"),
+// defaulting to 30 minutes. A value of "0" disables the background sync.
+func calendarSyncInterval() time.Duration {
+	raw := os.Getenv("CALENDAR_SYNC_INTERVAL")
+	if raw == "" {
+		return 30 * time.Minute
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil {
+		log.Printf("invalid CALENDAR_SYNC_INTERVAL %q, defaulting to 30m: %v", raw, err)
+		return 30 * time.Minute
+	}
+	return d
+}
+
+// runCalendarSync re-syncs every ICS calendar on a ticker until ctx is cancelled.
+// Each run is bounded by the interval so a batch of slow feeds can't run past the
+// next tick (the ticker drops ticks it can't deliver, so runs never overlap).
+func runCalendarSync(ctx context.Context, svc *calendar.Service, interval time.Duration) {
+	log.Printf("calendar background sync every %s", interval)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			runCtx, cancel := context.WithTimeout(ctx, interval)
+			synced, failed, err := svc.SyncAllICS(runCtx)
+			cancel()
+			if err != nil {
+				log.Printf("calendar sync: %v", err)
+				continue
+			}
+			if synced > 0 || failed > 0 {
+				log.Printf("calendar sync: %d refreshed, %d failed", synced, failed)
+			}
+		}
+	}
 }
 
 func port() string {

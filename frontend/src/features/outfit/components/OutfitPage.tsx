@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Briefcase,
-  CalendarClock,
   Check,
   ChevronDown,
-  MapPin,
   RefreshCw,
   Shirt,
   Shuffle,
   Sparkles,
   Sun,
-  X,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -21,10 +18,11 @@ import type {
   OutfitRecommendation,
 } from '../../../shared/api/types';
 import { ease } from '../../../shared/motion';
-import { getTodayEvents, ignoreEvent } from '../../calendar/api';
+import { getTodayEvents, resyncAllCalendars } from '../../calendar/api';
 import { acceptOutfit, getOutfit, type OutfitOptions } from '../api';
 import { hasRevealedToday, markRevealedToday } from '../revealStore';
 import { SETTLE_STAGGER_S, settleSpring } from '../revealMotion';
+import DressingForSelect from './DressingForSelect';
 import SwapBottomSheet from './SwapBottomSheet';
 import WrappedCard from './WrappedCard';
 
@@ -142,6 +140,8 @@ export default function OutfitPage() {
   // which would otherwise start two independent AI sessions (two Claude calls,
   // one orphaned) and swap the outfit ~2s after load.
   const didInitialFetch = useRef(false);
+  // Same StrictMode guard for the on-open calendar resync below.
+  const didResyncCalendars = useRef(false);
 
   const fetchOutfit = useCallback(
     (sessionId?: string, selection: DressingFor = 'auto') => {
@@ -180,10 +180,25 @@ export default function OutfitPage() {
 
   useEffect(() => {
     // Today's calendar events are best-effort context; failures shouldn't block
-    // the outfit view.
+    // the outfit view. Show the stored snapshot immediately, then resync the
+    // calendars from their sources (same as the Calendar page does on open) so
+    // the "Dressing for" picker reflects the latest events without waiting for
+    // the background ticker.
+    let cancelled = false;
     getTodayEvents()
-      .then(setEvents)
-      .catch(() => setEvents([]));
+      .then((e) => !cancelled && setEvents(e))
+      .catch(() => !cancelled && setEvents([]));
+
+    if (!didResyncCalendars.current) {
+      didResyncCalendars.current = true;
+      resyncAllCalendars()
+        .then(() => getTodayEvents())
+        .then((e) => !cancelled && setEvents(e))
+        .catch(() => undefined);
+    }
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -197,17 +212,6 @@ export default function OutfitPage() {
     // session starts — so drop the current session and fetch a fresh look.
     setDressingFor(value);
     fetchOutfit(undefined, value);
-  }
-
-  function handleIgnore(id: string) {
-    // Optimistically drop it; ignored events are hidden server-side too.
-    setEvents((prev) => prev.filter((e) => e.id !== id));
-    ignoreEvent(id).catch(() => {
-      // On failure, reload so the UI matches the server.
-      getTodayEvents()
-        .then(setEvents)
-        .catch(() => undefined);
-    });
   }
 
   const handleAccept = useCallback(async () => {
@@ -314,61 +318,20 @@ export default function OutfitPage() {
 
         {events.length > 0 && phase === 'revealed' && (
           <div className="mb-3 flex shrink-0 items-center justify-center gap-2 text-sm">
-            <label htmlFor="dressing-for" className="text-muted-foreground">
-              Dressing for
-            </label>
-            <select
-              id="dressing-for"
+            <span className="text-muted-foreground">Dressing for</span>
+            <DressingForSelect
               value={dressingFor}
-              onChange={(e) => handleDressingForChange(e.target.value)}
+              onChange={handleDressingForChange}
               disabled={loading}
-              className="rounded-full border border-border bg-card px-3 py-1.5 font-medium text-foreground disabled:opacity-60"
-            >
-              <option value="auto">Best for today</option>
-              {events.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {formatEventTime(event)} · {event.title}
-                </option>
-              ))}
-              <option value="everyday">Everyday</option>
-            </select>
-          </div>
-        )}
-
-        {events.length > 0 && phase === 'revealed' && (
-          <div className="mb-3 max-h-28 shrink-0 overflow-y-auto rounded-xl border border-border bg-card/60 p-3">
-            <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              <CalendarClock className="h-3.5 w-3.5 text-terracotta" />
-              Today's schedule
-            </p>
-            <ul className="space-y-2">
-              {events.map((event) => (
-                <li key={event.id} className="flex items-start gap-3 text-sm">
-                  <span className="w-20 shrink-0 font-medium text-foreground">
-                    {formatEventTime(event)}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-foreground">
-                      {event.title}
-                    </span>
-                    {event.location && (
-                      <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
-                        {event.location}
-                      </span>
-                    )}
-                  </span>
-                  <button
-                    onClick={() => handleIgnore(event.id)}
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
-                    aria-label={`Ignore ${event.title}`}
-                    title="Ignore this event"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+              options={[
+                { value: 'auto', label: 'Best for today' },
+                ...events.map((event) => ({
+                  value: event.id,
+                  label: `${formatEventTime(event)} · ${event.title}`,
+                })),
+                { value: 'everyday', label: 'Everyday' },
+              ]}
+            />
           </div>
         )}
 

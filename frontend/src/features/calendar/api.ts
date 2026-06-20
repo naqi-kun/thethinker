@@ -31,6 +31,19 @@ export async function syncCalendar(id: string): Promise<Calendar> {
   return data!;
 }
 
+// Re-fetch every connected calendar from its source, returning the (best-effort)
+// refreshed calendars. Per-calendar failures are swallowed and the original is
+// kept, so a flaky feed never breaks a passive on-open refresh. Callers re-fetch
+// events afterward to pick up the new snapshot.
+export async function resyncAllCalendars(): Promise<Calendar[]> {
+  const cals = await listCalendars();
+  const results = await Promise.allSettled(cals.map((c) => syncCalendar(c.id)));
+  return cals.map((c, i) => {
+    const r = results[i];
+    return r.status === 'fulfilled' ? r.value : c;
+  });
+}
+
 export async function getTodayEvents(): Promise<CalendarEvent[]> {
   const { data } = await apiClient.GET('/calendars/events');
   return data ?? [];

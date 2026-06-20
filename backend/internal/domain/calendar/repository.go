@@ -9,6 +9,9 @@ type Repository interface {
 	// Multi-calendar model (KAN-49).
 	SaveCalendar(ctx context.Context, cal *Calendar) error
 	ListCalendars(ctx context.Context, userID string) ([]*Calendar, error)
+	// ListAllCalendars returns every calendar across all users. Used by the
+	// background sync; not exposed through any per-user endpoint.
+	ListAllCalendars(ctx context.Context) ([]*Calendar, error)
 	FindCalendar(ctx context.Context, id, userID string) (*Calendar, error)
 	DeleteCalendar(ctx context.Context, id, userID string) error
 	ReplaceCalendarEvents(ctx context.Context, calendarID string, events []*Event) error
