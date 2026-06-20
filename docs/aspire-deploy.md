@@ -31,7 +31,26 @@ Those resources are excluded from `aspire publish`.
 
 ## Deployment pipeline
 
-GitLab job `deploy-gcp` runs automatically on **tag pipelines** (`only: tags`):
+### Main-branch CD (`main` / validation branch)
+
+On `main` (and temporarily `test-new-deploy` while validating):
+
+```text
+bump-version → build-images → deploy-staging (auto)
+  → tag-version (main only)
+  → deploy-production (manual)
+  → release-production (main only)
+```
+
+`deploy-staging` and `deploy-production` both call `scripts/deploy-cloud-run.sh`
+(Aspire publish → validate → `gcloud run compose up --no-build`). Images are tagged with
+`RELEASE_VERSION` (semver patch bump). Staging and production reuse the **same image tag**;
+only GCP resource targets differ (see [Environments](#environments)).
+
+### Legacy tag deploy (`deploy-gcp`)
+
+GitLab job `deploy-gcp` still runs on **non-semver Git tags** (`allow_failure: true`) until the
+new CD flow is proven. Semver tags `v*.*.*` from `tag-version` are excluded to avoid double-deploy.
 
 1. **Publish** — `aspire publish -o ./aspire-output --environment production --non-interactive`
 2. **Validate** — `npm run validate:production-compose -- ./aspire-output/docker-compose.yaml --image-tag $CI_COMMIT_TAG`
@@ -39,10 +58,69 @@ GitLab job `deploy-gcp` runs automatically on **tag pipelines** (`only: tags`):
 4. **Dry-run deploy** — `gcloud run compose up ... --dry-run --no-build --allow-unauthenticated`
 5. **Deploy** — `gcloud run compose up ... --no-build --allow-unauthenticated`
 
-Pushing a Git tag is the intentional release trigger. Branch pushes run lint/test/build only.
-
 `gcloud run compose up` deploys pre-built image references; it does **not** build images.
 That is why `cloudbuild.yaml` exists as a separate step.
+
+## Environments
+
+Long-lived environments are **provisioned once** (outside the hot deploy path), then targeted
+by CI via env-specific variables. The app CD pipeline does not create Cloud SQL instances.
+
+| | **Staging** | **Production** |
+|---|---|---|
+| GitLab job | `deploy-staging` (auto) | `deploy-production` (manual) |
+| Cloud Run service | `thethinker-staging` | `thethinker` |
+| Cloud SQL instance | `thethinker-staging-db` | `thethinker-db` |
+| Connection name | `thethinker:us-central1:thethinker-staging-db` | `thethinker:us-central1:thethinker-db` |
+| GCS bucket | `thethinker-staging-wardrobe-images` | `thethinker-wardrobe-images` |
+| Database name | `thethinker` | `thethinker` |
+| CI variables | `COMPOSE_SERVICE_NAME`, `CLOUD_SQL_INSTANCE`, `GCS_BUCKET` in `.gitlab-ci.yml` | defaults in `deploy-cloud-run.sh` |
+| Secrets | Shared GitLab protected vars (`DB_PASSWORD`, `JWTSECRET`, …) | same |
+
+Runtime identity is the same for both: Cloud Run revision SA
+`719713084003-compute@developer.gserviceaccount.com` (needs `roles/cloudsql.client` on the
+project and `roles/storage.objectAdmin` on each environment's bucket).
+
+### Staging infrastructure provisioning
+
+**Provision before the first `deploy-staging` run.** `validate-production-compose.mjs` checks
+compose topology only — it does not verify that Cloud SQL or GCS resources exist. A missing
+instance surfaces as a Cloud Run `PORT=8080` health-check timeout (frontend depends on backend
+depends on cloudsql-proxy).
+
+Script: [`scripts/provision-staging-infra.sh`](../scripts/provision-staging-infra.sh) (idempotent).
+
+Requires a principal with **Cloud SQL Admin** and **Storage Admin** (or Owner) on `thethinker`.
+The CI deploy service account (`thethinker-backend@`) can create buckets but **cannot** create
+Cloud SQL instances.
+
+```bash
+# Use the same password as the GitLab CI variable DB_PASSWORD
+export DB_PASSWORD='<from GitLab CI/CD variables>'
+./scripts/provision-staging-infra.sh
+```
+
+Creates (or skips if present):
+
+| Resource | Name | Notes |
+|---|---|---|
+| GCS bucket | `gs://thethinker-staging-wardrobe-images` | `us-central1`; runtime SA `objectAdmin`; `allUsers` `objectViewer` |
+| Cloud SQL instance | `thethinker-staging-db` | POSTGRES_15, ENTERPRISE, `db-f1-micro`, 10GB SSD — mirrors prod |
+| Database | `thethinker` | on the staging instance |
+
+**Provisioning status (2026-06-20):**
+
+| Resource | Status |
+|---|---|
+| `gs://thethinker-staging-wardrobe-images` | ✅ created + IAM applied |
+| `thethinker-staging-db` | ⏳ pending — run script as project admin |
+| `thethinker` database on staging instance | ⏳ pending — same script |
+
+After Cloud SQL exists, re-run the `deploy-staging` pipeline (or `./scripts/deploy-cloud-run.sh`
+with staging env vars locally).
+
+**OAuth:** staging Cloud Run URL must be added to Google OAuth authorized redirect URIs before
+"Continue with Google" works on staging (checklist item — not blocking deploy health).
 
 ### Why `--allow-unauthenticated`
 
@@ -97,8 +175,9 @@ CI also sets plain env vars that Compose references as `${VAR}`.
 `GCS_KEY_JSON` authenticates the CI deploy job with `gcloud auth activate-service-account`.
 It is **not** passed into container env. Production GCS uploads use Application Default
 Credentials from the Cloud Run runtime service account (`719713084003-compute@developer.gserviceaccount.com`).
-That runtime SA needs `roles/storage.objectAdmin` on `gs://thethinker-wardrobe-images`
-(see [gcp-deploy-iam-request.md](./gcp-deploy-iam-request.md)).
+That runtime SA needs `roles/storage.objectAdmin` on each environment's GCS bucket
+(`gs://thethinker-wardrobe-images` for production, `gs://thethinker-staging-wardrobe-images`
+for staging). See [Staging infrastructure provisioning](#staging-infrastructure-provisioning).
 
 **Why no `GCS_CREDENTIALS_JSON` in Compose:** `gcloud run compose up` translates the
 Compose file via `run-compose translate`, which rejects JSON object syntax in env values
@@ -201,6 +280,7 @@ DNS names in the artifact are wrong for Cloud Run.
 | Four-service topology (no local `db`, no dashboard) | `apphost.mts` publish branch + `configureComposeFile` |
 | `DATABASE_URL` host `127.0.0.1:5432` | `apphost.mts` (`refExpr` in publish mode) |
 | `BACKEND_URL` via `configureComposeFile` patch | `apphost.mts` publish branch → artifact `127.0.0.1:8081` |
+| `AI_SERVICE_URL` loopback patch | `apphost.mts` → artifact `http://127.0.0.1:8001` (Cloud Run shared namespace; Aspire default uses Docker DNS `http://ai:8001`) |
 | Strip `PORT` from frontend | `configureComposeFile` (Cloud Run reserves it) |
 | Strip `GCS_CREDENTIALS_JSON` from backend | `configureComposeFile` (Fix A — ADC at runtime) |
 | Strip dev OTEL → `compose-dashboard` | `configureComposeFile` |
@@ -379,7 +459,8 @@ curl -s -X POST https://<service-url>/api/auth/login \
 | `YAML Injection Detected` on compose translate | `GCS_CREDENTIALS_JSON` with SA JSON in env — use ADC instead |
 | `GCS unavailable — image uploads disabled` | Backend could not init GCS client; check runtime SA bucket IAM |
 | `failed to upload image` (500) | Runtime SA missing `storage.objectAdmin` on bucket |
-| Backend can't reach DB | Cloud SQL proxy not ready, wrong connection name, or missing `roles/cloudsql.client` on runtime SA |
+| Backend can't reach DB | Cloud SQL proxy not ready, wrong connection name, missing `roles/cloudsql.client` on runtime SA, or **Cloud SQL instance not provisioned** (staging) |
+| `PORT=8080` timeout on deploy | Often a **symptom**, not root cause — check cloudsql-proxy / backend logs; missing staging DB is a common trigger |
 | Upload works but image 403 | Bucket objects not public-read (see prod-image-storage.md) |
 | `Cannot use value of type object in reference expression` | Missing `await` on `builder.addParameter()` before `refExpr` in `apphost.mts` |
 
@@ -403,6 +484,8 @@ const compose = await builder.addDockerComposeEnvironment("compose");
 | Explicit GCS JSON from GitLab | Replaced by Cloud Run ADC — avoids `run-compose` YAML injection on SA JSON |
 | Separate Cloud Build step | GitLab runner has no Docker daemon; Compose deploy is image-reference-only |
 | Frontend nginx, not Vite, in prod | Static bundle + reverse proxy to backend; `PORT` injected by Cloud Run at runtime |
+| `configureComposeFile` loopback patches (`BACKEND_URL`, `AI_SERVICE_URL`) | Cloud Run multi-container shares one network namespace — sidecars use `127.0.0.1`, not Docker DNS; patches are required for any environment (staging and prod) |
 | `validate-production-compose.mjs` | Catches topology mistakes before `gcloud run compose up` mutates cloud resources |
-| Tag-gated auto-deploy | Pushing a tag is intentional; no manual Play step on `deploy-gcp` |
+| Infra provisioned outside CD | Cloud SQL + GCS are long-lived; `scripts/provision-staging-infra.sh` before first staging deploy |
+| Tag-gated legacy deploy | `deploy-gcp` on non-semver tags until main-branch CD is proven |
 | Resource ledger | `.superpowers/sdd/gcloud-test-resources.md` tracks disposable test mutations |

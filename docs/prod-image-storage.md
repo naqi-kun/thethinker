@@ -36,8 +36,8 @@ so the bucket must allow public reads.
 5. Grant the Cloud Run **runtime service account** `roles/storage.objectAdmin` on the bucket
    (see [gcp-deploy-iam-request.md](./gcp-deploy-iam-request.md)).
 6. Set `GCS_BUCKET` via the AppHost `gcsBucket` parameter (default `thethinker-wardrobe-images`).
-7. Deploy through the GitLab `deploy-gcp` tag pipeline — see [aspire-deploy.md](./aspire-deploy.md).
-   Production uses Application Default Credentials; do **not** inject `GCS_CREDENTIALS_JSON` into Compose.
+For production Cloud Run deploys (CI, staging, or prod), see [aspire-deploy.md](./aspire-deploy.md).
+For staging bucket setup, run [`scripts/provision-staging-infra.sh`](../scripts/provision-staging-infra.sh).
 
 ## Verify
 - Backend startup logs: the `WARNING: GCS unavailable` line is absent.
