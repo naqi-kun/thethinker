@@ -3,6 +3,7 @@ import {
   Briefcase,
   CalendarClock,
   Check,
+  ChevronDown,
   MapPin,
   RefreshCw,
   Shirt,
@@ -113,6 +114,9 @@ export default function OutfitPage() {
   const [accepting, setAccepting] = useState(false);
   const [swappingItem, setSwappingItem] = useState<ClothingItem | null>(null);
   const [showToast, setShowToast] = useState(false);
+  // "Why this look" starts collapsed so the rationale never crowds out the
+  // flat-lay on small screens (e.g. iPhone 14 Pro) — the user taps to expand.
+  const [whyExpanded, setWhyExpanded] = useState(false);
 
   // Reveal ceremony (KAN-100). On the first open of the day the outfit is sealed
   // behind WrappedCard; tapping Reveal plays the staggered settle once. Returning
@@ -320,7 +324,7 @@ export default function OutfitPage() {
               disabled={loading}
               className="rounded-full border border-border bg-card px-3 py-1.5 font-medium text-foreground disabled:opacity-60"
             >
-              <option value="auto">✨ Best for today</option>
+              <option value="auto">Best for today</option>
               {events.map((event) => (
                 <option key={event.id} value={event.id}>
                   {formatEventTime(event)} · {event.title}
@@ -490,22 +494,44 @@ export default function OutfitPage() {
                 for the rule-based fallback, so the card simply doesn't render. */}
             {recommendation.reasoning && (
               <motion.div
-                className="mt-2 flex shrink-0 items-start gap-2 rounded-xl border border-border bg-card/60 px-3 py-2"
+                className="mt-2 shrink-0 overflow-hidden rounded-xl border border-border bg-card/60"
                 initial={ceremony ? { opacity: 0, y: 8 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease, delay: whyDelay }}
               >
-                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-terracotta" />
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                {/* Collapsed by default — the header is the toggle so a long
+                    rationale never squeezes the flat-lay canvas above. */}
+                <button
+                  type="button"
+                  onClick={() => setWhyExpanded((v) => !v)}
+                  aria-expanded={whyExpanded}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left"
+                >
+                  <Sparkles className="h-4 w-4 shrink-0 text-terracotta" />
+                  <span className="flex-1 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     Why this look
-                  </p>
-                  {/* Capped + scrollable so a long rationale can't squeeze the
-                      flat-lay canvas above — the outfit visual stays the hero. */}
-                  <p className="mt-0.5 max-h-[4.5rem] overflow-y-auto pr-1 text-sm leading-snug text-foreground">
-                    {recommendation.reasoning}
-                  </p>
-                </div>
+                  </span>
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                      whyExpanded ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                <AnimatePresence initial={false}>
+                  {whyExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease }}
+                      className="overflow-hidden"
+                    >
+                      <p className="max-h-[8rem] overflow-y-auto px-3 pb-2 text-sm leading-snug text-foreground">
+                        {recommendation.reasoning}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 

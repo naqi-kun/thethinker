@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { HexColorPicker } from 'react-colorful';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Plus, RotateCcw } from 'lucide-react';
 import { addItem, uploadItemImage } from '../api';
 import type {
   AddItemPayload,
@@ -109,9 +109,10 @@ export default function ReviewItemPage() {
     setForm((f) => reSuggestName({ ...f, color: 'multicolor' }));
   }
 
-  async function handleConfirm(e: React.FormEvent) {
-    e.preventDefault();
-    if (!canSubmit) return;
+  // Saves the item (and its image). Returns true on success so the caller can
+  // decide where to go next — back to the wardrobe, or straight to the camera
+  // to scan another piece.
+  async function save(): Promise<boolean> {
     setSubmitting(true);
     setError(null);
     try {
@@ -127,12 +128,27 @@ export default function ReviewItemPage() {
         const file = new File([imageBlob], 'scan.jpg', { type: 'image/jpeg' });
         await uploadItemImage(newItem.id, file);
       }
-      navigate('/wardrobe');
+      return true;
     } catch {
       setError('Failed to save item. Please try again.');
+      return false;
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleConfirm(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit || submitting) return;
+    if (await save()) navigate('/wardrobe');
+  }
+
+  // Save this item, then reopen the camera so the user can scan the next one
+  // without trekking back through the wardrobe. `replace` keeps the back stack
+  // from stacking up review screens during a long scanning session.
+  async function handleSaveAndAddAnother() {
+    if (!canSubmit || submitting) return;
+    if (await save()) navigate('/wardrobe/add/camera', { replace: true });
   }
 
   if (!state?.classifyResult) return null;
@@ -301,6 +317,16 @@ export default function ReviewItemPage() {
             className="btn-primary btn-lg w-full"
           >
             {submitting ? 'Saving…' : 'Add to Wardrobe'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveAndAddAnother}
+            disabled={!canSubmit || submitting}
+            className="btn-secondary btn-lg w-full gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            {submitting ? 'Saving…' : 'Save & Add Another'}
           </button>
 
           <button
