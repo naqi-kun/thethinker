@@ -158,6 +158,38 @@ func (s *Service) SyncCalendar(ctx context.Context, userID, calendarID string) (
 	return cal, nil
 }
 
+// SyncAllICS re-fetches and re-stores every ICS calendar in the system. It backs
+// the periodic background sync so users get fresh events without pressing Sync
+// (the manual Sync endpoint still works). A per-calendar fetch failure is counted
+// and skipped rather than aborting the whole run. Google/Apple calendars are left
+// to their OAuth-driven sync. The returned counts are for the caller to log.
+func (s *Service) SyncAllICS(ctx context.Context) (synced, failed int, err error) {
+	cals, err := s.repo.ListAllCalendars(ctx)
+	if err != nil {
+		return 0, 0, fmt.Errorf("calendar: list all: %w", err)
+	}
+	for _, cal := range cals {
+		if cal.Source != SourceICS {
+			continue
+		}
+		// Stop promptly on shutdown rather than plowing through every feed.
+		if ctx.Err() != nil {
+			break
+		}
+		events, ferr := s.fetcher.FetchEvents(ctx, cal.ICSURL)
+		if ferr != nil {
+			failed++
+			continue
+		}
+		if serr := s.storeEvents(ctx, cal.UserID, cal, events); serr != nil {
+			failed++
+			continue
+		}
+		synced++
+	}
+	return synced, failed, nil
+}
+
 // syncGoogleEvents fetches the user's Google Calendar events and stores them,
 // persisting a refreshed access token when the client returns one.
 func (s *Service) syncGoogleEvents(ctx context.Context, userID string, cal *Calendar, tok GoogleToken) error {

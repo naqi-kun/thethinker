@@ -64,6 +64,9 @@ func (s *stubCalendarRepo) SaveCalendar(_ context.Context, _ *calendar.Calendar)
 func (s *stubCalendarRepo) ListCalendars(_ context.Context, _ string) ([]*calendar.Calendar, error) {
 	return nil, nil
 }
+func (s *stubCalendarRepo) ListAllCalendars(_ context.Context) ([]*calendar.Calendar, error) {
+	return nil, nil
+}
 func (s *stubCalendarRepo) FindCalendar(_ context.Context, _, _ string) (*calendar.Calendar, error) {
 	return nil, nil
 }
