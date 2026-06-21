@@ -869,6 +869,10 @@ components:
         season:
           type: string
           enum: [all, spring_summer, autumn_winter, winter]
+        pattern:
+          type: string
+          enum: [solid, striped, plaid, floral, graphic, animal, polka_dot]
+          description: Surface design pattern detected from the photo.
         confidence_score:
           type: number
           format: float
@@ -900,6 +904,10 @@ components:
         season:
           type: string
           enum: [all, spring_summer, autumn_winter, winter]
+        pattern:
+          type: string
+          enum: [solid, striped, plaid, floral, graphic, animal, polka_dot]
+          description: Surface design pattern of the item.
         image_url:
           type: string
           format: uri
@@ -937,6 +945,10 @@ components:
         season:
           type: string
           enum: [all, spring_summer, autumn_winter, winter]
+        pattern:
+          type: string
+          enum: [solid, striped, plaid, floral, graphic, animal, polka_dot]
+          description: Surface design pattern of the item.
         status:
           type: string
           enum: [clean, worn, in_laundry]

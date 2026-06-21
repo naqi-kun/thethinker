@@ -195,6 +195,44 @@ func ParseSeason(s string) (Season, error) {
 	}
 }
 
+// Pattern is the surface design pattern of a clothing item.
+type Pattern int
+
+const (
+	PatternSolid Pattern = iota
+	PatternStriped
+	PatternPlaid
+	PatternFloral
+	PatternGraphic
+	PatternAnimal
+	PatternPolkaDot
+)
+
+func (p Pattern) String() string {
+	return [...]string{"solid", "striped", "plaid", "floral", "graphic", "animal", "polka_dot"}[p]
+}
+
+func ParsePattern(s string) (Pattern, error) {
+	switch s {
+	case "solid":
+		return PatternSolid, nil
+	case "striped":
+		return PatternStriped, nil
+	case "plaid":
+		return PatternPlaid, nil
+	case "floral":
+		return PatternFloral, nil
+	case "graphic":
+		return PatternGraphic, nil
+	case "animal":
+		return PatternAnimal, nil
+	case "polka_dot":
+		return PatternPolkaDot, nil
+	default:
+		return 0, fmt.Errorf("%w: pattern %q", ErrInvalidClassification, s)
+	}
+}
+
 // Status represents the current wearability state of a clothing item.
 type Status int
 
@@ -230,6 +268,7 @@ type ClothingItem struct {
 	Color     Color
 	Fit       Fit
 	Season    Season
+	Pattern   Pattern
 	Status    Status
 	ImageURL  string
 	LastWorn  *time.Time
