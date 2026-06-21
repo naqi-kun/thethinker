@@ -7,6 +7,7 @@ import {
   COLORS,
   COLOR_SWATCHES,
   FITS,
+  PATTERNS,
   SEASONS,
   SUB_TYPES,
   type ClothingColor,
@@ -160,6 +161,18 @@ export default function EditItemSheet({
               value={draft.season}
               placeholder="Select season…"
               onChange={(season) => setDraft((d) => ({ ...d, season }))}
+            />
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-2">
+            <label className="block text-xs font-medium uppercase tracking-widest text-espresso">
+              Pattern
+            </label>
+            <Select
+              options={PATTERNS}
+              value={draft.pattern}
+              placeholder="Select pattern…"
+              onChange={(pattern) => setDraft((d) => ({ ...d, pattern }))}
             />
           </fieldset>
         </div>

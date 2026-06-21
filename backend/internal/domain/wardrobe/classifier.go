@@ -10,6 +10,7 @@ type ClassifyResult struct {
 	Color           string
 	Fit             string
 	Season          string
+	Pattern         string
 	Description     string
 	ConfidenceScore float64
 }

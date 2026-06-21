@@ -1225,6 +1225,11 @@ export interface components {
             /** @enum {string} */
             season: "all" | "spring_summer" | "autumn_winter" | "winter";
             /**
+             * @description Surface design pattern detected from the photo.
+             * @enum {string}
+             */
+            pattern?: "solid" | "striped" | "plaid" | "floral" | "graphic" | "animal" | "polka_dot";
+            /**
              * Format: float
              * @description Overall AI confidence (0–1) reported by the classifier. Falls back to 0.85 only if the AI service omits it.
              * @example 0.92
@@ -1247,6 +1252,11 @@ export interface components {
             fit: "slim" | "regular" | "relaxed" | "oversized";
             /** @enum {string} */
             season: "all" | "spring_summer" | "autumn_winter" | "winter";
+            /**
+             * @description Surface design pattern of the item.
+             * @enum {string}
+             */
+            pattern?: "solid" | "striped" | "plaid" | "floral" | "graphic" | "animal" | "polka_dot";
             /** Format: uri */
             image_url?: string;
         };
@@ -1271,6 +1281,11 @@ export interface components {
             fit?: "slim" | "regular" | "relaxed" | "oversized";
             /** @enum {string} */
             season?: "all" | "spring_summer" | "autumn_winter" | "winter";
+            /**
+             * @description Surface design pattern of the item.
+             * @enum {string}
+             */
+            pattern?: "solid" | "striped" | "plaid" | "floral" | "graphic" | "animal" | "polka_dot";
             /**
              * @description Current wearability state. Only 'clean' items are included in outfit recommendations.
              * @default clean

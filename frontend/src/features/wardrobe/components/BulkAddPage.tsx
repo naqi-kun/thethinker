@@ -97,6 +97,7 @@ export default function BulkAddPage() {
       color: '',
       fit: '',
       season: '',
+      pattern: '',
     }));
 
     // This batch replaces whatever was on screen, so revoke the old thumbnails
@@ -492,6 +493,7 @@ export default function BulkAddPage() {
               color: editingItem.color,
               fit: editingItem.fit,
               season: editingItem.season,
+              pattern: editingItem.pattern,
             }}
             onSave={(fields) => saveEdit(editingItem.id, fields)}
             onClose={() => setEditingId(null)}

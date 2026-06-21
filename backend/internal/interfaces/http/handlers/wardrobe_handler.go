@@ -40,6 +40,7 @@ type classifyResultResponse struct {
 	Color           string  `json:"color"`
 	Fit             string  `json:"fit"`
 	Season          string  `json:"season"`
+	Pattern         string  `json:"pattern,omitempty"`
 	ConfidenceScore float64 `json:"confidence_score"`
 }
 
@@ -50,6 +51,7 @@ type addItemRequest struct {
 	Color    string `json:"color"`
 	Fit      string `json:"fit"`
 	Season   string `json:"season"`
+	Pattern  string `json:"pattern,omitempty"`
 	ImageURL string `json:"image_url,omitempty"`
 }
 
@@ -61,6 +63,7 @@ type clothingItemResponse struct {
 	Color    string  `json:"color"`
 	Fit      string  `json:"fit"`
 	Season   string  `json:"season"`
+	Pattern  string  `json:"pattern,omitempty"`
 	Status   string  `json:"status"`
 	ImageURL string  `json:"image_url,omitempty"`
 	LastWorn *string `json:"last_worn"`
@@ -75,6 +78,7 @@ func toItemResponse(item *wardrobe.ClothingItem) clothingItemResponse {
 		Color:    item.Color.String(),
 		Fit:      item.Fit.String(),
 		Season:   item.Season.String(),
+		Pattern:  item.Pattern.String(),
 		Status:   item.Status.String(),
 		ImageURL: item.ImageURL,
 	}
@@ -124,6 +128,16 @@ func (h *WardrobeHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	patternStr := req.Pattern
+	if patternStr == "" {
+		patternStr = "solid"
+	}
+	pattern, err := wardrobe.ParsePattern(patternStr)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
 	item, err := h.svc.AddItem(r.Context(), userID, wardrobe.ClothingItem{
 		Name:     req.Name,
 		Category: category,
@@ -131,6 +145,7 @@ func (h *WardrobeHandler) AddItem(w http.ResponseWriter, r *http.Request) {
 		Color:    color,
 		Fit:      fit,
 		Season:   season,
+		Pattern:  pattern,
 		ImageURL: req.ImageURL,
 	})
 	if err != nil {
@@ -271,6 +286,16 @@ func (h *WardrobeHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	updatePatternStr := req.Pattern
+	if updatePatternStr == "" {
+		updatePatternStr = "solid"
+	}
+	updatePattern, err := wardrobe.ParsePattern(updatePatternStr)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "BAD_REQUEST", err.Error())
+		return
+	}
+
 	item, err := h.svc.UpdateItem(r.Context(), itemID, userID, wardrobe.ClothingItem{
 		Name:     req.Name,
 		Category: category,
@@ -278,6 +303,7 @@ func (h *WardrobeHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		Color:    color,
 		Fit:      fit,
 		Season:   season,
+		Pattern:  updatePattern,
 	})
 	if err != nil {
 		switch {
@@ -414,6 +440,7 @@ func (h *WardrobeHandler) Classify(w http.ResponseWriter, r *http.Request) {
 		Color:           result.Color,
 		Fit:             result.Fit,
 		Season:          result.Season,
+		Pattern:         result.Pattern,
 		ConfidenceScore: result.ConfidenceScore,
 	})
 }

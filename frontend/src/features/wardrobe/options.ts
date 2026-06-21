@@ -8,6 +8,15 @@ import type {
   ClothingStatus,
 } from '../../shared/api/types';
 
+export type ClothingPattern =
+  | 'solid'
+  | 'striped'
+  | 'plaid'
+  | 'floral'
+  | 'graphic'
+  | 'animal'
+  | 'polka_dot';
+
 export type ClothingSubType =
   | 'shirt'
   | 't-shirt'
@@ -71,6 +80,16 @@ export const STATUSES: SelectOption<ClothingStatus>[] = [
   { value: 'clean', label: 'Clean' },
   { value: 'worn', label: 'Worn' },
   { value: 'in_laundry', label: 'In Laundry' },
+];
+
+export const PATTERNS: SelectOption<ClothingPattern>[] = [
+  { value: 'solid', label: 'Solid' },
+  { value: 'striped', label: 'Striped' },
+  { value: 'plaid', label: 'Plaid / Checked' },
+  { value: 'floral', label: 'Floral' },
+  { value: 'graphic', label: 'Graphic / Print' },
+  { value: 'animal', label: 'Animal Print' },
+  { value: 'polka_dot', label: 'Polka Dot' },
 ];
 
 export const SUB_TYPES: SelectOption<ClothingSubType>[] = [

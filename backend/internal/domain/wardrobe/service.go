@@ -116,6 +116,7 @@ func (s *Service) UpdateItem(ctx context.Context, itemID, userID string, fields 
 	existing.Color = fields.Color
 	existing.Fit = fields.Fit
 	existing.Season = fields.Season
+	existing.Pattern = fields.Pattern
 	if err := s.repo.Save(ctx, existing); err != nil {
 		return nil, err
 	}
@@ -180,6 +181,15 @@ func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []by
 		return nil, err
 	}
 
+	patternStr := result.Pattern
+	if patternStr == "" {
+		patternStr = "solid"
+	}
+	pattern, err := ParsePattern(patternStr)
+	if err != nil {
+		return nil, err
+	}
+
 	item := ClothingItem{
 		ID:          uuid.New().String(),
 		UserID:      userID,
@@ -188,6 +198,7 @@ func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []by
 		Color:       color,
 		Fit:         fit,
 		Season:      season,
+		Pattern:     pattern,
 		Description: result.Description,
 		CreatedAt:   time.Now(),
 	}

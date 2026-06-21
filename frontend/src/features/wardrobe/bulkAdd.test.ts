@@ -61,6 +61,7 @@ describe('toPayload', () => {
       color: 'navy blue',
       fit: 'slim',
       season: 'all',
+      pattern: 'solid',
     });
   });
 });

@@ -8,7 +8,7 @@ import type {
   ClothingSeason,
 } from '../../shared/api/types';
 import { suggestName } from './colorMatch';
-import type { ClothingColor, ClothingSubType } from './options';
+import type { ClothingColor, ClothingPattern, ClothingSubType } from './options';
 
 export type ScanStatus = 'processing' | 'done' | 'failed';
 
@@ -36,11 +36,12 @@ export type ScanItem = {
   color: ClothingColor | '';
   fit: ClothingFit | '';
   season: ClothingSeason | '';
+  pattern: ClothingPattern | '';
 };
 
 export type ScanFields = Pick<
   ScanItem,
-  'name' | 'category' | 'sub_type' | 'color' | 'fit' | 'season'
+  'name' | 'category' | 'sub_type' | 'color' | 'fit' | 'season' | 'pattern'
 >;
 
 /** Seed the editable fields of a scan item from a classifier result. */
@@ -54,6 +55,7 @@ export function seedFields(result: ClassifyResult): ScanFields {
     color,
     fit: (result.fit as ClothingFit) ?? '',
     season: (result.season as ClothingSeason) ?? '',
+    pattern: (result.pattern as ClothingPattern) ?? 'solid',
   };
 }
 
@@ -80,6 +82,7 @@ export function toPayload(item: ScanItem): AddItemPayload {
     color: item.color,
     fit: item.fit,
     season: item.season,
+    pattern: item.pattern || 'solid',
   } as AddItemPayload;
 }
 

@@ -34,6 +34,7 @@ type classifyResponse struct {
 	Color           string   `json:"color"`
 	Fit             string   `json:"fit"`
 	Season          string   `json:"season"`
+	Pattern         string   `json:"pattern,omitempty"`
 	Description     string   `json:"description"`
 	ConfidenceScore *float64 `json:"confidence_score"`
 }
@@ -92,6 +93,7 @@ func (c *Client) Classify(ctx context.Context, imageBytes []byte, contentType st
 		Color:           result.Color,
 		Fit:             result.Fit,
 		Season:          result.Season,
+		Pattern:         result.Pattern,
 		Description:     result.Description,
 		ConfidenceScore: score,
 	}, nil

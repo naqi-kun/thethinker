@@ -21,6 +21,7 @@ class WardrobeItem(BaseModel):
     color: str
     fit: str
     season: str
+    pattern: str = "solid"
     # Faithful free-text description from the scan classifier — carries the
     # nuance the fixed enums lose (true shade, pattern, silhouette, vibe). May be
     # empty for items scanned before this field existed (KAN-150).
@@ -128,6 +129,7 @@ def _build_prompt(state: RecommendationState) -> str:
             line = (
                 f"  id={i['id']}  color={i['color']}  fit={i.get('fit', 'regular')}"
                 f"  type={i['sub_type']}  season={i.get('season', 'all')}"
+                f"  pattern={i.get('pattern', 'solid')}"
             )
             desc = (i.get("description") or "").strip()
             if desc:
@@ -204,7 +206,10 @@ def _build_prompt(state: RecommendationState) -> str:
         "3. Complementary fits: slim top pairs well with slim or regular bottom.\n"
         "4. Neutral colors (black, white, grey, navy, beige) pair with anything, but a "
         "strong aesthetic match outranks playing it safe with neutrals.\n"
-        "5. Let the requested aesthetic drive category and silhouette: athletic / "
+        "5. Pattern mixing: pair a patterned piece with a solid to avoid visual noise — "
+        "e.g. floral top + solid bottom, or striped shirt + plain trousers. "
+        "Two bold patterns (floral + plaid) rarely work unless the aesthetic calls for it.\n"
+        "6. Let the requested aesthetic drive category and silhouette: athletic / "
         "athleisure looks call for sport pieces (joggers, sweats, trainers) over denim or "
         "tailoring; old-money / classic / preppy looks call for tailored, formal pieces "
         "over sporty ones. The whole outfit should commit to the vibe.\n"

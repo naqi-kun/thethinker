@@ -36,6 +36,7 @@ type wardrobeItemPayload struct {
 	Color       string `json:"color"`
 	Fit         string `json:"fit"`
 	Season      string `json:"season"`
+	Pattern     string `json:"pattern,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
@@ -91,6 +92,7 @@ func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.Cl
 			Color:       item.Color.String(),
 			Fit:         item.Fit.String(),
 			Season:      item.Season.String(),
+			Pattern:     item.Pattern.String(),
 			Description: item.Description,
 		}
 	}
