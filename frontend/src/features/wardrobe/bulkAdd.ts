@@ -41,7 +41,7 @@ export type ScanItem = {
 
 export type ScanFields = Pick<
   ScanItem,
-  'name' | 'category' | 'sub_type' | 'color' | 'fit' | 'season'
+  'name' | 'category' | 'sub_type' | 'color' | 'fit' | 'season' | 'pattern'
 >;
 
 /** Seed the editable fields of a scan item from a classifier result. */

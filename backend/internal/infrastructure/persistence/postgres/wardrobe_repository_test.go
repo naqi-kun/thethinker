@@ -19,6 +19,7 @@ func validRow(id string) wardrobeRow {
 		color:     "grey",
 		fit:       "regular",
 		season:    "all",
+		pattern:   "solid",
 		status:    "clean",
 		imageURL:  "https://example.test/" + id + ".png",
 		createdAt: time.Now(),
@@ -118,7 +119,8 @@ func TestToClothingItem_Valid(t *testing.T) {
 	}
 	if item.ID != "42" || item.Category != wardrobe.CategoryCasual ||
 		item.SubType != wardrobe.SubTypeTShirt || item.Color != wardrobe.ColorGrey ||
-		item.Fit != wardrobe.FitRegular || item.Season != wardrobe.SeasonAll {
+		item.Fit != wardrobe.FitRegular || item.Season != wardrobe.SeasonAll ||
+		item.Pattern != wardrobe.PatternSolid {
 		t.Fatalf("fields mapped incorrectly: %+v", item)
 	}
 }
