@@ -21,6 +21,10 @@ class WardrobeItem(BaseModel):
     color: str
     fit: str
     season: str
+    # Faithful free-text description from the scan classifier — carries the
+    # nuance the fixed enums lose (true shade, pattern, silhouette, vibe). May be
+    # empty for items scanned before this field existed (KAN-150).
+    description: str | None = None
 
 
 class Recommendation(BaseModel):
@@ -119,11 +123,17 @@ def filter_closet(state: RecommendationState) -> dict:
 
 def _build_prompt(state: RecommendationState) -> str:
     def fmt(items: list[dict]) -> str:
-        return "\n".join(
-            f"  id={i['id']}  color={i['color']}  fit={i.get('fit', 'regular')}"
-            f"  type={i['sub_type']}  season={i.get('season', 'all')}"
-            for i in items
-        )
+        lines = []
+        for i in items:
+            line = (
+                f"  id={i['id']}  color={i['color']}  fit={i.get('fit', 'regular')}"
+                f"  type={i['sub_type']}  season={i.get('season', 'all')}"
+            )
+            desc = (i.get("description") or "").strip()
+            if desc:
+                line += f"  — {desc}"
+            lines.append(line)
+        return "\n".join(lines)
 
     brief_lines = []
     aesthetic = (state.get("aesthetic") or "").strip()
@@ -183,6 +193,12 @@ def _build_prompt(state: RecommendationState) -> str:
         "You are a personal stylist. Select one complete outfit from the wardrobe below.\n\n"
         f"{brief_section}"
         "STYLING RULES:\n"
+        "0. When an item has a description (after the '—'), treat it as the source of "
+        "truth for its real colour/shade, pattern, silhouette and style vibe — it "
+        "captures nuance the color/type fields miss. Judge whether pieces belong "
+        "together from their descriptions, not just their enum labels: do not pair "
+        "items whose described vibes clash (e.g. a streetwear hoodie with a romantic "
+        "coquette skirt) even if the brief tempts it.\n"
         "1. Avoid clashing colors (e.g. bright red top + bright green bottom).\n"
         "2. Match formality: casual tops with casual bottoms; formal with formal.\n"
         "3. Complementary fits: slim top pairs well with slim or regular bottom.\n"
