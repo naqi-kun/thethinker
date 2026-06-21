@@ -21,6 +21,7 @@ import { ease } from '../../../shared/motion';
 import { getTodayEvents, resyncAllCalendars } from '../../calendar/api';
 import { acceptOutfit, getOutfit, type OutfitOptions } from '../api';
 import { hasRevealedToday, markRevealedToday } from '../revealStore';
+import { loadTodayOutfit, saveTodayOutfit } from '../outfitStore';
 import { SETTLE_STAGGER_S, settleSpring } from '../revealMotion';
 import DressingForSelect from './DressingForSelect';
 import SwapBottomSheet from './SwapBottomSheet';
@@ -76,19 +77,6 @@ const FLAT_LAY_SLOTS = [
   { top: '58%', left: '58%', width: '32%', rotate: 6 },
 ];
 
-function deriveHashtags(rec: OutfitRecommendation): string[] {
-  const tags: string[] = [];
-  if (rec.occasion) tags.push(rec.occasion);
-  const allItems = rec.items;
-  const seasons = [
-    ...new Set(allItems.flatMap((i) => (i.season ? [i.season] : []))),
-  ].filter((s) => s !== 'all');
-  seasons.forEach((s) => tags.push(s.replace(/_/g, '-')));
-  const categories = [...new Set(allItems.map((i) => i.category))];
-  categories.forEach((c) => tags.push(c));
-  return [...new Set(tags)].slice(0, 5);
-}
-
 function formatEventTime(event: CalendarEvent): string {
   if (event.all_day) return 'All day';
   return new Date(event.starts_at).toLocaleTimeString('en-US', {
@@ -100,12 +88,18 @@ function formatEventTime(event: CalendarEvent): string {
 export default function OutfitPage() {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
+  // Restore today's outfit (if any) so a refresh or app-switch shows the exact
+  // same look instead of fetching a fresh one — only Shuffle / "Dressing for"
+  // changes the outfit (KAN-100). Read once on mount.
+  const cachedOutfit = useRef(loadTodayOutfit());
   const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(
-    null,
+    cachedOutfit.current?.recommendation ?? null,
   );
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [dressingFor, setDressingFor] = useState<DressingFor>('auto');
-  const [loading, setLoading] = useState(true);
+  const [dressingFor, setDressingFor] = useState<DressingFor>(
+    cachedOutfit.current?.dressingFor ?? 'auto',
+  );
+  const [loading, setLoading] = useState(!cachedOutfit.current);
   const [emptyWardrobe, setEmptyWardrobe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
@@ -155,6 +149,8 @@ export default function OutfitPage() {
         .then((rec) => {
           if (latestRequestId.current !== requestId) return; // superseded
           setRecommendation(rec);
+          // Cache so a refresh/app-switch restores this exact look (KAN-100).
+          saveTodayOutfit(rec, selection);
         })
         .catch((err: unknown) => {
           if (latestRequestId.current !== requestId) return; // superseded
@@ -175,6 +171,9 @@ export default function OutfitPage() {
   useEffect(() => {
     if (didInitialFetch.current) return;
     didInitialFetch.current = true;
+    // Already have today's outfit restored from cache — don't start a new AI
+    // session, which would reshuffle the look on every reload (KAN-100).
+    if (cachedOutfit.current) return;
     fetchOutfit();
   }, [fetchOutfit]);
 
@@ -232,7 +231,7 @@ export default function OutfitPage() {
   const handleSwap = useCallback(
     (replacement: ClothingItem) => {
       if (!recommendation || !swappingItem) return;
-      setRecommendation({
+      const updated = {
         ...recommendation,
         // The user hand-picked this piece, so the AI's "why this look" rationale
         // no longer describes the outfit on screen — drop it (KAN-101).
@@ -240,11 +239,14 @@ export default function OutfitPage() {
         items: recommendation.items.map((i) =>
           i.id === swappingItem.id ? replacement : i,
         ),
-      });
+      };
+      setRecommendation(updated);
+      // Keep the cached look in sync so the swap survives a reload (KAN-100).
+      saveTodayOutfit(updated, dressingFor);
       setSwappingItem(null);
       setAccepted(false);
     },
-    [recommendation, swappingItem],
+    [recommendation, swappingItem, dressingFor],
   );
 
   // Shuffle reuses the session to regenerate. It replays the staggered garment
@@ -260,7 +262,6 @@ export default function OutfitPage() {
   const displayItems: ClothingItem[] = recommendation
     ? recommendation.items.slice(0, MAX_ITEMS)
     : [];
-  const hashtags = recommendation ? deriveHashtags(recommendation) : [];
   const weatherHint = recommendation?.weather
     ? staleWeatherHint(recommendation.weather.observed_at)
     : null;
@@ -452,6 +453,24 @@ export default function OutfitPage() {
               </motion.div>
             </div>
 
+            {/* Shuffle row. Sits directly under the flat-lay, above the "Why
+                this look" card. Lands after the garments settle during the
+                reveal ceremony. */}
+            <motion.div
+              className="mt-2 flex shrink-0 items-center justify-end"
+              initial={ceremony ? { opacity: 0, y: 8 } : false}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease, delay: whyDelay }}
+            >
+              <button
+                onClick={handleShuffle}
+                className="btn-outline btn-sm shrink-0 gap-2"
+              >
+                <Shuffle className="h-4 w-4" />
+                Shuffle
+              </button>
+            </motion.div>
+
             {/* "Why this look" — the AI's one-sentence rationale (KAN-101).
                 Lands with the other context after the garments settle. Absent
                 for the rule-based fallback, so the card simply doesn't render. */}
@@ -497,30 +516,6 @@ export default function OutfitPage() {
                 </AnimatePresence>
               </motion.div>
             )}
-
-            {/* Hashtags + shuffle on one compact row. Hashtags land after the
-                garments settle during the reveal ceremony. */}
-            <div className="mt-2 flex shrink-0 items-center justify-between gap-3">
-              <motion.div
-                className="flex min-w-0 flex-wrap gap-2 overflow-hidden"
-                initial={ceremony ? { opacity: 0, y: 8 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease, delay: whyDelay }}
-              >
-                {hashtags.map((tag) => (
-                  <span key={tag} className="text-sm text-muted-foreground">
-                    #{tag}
-                  </span>
-                ))}
-              </motion.div>
-              <button
-                onClick={handleShuffle}
-                className="btn-outline btn-sm shrink-0 gap-2"
-              >
-                <Shuffle className="h-4 w-4" />
-                Shuffle
-              </button>
-            </div>
           </>
         ) : null}
       </main>

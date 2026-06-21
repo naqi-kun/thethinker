@@ -89,8 +89,12 @@ describe('SettingsPage aesthetic preference (KAN-92)', () => {
 
     await userEvent.click(aestheticButton('Streetwear'));
 
-    // Optimistic: the new choice is selected immediately.
+    // Selecting stages the choice immediately but must not persist on its own.
     expect(isSelected(aestheticButton('Streetwear'))).toBe(true);
+    expect(mocks.updatePreferences).not.toHaveBeenCalled();
+
+    // Only tapping Save persists it.
+    await userEvent.click(aestheticButton('Save'));
 
     await waitFor(() => expect(mocks.updatePreferences).toHaveBeenCalledTimes(1));
     expect(mocks.updatePreferences).toHaveBeenCalledWith(
@@ -112,6 +116,7 @@ describe('SettingsPage aesthetic preference (KAN-92)', () => {
     await waitFor(() => expect(isSelected(aestheticButton('Minimalist'))).toBe(true));
 
     await userEvent.click(aestheticButton('Streetwear'));
+    await userEvent.click(aestheticButton('Save'));
 
     // Rolls back to the last-saved value once the request rejects.
     await waitFor(() => expect(isSelected(aestheticButton('Minimalist'))).toBe(true));
