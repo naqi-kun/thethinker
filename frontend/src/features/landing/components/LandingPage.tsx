@@ -1,6 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { Scan, CalendarDays, Sparkles, ArrowRight, CloudSun } from 'lucide-react';
 import BrandLogo from '../../../shared/components/BrandLogo';
+import { pageTransition } from '../../../shared/motion';
+import jacketImg from '../assets/jacket.png';
+import trousersImg from '../assets/trousers.png';
+import sneakersImg from '../assets/sneakers.png';
 
 const trustItems = [
   { icon: Scan, label: 'Your wardrobe' },
@@ -29,27 +34,58 @@ const steps = [
   },
 ] as const;
 
+// Editorial flat-lay matching the real outfit page (OutfitPage FLAT_LAY_SLOTS):
+// a top + bottom + shoes laid out as overlapping cutouts with slight rotation
+// on a cream canvas, so the landing preview reads as a genuine mini-version of
+// the recommendation screen.
 const flatLayItems = [
-  { color: '#f0e4d6', className: 'left-[6%] top-[7%] h-[45%] w-[34%] rotate-[5deg]' },
   {
-    color: '#4a4a4a',
-    className: 'left-[37%] top-[18%] h-[44%] w-[34%] -rotate-[4deg]',
+    src: jacketImg,
+    alt: 'Shearling-collar leather jacket',
+    top: '3%',
+    left: '5%',
+    width: '54%',
+    rotate: -5,
   },
-  { color: '#c9a96e', className: 'left-[11%] top-[55%] h-[34%] w-[30%] rotate-[6deg]' },
   {
-    color: '#a8a8b3',
-    className: 'left-[47%] top-[59%] h-[29%] w-[25%] -rotate-[7deg]',
+    src: trousersImg,
+    alt: 'Black tapered trousers',
+    top: '12%',
+    left: '47%',
+    width: '46%',
+    rotate: 4,
+  },
+  {
+    src: sneakersImg,
+    alt: 'Black high-top sneakers',
+    top: '54%',
+    left: '13%',
+    width: '46%',
+    rotate: -4,
   },
 ] as const;
 
 function FlatLayPreview() {
   return (
-    <div className="relative h-40 w-full overflow-hidden rounded-2xl border border-[#EADFD0] bg-cream md:h-[200px]">
-      {flatLayItems.map(({ color, className }) => (
-        <div
-          key={color}
-          className={`absolute rounded-[10px] shadow-md ${className}`}
-          style={{ backgroundColor: color }}
+    <div
+      className="relative w-full overflow-hidden rounded-2xl border border-[#EADFD0] bg-cream"
+      style={{ aspectRatio: '3 / 4' }}
+    >
+      {flatLayItems.map((item, i) => (
+        <img
+          key={item.alt}
+          src={item.src}
+          alt={item.alt}
+          loading="lazy"
+          draggable={false}
+          className="absolute h-auto drop-shadow-md"
+          style={{
+            top: item.top,
+            left: item.left,
+            width: item.width,
+            transform: `rotate(${item.rotate}deg)`,
+            zIndex: i + 1,
+          }}
         />
       ))}
     </div>
@@ -60,10 +96,10 @@ function ContextChips() {
   return (
     <div className="flex flex-wrap gap-1.5">
       <span className="rounded-full border border-border bg-cream px-2.5 py-1 text-[11px] font-medium text-foreground">
-        22°C · Sunny
+        12°C · Clear
       </span>
       <span className="rounded-full border border-border bg-cream px-2.5 py-1 text-[11px] font-medium text-foreground">
-        Client Meeting
+        Dinner Out
       </span>
     </div>
   );
@@ -74,7 +110,7 @@ function WhyCard({ compact = false }: { compact?: boolean }) {
     return (
       <div className="rounded-xl bg-linen p-2.5">
         <p className="text-xs leading-snug text-foreground">
-          Neutral tones — sharp for your meeting without trying too hard.
+          All-black, clean lines — sharp for dinner without trying too hard.
         </p>
       </div>
     );
@@ -89,8 +125,8 @@ function WhyCard({ compact = false }: { compact?: boolean }) {
         </span>
       </div>
       <p className="text-xs leading-snug text-foreground">
-        Neutral tones keep it sharp for your client meeting — polished without trying
-        too hard.
+        Monochrome black keeps it sharp for dinner out — polished without trying too
+        hard.
       </p>
     </div>
   );
@@ -153,7 +189,12 @@ export default function LandingPage() {
   const goToRegister = () => navigate('/register');
 
   return (
-    <div className="min-h-screen-safe bg-background">
+    <motion.div
+      className="min-h-screen-safe bg-background"
+      variants={pageTransition}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Nav */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 lg:px-12 lg:py-5">
         <BrandLogo className="w-36 lg:w-44" />
@@ -322,6 +363,6 @@ export default function LandingPage() {
           © {new Date().getFullYear()} TheThinker · Scan · Schedule · Style
         </p>
       </footer>
-    </div>
+    </motion.div>
   );
 }
