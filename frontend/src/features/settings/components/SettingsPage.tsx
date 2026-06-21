@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { LogOut, Trash2, AlertTriangle, Pencil, MapPin } from 'lucide-react';
+import { LogOut, Pencil, MapPin } from 'lucide-react';
 import { searchCities } from '../../../shared/geocode';
 import { token } from '../../../shared/api/token';
 import {
@@ -556,30 +556,6 @@ export default function SettingsPage() {
               checked={dailyReminder}
               onChange={setDailyReminder}
             />
-          </Row>
-        </Section>
-
-        {/* ── Privacy ── */}
-        <Section title="Privacy">
-          <Row>
-            <RowLabel
-              label="Clear outfit history"
-              description="Remove all past outfit records."
-            />
-            <button className="btn-secondary btn-sm w-24 shrink-0 gap-1.5 text-warning border-warning/50 hover:bg-warning/10">
-              <Trash2 className="h-3.5 w-3.5" />
-              Clear
-            </button>
-          </Row>
-          <Row>
-            <RowLabel
-              label="Delete account"
-              description="Permanently remove your account and all data."
-            />
-            <button className="btn-secondary btn-sm w-24 shrink-0 gap-1.5 text-destructive border-destructive/50 hover:bg-destructive/10">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Delete
-            </button>
           </Row>
         </Section>
       </main>
