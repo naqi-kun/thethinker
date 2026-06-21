@@ -72,6 +72,19 @@ _CLASSIFY_TOOL = {
             "color": {"type": "string", "enum": _COLORS},
             "fit": {"type": "string", "enum": _FITS},
             "season": {"type": "string", "enum": _SEASONS},
+            "description": {
+                "type": "string",
+                "description": (
+                    "One concise sentence describing the actual garment for a stylist, "
+                    "capturing the nuance the fixed enums above cannot. Include: the true "
+                    "colour(s) and shade even when it falls between palette values (e.g. "
+                    "lilac, sage, dusty rose), any pattern or print (floral, striped, "
+                    "plaid), the real silhouette/length and cut (e.g. tiered ruffle midi, "
+                    "kimono-style cardigan, cropped), and the style/vibe it reads as (e.g. "
+                    "coquette, old-money, streetwear, bohemian). Describe what you SEE, not "
+                    "the enum values."
+                ),
+            },
             "confidence": {
                 "type": "number",
                 "description": (
@@ -82,7 +95,7 @@ _CLASSIFY_TOOL = {
                 ),
             },
         },
-        "required": ["is_wearable", "category", "sub_type", "color", "fit", "season", "confidence"],
+        "required": ["is_wearable", "category", "sub_type", "color", "fit", "season", "description", "confidence"],
     },
 }
 
@@ -95,6 +108,10 @@ _PROMPT = (
     "the other fields — they will be ignored.\n"
     "- If it does, set is_wearable to true and classify it accurately. Pick the closest "
     "sub_type; for accessories the category/fit/season fields may be approximate.\n"
+    "- Always write a faithful description capturing the garment's real colour/shade, "
+    "pattern, silhouette and style vibe — this is where detail the fixed enums lose "
+    "(e.g. a lilac tiered skirt forced to 'pink', a floral kimono forced to "
+    "'multicolor jacket') must be preserved for the stylist.\n"
     "Always report your real confidence — do not default to a fixed value.\n"
     "Call the classify_item tool with your answer."
 )
@@ -106,6 +123,7 @@ class ClassifyResponse(BaseModel):
     color: str
     fit: str
     season: str
+    description: str
     confidence_score: float
 
 
@@ -167,6 +185,7 @@ async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
         color=parsed["color"],
         fit=parsed["fit"],
         season=parsed["season"],
+        description=str(parsed.get("description", "")).strip(),
         confidence_score=float(parsed["confidence"]),
     )
 

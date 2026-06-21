@@ -222,16 +222,20 @@ func ParseStatus(s string) (Status, error) {
 }
 
 type ClothingItem struct {
-	ID        string
-	UserID    string
-	Name      string
-	Category  Category
-	SubType   SubType
-	Color     Color
-	Fit       Fit
-	Season    Season
-	Status    Status
-	ImageURL  string
-	LastWorn  *time.Time
-	CreatedAt time.Time
+	ID       string
+	UserID   string
+	Name     string
+	Category Category
+	SubType  SubType
+	Color    Color
+	Fit      Fit
+	Season   Season
+	Status   Status
+	ImageURL string
+	// Description is the scan classifier's faithful free-text read of the garment
+	// (true shade, pattern, silhouette, vibe) — nuance the fixed enums lose. Fed
+	// to the AI recommender; empty for items scanned before this field (KAN-150).
+	Description string
+	LastWorn    *time.Time
+	CreatedAt   time.Time
 }
