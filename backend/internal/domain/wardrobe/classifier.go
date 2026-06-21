@@ -11,6 +11,7 @@ type ClassifyResult struct {
 	Fit             string
 	Season          string
 	Pattern         string
+	Description     string
 	ConfidenceScore float64
 }
 

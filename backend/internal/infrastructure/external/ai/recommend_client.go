@@ -30,12 +30,13 @@ func NewRecommendClient(baseURL string) *RecommendClient {
 // ── wire types (match Python Pydantic models) ─────────────────────────────────
 
 type wardrobeItemPayload struct {
-	ID       string `json:"id"`
-	SubType  string `json:"sub_type"`
-	Category string `json:"category"`
-	Color    string `json:"color"`
-	Fit      string `json:"fit"`
-	Season   string `json:"season"`
+	ID          string `json:"id"`
+	SubType     string `json:"sub_type"`
+	Category    string `json:"category"`
+	Color       string `json:"color"`
+	Fit         string `json:"fit"`
+	Season      string `json:"season"`
+	Description string `json:"description,omitempty"`
 }
 
 type aiRecommendation struct {
@@ -84,12 +85,13 @@ func (c *RecommendClient) StartSession(ctx context.Context, items []*wardrobe.Cl
 	payload := make([]wardrobeItemPayload, len(items))
 	for i, item := range items {
 		payload[i] = wardrobeItemPayload{
-			ID:       item.ID,
-			SubType:  item.SubType.String(),
-			Category: item.Category.String(),
-			Color:    item.Color.String(),
-			Fit:      item.Fit.String(),
-			Season:   item.Season.String(),
+			ID:          item.ID,
+			SubType:     item.SubType.String(),
+			Category:    item.Category.String(),
+			Color:       item.Color.String(),
+			Fit:         item.Fit.String(),
+			Season:      item.Season.String(),
+			Description: item.Description,
 		}
 	}
 

@@ -1,6 +1,10 @@
 // Tracks whether the daily outfit reveal "ceremony" has already played today,
 // so a returning visit on the same day drops straight into the flat-lay instead
-// of re-showing the sealed wrapper. Keyed by local calendar date (KAN-100).
+// of re-showing the sealed wrapper. Keyed by signed-in user + local calendar
+// date so a second account on the same browser still gets its own reveal and
+// doesn't inherit the first account's "already revealed" flag (KAN-100).
+
+import { currentUserId } from '../../shared/api/token';
 
 const PREFIX = 'thethinker_outfit_revealed_';
 
@@ -9,7 +13,8 @@ function todayKey(): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `${PREFIX}${y}-${m}-${day}`;
+  const user = currentUserId() ?? 'anon';
+  return `${PREFIX}${user}_${y}-${m}-${day}`;
 }
 
 export function hasRevealedToday(): boolean {

@@ -191,15 +191,16 @@ func (s *Service) IngestScan(ctx context.Context, userID string, imageBytes []by
 	}
 
 	item := ClothingItem{
-		ID:        uuid.New().String(),
-		UserID:    userID,
-		Category:  category,
-		SubType:   subType,
-		Color:     color,
-		Fit:       fit,
-		Season:    season,
-		Pattern:   pattern,
-		CreatedAt: time.Now(),
+		ID:          uuid.New().String(),
+		UserID:      userID,
+		Category:    category,
+		SubType:     subType,
+		Color:       color,
+		Fit:         fit,
+		Season:      season,
+		Pattern:     pattern,
+		Description: result.Description,
+		CreatedAt:   time.Now(),
 	}
 
 	// Best-effort: store the scanned image so it appears in the wardrobe.

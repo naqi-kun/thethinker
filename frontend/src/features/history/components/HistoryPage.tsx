@@ -5,11 +5,7 @@ import { Clock, Moon, RefreshCw, Shirt, Sun, Sunrise } from 'lucide-react';
 import FlatLay from '../../../shared/components/FlatLay';
 import Skeleton from '../../../shared/components/Skeleton';
 import { ease, staggerContainer, fadeUpItem } from '../../../shared/motion';
-import type {
-  HistoryEntry,
-  OutfitHistoryItem,
-  AcceptedOutfit,
-} from '../../../shared/api/types';
+import type { HistoryEntry, OutfitHistoryItem } from '../../../shared/api/types';
 import type { ClothingItem } from '../../../shared/api/types';
 import { listHistory } from '../api';
 import DateRangePicker, { type DateRange } from './DateRangePicker';
@@ -50,18 +46,6 @@ function toClothingItem(item: OutfitHistoryItem): ClothingItem {
   };
 }
 
-function deriveHashtags(outfit: AcceptedOutfit): string[] {
-  const tags: string[] = [];
-  if (outfit.occasion) tags.push(outfit.occasion);
-  const seasons = [
-    ...new Set(outfit.items.map((i) => i.season).filter(Boolean)),
-  ].filter((s) => s !== 'all');
-  seasons.forEach((s) => tags.push((s as string).replace(/_/g, '-')));
-  const cats = [...new Set(outfit.items.map((i) => i.category))];
-  cats.forEach((c) => tags.push(c));
-  return [...new Set(tags)].slice(0, 5);
-}
-
 function formatWornOn(dateStr: string): string {
   return new Date(dateStr + 'T00:00:00Z').toLocaleDateString('en-US', {
     weekday: 'long',
@@ -69,24 +53,6 @@ function formatWornOn(dateStr: string): string {
     day: 'numeric',
     timeZone: 'UTC',
   });
-}
-
-function HashtagPills({ tags, small = false }: { tags: string[]; small?: boolean }) {
-  if (tags.length === 0) return null;
-  return (
-    <div className={`flex flex-wrap ${small ? 'gap-1.5' : 'gap-2'}`}>
-      {tags.map((tag) => (
-        <span
-          key={tag}
-          className={`rounded-full border border-sand bg-cream font-medium capitalize text-rust ${
-            small ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-xs'
-          }`}
-        >
-          #{tag}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 function TimeOfDayChip({
@@ -303,7 +269,6 @@ export default function HistoryPage() {
               >
                 {outfits.map(({ outfit, wornOn }, index) => {
                   const clothingItems = outfit.items.map(toClothingItem);
-                  const hashtags = deriveHashtags(outfit);
                   const isExpanded = outfit.id === expandedId;
 
                   return (
@@ -423,7 +388,6 @@ export default function HistoryPage() {
                                       </span>
                                     )}
                                   </div>
-                                  <HashtagPills tags={hashtags.slice(0, 3)} small />
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -493,26 +457,6 @@ export default function HistoryPage() {
                                 variant="bento"
                                 animateIn
                               />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        <AnimatePresence mode="popLayout" initial={false}>
-                          {isExpanded && (
-                            <motion.div
-                              key="tags"
-                              initial={{ opacity: 0 }}
-                              animate={{
-                                opacity: 1,
-                                transition: { duration: 0.2, delay: 0.2 },
-                              }}
-                              exit={{
-                                opacity: 0,
-                                transition: { duration: 0.12 },
-                              }}
-                              className="mt-3"
-                            >
-                              <HashtagPills tags={hashtags} />
                             </motion.div>
                           )}
                         </AnimatePresence>

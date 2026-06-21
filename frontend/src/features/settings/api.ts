@@ -1,5 +1,6 @@
 import { apiClient } from '../../shared/api/client';
 import type { Preferences, UserProfile, WorkSchedule } from '../../shared/api/types';
+import { clearTodayOutfit } from '../outfit/outfitStore';
 
 export async function getProfile(): Promise<UserProfile> {
   const { data } = await apiClient.GET('/users/me');
@@ -18,6 +19,9 @@ export async function getPreferences(): Promise<Preferences> {
 
 export async function updatePreferences(prefs: Preferences): Promise<Preferences> {
   const { data } = await apiClient.PUT('/users/me/preferences', { body: prefs });
+  // The new aesthetic/location only reaches the recommender through a fresh AI
+  // session, so drop today's cached outfit — the outfit page will re-fetch.
+  clearTodayOutfit();
   return data!;
 }
 

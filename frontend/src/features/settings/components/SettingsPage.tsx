@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { LogOut, Trash2, AlertTriangle, Pencil, MapPin } from 'lucide-react';
+import { LogOut, Pencil, MapPin } from 'lucide-react';
 import { searchCities } from '../../../shared/geocode';
 import { token } from '../../../shared/api/token';
 import {
@@ -159,6 +159,7 @@ export default function SettingsPage() {
   const [locationSuggestions, setLocationSuggestions] = useState<string[]>([]);
   const [locationQuery, setLocationQuery] = useState('');
   const [style, setStyle] = useState<Aesthetic>(DEFAULT_AESTHETIC);
+  const [savedStyle, setSavedStyle] = useState<Aesthetic>(DEFAULT_AESTHETIC);
   const [savingStyle, setSavingStyle] = useState(false);
   const [styleStatus, setStyleStatus] = useState<string | null>(null);
   const [fit, setFit] = useState<FitPref>('Regular');
@@ -214,7 +215,9 @@ export default function SettingsPage() {
         const loc = p.answers?.['location'] ?? '';
         setLocation(loc);
         setSavedLocation(loc);
-        setStyle(normalizeAesthetic(p.answers?.['aesthetic']));
+        const aesthetic = normalizeAesthetic(p.answers?.['aesthetic']);
+        setStyle(aesthetic);
+        setSavedStyle(aesthetic);
       })
       .catch(() => {
         /* best-effort; location stays empty */
@@ -235,9 +238,12 @@ export default function SettingsPage() {
     };
   }, [locationQuery]);
 
-  async function saveStyle(value: Aesthetic) {
-    const previous = style;
-    setStyle(value); // optimistic
+  // Selecting an aesthetic only stages the choice; nothing persists until the
+  // user taps Save (mirrors the Default location row). Saving is the only thing
+  // that starts a fresh AI session, so we don't want every tap to reshuffle.
+  async function saveStyle() {
+    if (style === savedStyle) return;
+    const previous = savedStyle;
     setStyleStatus(null);
     setSavingStyle(true);
     try {
@@ -245,12 +251,13 @@ export default function SettingsPage() {
       const current = await getPreferences();
       await updatePreferences({
         styles: current.styles ?? [],
-        answers: { ...(current.answers ?? {}), aesthetic: value },
+        answers: { ...(current.answers ?? {}), aesthetic: style },
         use_ai: current.use_ai ?? true,
       });
+      setSavedStyle(style);
       setStyleStatus('Saved!');
     } catch {
-      setStyle(previous); // revert on error
+      setStyle(previous); // revert the staged choice on error
       setStyleStatus('Could not save. Please try again.');
     } finally {
       setSavingStyle(false);
@@ -485,39 +492,40 @@ export default function SettingsPage() {
             )}
           </StackedRow>
           <StackedRow>
-            <div className="mb-2.5 flex items-center justify-between gap-3">
+            <div className="mb-2.5">
               <p className="text-sm font-medium text-foreground">Aesthetic</p>
-              <AnimatePresence mode="wait">
-                {styleStatus ? (
-                  <motion.span
-                    key="status"
-                    initial={{ opacity: 0, x: 6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-xs text-muted-foreground"
-                  >
-                    {styleStatus}
-                  </motion.span>
-                ) : savingStyle ? (
-                  <motion.span
-                    key="saving"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-xs text-muted-foreground"
-                  >
-                    Saving…
-                  </motion.span>
-                ) : null}
-              </AnimatePresence>
             </div>
             <Segmented<Aesthetic>
               options={[...AESTHETICS]}
               value={style}
-              onChange={saveStyle}
+              onChange={setStyle}
             />
+            {(style !== savedStyle || styleStatus) && (
+              <div className="mt-2.5 flex items-center justify-end gap-3">
+                <AnimatePresence>
+                  {styleStatus && (
+                    <motion.span
+                      initial={{ opacity: 0, x: 6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {styleStatus}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                {style !== savedStyle && (
+                  <button
+                    onClick={saveStyle}
+                    disabled={savingStyle}
+                    className="btn-primary btn-sm shrink-0 disabled:opacity-50"
+                  >
+                    {savingStyle ? 'Saving…' : 'Save'}
+                  </button>
+                )}
+              </div>
+            )}
           </StackedRow>
           <StackedRow>
             <p className="mb-2.5 text-sm font-medium text-foreground">Fit preference</p>
@@ -556,30 +564,6 @@ export default function SettingsPage() {
               checked={dailyReminder}
               onChange={setDailyReminder}
             />
-          </Row>
-        </Section>
-
-        {/* ── Privacy ── */}
-        <Section title="Privacy">
-          <Row>
-            <RowLabel
-              label="Clear outfit history"
-              description="Remove all past outfit records."
-            />
-            <button className="btn-secondary btn-sm w-24 shrink-0 gap-1.5 text-warning border-warning/50 hover:bg-warning/10">
-              <Trash2 className="h-3.5 w-3.5" />
-              Clear
-            </button>
-          </Row>
-          <Row>
-            <RowLabel
-              label="Delete account"
-              description="Permanently remove your account and all data."
-            />
-            <button className="btn-secondary btn-sm w-24 shrink-0 gap-1.5 text-destructive border-destructive/50 hover:bg-destructive/10">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Delete
-            </button>
           </Row>
         </Section>
       </main>

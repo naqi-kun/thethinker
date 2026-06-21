@@ -761,7 +761,7 @@ export default function WardrobePage() {
           </div>
           <button
             onClick={() => navigate('/wardrobe/add')}
-            className="btn-primary btn-sm mt-1 gap-1.5"
+            className="btn-primary btn-sm mt-1 gap-1.5 rounded-full px-5"
           >
             <Plus className="h-4 w-4" />
             Add Item

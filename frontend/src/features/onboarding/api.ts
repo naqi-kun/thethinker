@@ -1,6 +1,7 @@
 import { apiClient } from '../../shared/api/client';
 import type { Preferences } from '../../shared/api/types';
 import { DEFAULT_AESTHETIC, type Aesthetic } from '../../shared/aesthetics';
+import { clearTodayOutfit } from '../outfit/outfitStore';
 
 // KAN-94: onboarding asks only what the recommender consumes and the user can
 // edit later — the aesthetic (shared taxonomy, KAN-92) and a location for
@@ -29,4 +30,7 @@ export function buildPreferences(answers: OnboardingAnswers): Preferences {
 
 export async function savePreferences(prefs: Preferences): Promise<void> {
   await apiClient.PUT('/users/me/preferences', { body: prefs });
+  // Start the outfit page fresh so the chosen aesthetic drives a new AI session
+  // instead of restoring a look cached under earlier preferences.
+  clearTodayOutfit();
 }

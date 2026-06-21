@@ -83,6 +83,19 @@ _CLASSIFY_TOOL = {
                     "'animal' for animal-print (leopard, zebra, snake). 'polka_dot' for dots."
                 ),
             },
+            "description": {
+                "type": "string",
+                "description": (
+                    "One concise sentence describing the actual garment for a stylist, "
+                    "capturing the nuance the fixed enums above cannot. Include: the true "
+                    "colour(s) and shade even when it falls between palette values (e.g. "
+                    "lilac, sage, dusty rose), any pattern or print (floral, striped, "
+                    "plaid), the real silhouette/length and cut (e.g. tiered ruffle midi, "
+                    "kimono-style cardigan, cropped), and the style/vibe it reads as (e.g. "
+                    "coquette, old-money, streetwear, bohemian). Describe what you SEE, not "
+                    "the enum values."
+                ),
+            },
             "confidence": {
                 "type": "number",
                 "description": (
@@ -93,7 +106,7 @@ _CLASSIFY_TOOL = {
                 ),
             },
         },
-        "required": ["is_wearable", "category", "sub_type", "color", "fit", "season", "pattern", "confidence"],
+        "required": ["is_wearable", "category", "sub_type", "color", "fit", "season", "pattern", "description", "confidence"],
     },
 }
 
@@ -104,12 +117,15 @@ _PROMPT = (
     "- If it does NOT (a person wearing a full outfit, food, an animal, furniture, or "
     "an empty scene), set is_wearable to false. Still provide best-guess values for "
     "the other fields — they will be ignored.\n"
-    "- If it does, set is_wearable to true and classify it accurately. Pick the closest "
     "sub_type; for accessories the category/fit/season/pattern fields may be approximate.\n"
     "For pattern: examine the visible surface design. Use 'solid' for plain/unpatterned fabrics, "
     "'striped' for lines, 'plaid' for checked/tartan, 'floral' for flower prints, "
     "'graphic' for logos or printed illustrations, 'animal' for animal prints, "
     "'polka_dot' for dots.\n"
+    "- Always write a faithful description capturing the garment's real colour/shade, "
+    "pattern, silhouette and style vibe — this is where detail the fixed enums lose "
+    "(e.g. a lilac tiered skirt forced to 'pink', a floral kimono forced to "
+    "'multicolor jacket') must be preserved for the stylist.\n"
     "Always report your real confidence — do not default to a fixed value.\n"
     "Call the classify_item tool with your answer."
 )
@@ -122,6 +138,7 @@ class ClassifyResponse(BaseModel):
     fit: str
     season: str
     pattern: str
+    description: str
     confidence_score: float
 
 
@@ -184,6 +201,7 @@ async def classify(image: UploadFile = File(...)) -> ClassifyResponse:
         fit=parsed["fit"],
         season=parsed["season"],
         pattern=parsed["pattern"],
+        description=str(parsed.get("description", "")).strip(),
         confidence_score=float(parsed["confidence"]),
     )
 
