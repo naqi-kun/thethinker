@@ -73,7 +73,7 @@ describe('OutfitPage outfit loading (KAN-90)', () => {
       </StrictMode>,
     );
 
-    expect(await screen.findByText('#Work')).toBeTruthy();
+    expect(await screen.findByText('Work')).toBeTruthy();
     expect(mocks.getOutfit).toHaveBeenCalledTimes(1);
     // Initial load starts a fresh session (no session_id) and dresses for the
     // day's most-formal event by default (empty options).
@@ -91,11 +91,11 @@ describe('OutfitPage outfit loading (KAN-90)', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('#Work')).toBeTruthy();
+    expect(await screen.findByText('Work')).toBeTruthy();
 
     await userEvent.click(screen.getByRole('button', { name: /shuffle/i }));
 
-    expect(await screen.findByText('#Gym')).toBeTruthy();
+    expect(await screen.findByText('Gym')).toBeTruthy();
     expect(mocks.getOutfit).toHaveBeenCalledTimes(2);
     // Shuffle reuses the current session (with the same dressing-for brief)
     // rather than starting a new one.
@@ -121,7 +121,7 @@ describe('OutfitPage outfit loading (KAN-90)', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('#Board meeting')).toBeTruthy();
+    expect(await screen.findByText('Board meeting')).toBeTruthy();
 
     // Open the custom "Dressing for" listbox (its trigger shows the current
     // selection), then pick the event option.
@@ -160,14 +160,14 @@ describe('OutfitPage daily reveal ceremony (KAN-100)', () => {
       </MemoryRouter>,
     );
 
-    // Sealed wrapper is shown; the flat-lay / hashtags stay hidden.
+    // Sealed wrapper is shown; the flat-lay stays hidden.
     const reveal = await screen.findByRole('button', { name: /reveal/i });
-    expect(screen.queryByText('#Work')).toBeNull();
+    expect(screen.queryByText('Work')).toBeNull();
 
     await userEvent.click(reveal);
 
     // Bloom resolves and the flat-lay takes over.
-    expect(await screen.findByText('#Work')).toBeTruthy();
+    expect(await screen.findByText('Work')).toBeTruthy();
   });
 
   it('skips the seal when the outfit was already revealed earlier today', async () => {
@@ -180,7 +180,40 @@ describe('OutfitPage daily reveal ceremony (KAN-100)', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('#Work')).toBeTruthy();
+    expect(await screen.findByText('Work')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /reveal/i })).toBeNull();
+  });
+});
+
+describe('OutfitPage outfit persistence (KAN-100)', () => {
+  beforeEach(() => markRevealedToday());
+
+  it('restores the cached outfit on remount without fetching a new one', async () => {
+    mocks.getOutfit
+      .mockResolvedValueOnce(makeRec('a', 'Work'))
+      .mockResolvedValueOnce(makeRec('b', 'Gym'));
+
+    const first = render(
+      <MemoryRouter>
+        <OutfitPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Work')).toBeTruthy();
+    expect(mocks.getOutfit).toHaveBeenCalledTimes(1);
+
+    // Simulate a refresh / app-switch: tear the page down and mount it again.
+    // The cached outfit must be restored as-is, with no second AI session.
+    first.unmount();
+
+    render(
+      <MemoryRouter>
+        <OutfitPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Work')).toBeTruthy();
+    expect(screen.queryByText('Gym')).toBeNull();
+    expect(mocks.getOutfit).toHaveBeenCalledTimes(1);
   });
 });
