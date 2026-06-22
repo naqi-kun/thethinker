@@ -19,8 +19,16 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	if os.Getenv("TEST_DATABASE_URL") == "" {
+	dbURL := os.Getenv("TEST_DATABASE_URL")
+	if dbURL == "" {
 		fmt.Fprintln(os.Stderr, "TEST_DATABASE_URL is required for integration tests")
+		os.Exit(1)
+	}
+	// Safety guard: these tests run DROP SCHEMA public CASCADE. Refuse to run
+	// unless the target is clearly a throwaway test database, so a misconfigured
+	// TEST_DATABASE_URL can never wipe staging or production.
+	if !strings.Contains(strings.ToLower(dbURL), "test") {
+		fmt.Fprintln(os.Stderr, `refusing to run: TEST_DATABASE_URL must point at a test database (its name must contain "test")`)
 		os.Exit(1)
 	}
 	os.Exit(m.Run())
