@@ -80,6 +80,30 @@ App starts on `http://localhost:5173` and proxies `/api/*` to the backend.
 
 ---
 
+## Environment Variables
+
+The app runs **without any API keys** — AI and weather features gracefully degrade. To enable them:
+
+| Variable | Required for | How to get it |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | AI outfit recommendations | [console.anthropic.com](https://console.anthropic.com/) (free tier available) |
+| `WEATHER_API_KEY` | Live weather in outfit suggestions | [openweathermap.org](https://home.openweathermap.org/users/sign_up) (free) |
+| `JWT_SECRET` | Auth (auto-generated in dev) | Any long random string |
+| `DATABASE_URL` | Postgres connection | Auto-wired by Aspire in dev |
+
+**With Aspire** (recommended): set keys in your shell before `aspire run`:
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+export WEATHER_API_KEY=...
+aspire run
+```
+
+**Without Aspire**: copy `backend/.env.example` to `backend/.env` and fill in the values.
+
+Without `ANTHROPIC_API_KEY`, the app starts normally — wardrobe, calendar, and auth all work. Only the outfit recommendation endpoint returns a 422 with a clear message.
+
+---
+
 ## API Reference
 
 Full spec at [`api/openapi.yaml`](api/openapi.yaml).

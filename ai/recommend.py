@@ -82,7 +82,20 @@ class RecommendationState(TypedDict):
 
 # ── Claude client ──────────────────────────────────────────────────────────────
 
-_claude = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+_claude: anthropic.AsyncAnthropic | None = None
+
+
+def _get_claude() -> anthropic.AsyncAnthropic:
+    global _claude
+    if _claude is None:
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "ANTHROPIC_API_KEY is not set. AI recommendations are disabled. "
+                "Set the ANTHROPIC_API_KEY environment variable to enable this feature."
+            )
+        _claude = anthropic.AsyncAnthropic(api_key=api_key)
+    return _claude
 
 _SELECT_OUTFIT_TOOL = {
     "name": "select_outfit",
@@ -226,7 +239,7 @@ async def stylist_engine(state: RecommendationState) -> dict:
     if not state["tops"] or not state["bottoms"] or not state["footwear"]:
         raise ValueError("Wardrobe missing tops, bottoms, or footwear.")
 
-    response = await _claude.messages.create(
+    response = await _get_claude().messages.create(
         model="claude-sonnet-4-6",
         max_tokens=512,
         tools=[_SELECT_OUTFIT_TOOL],

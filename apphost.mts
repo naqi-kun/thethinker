@@ -46,7 +46,10 @@ function resolveCloudSqlInstance(): string {
 // ── Shared parameters (dev + production) ────────────────────────────────────
 
 const jwtSecret = builder.addParameter("jwtSecret", { secret: true });
-const anthropicApiKey = builder.addParameter("anthropicApiKey", { secret: true });
+const anthropicApiKey = builder.addParameter("anthropicApiKey", {
+  secret: true,
+  value: process.env.ANTHROPIC_API_KEY ?? "",
+});
 const weatherApiKey = builder.addParameter("weatherApiKey", {
   secret: true,
   value: process.env.WEATHER_API_KEY ?? "",
