@@ -96,10 +96,10 @@ Full spec at [`api/openapi.yaml`](api/openapi.yaml).
 
 ## Team
 
-| Name | Role |
-|---|---|
-| Naqi | Backend |
-| Nabihah | Backend |
-| Ilman | — |
-| Aizat | Design |
-| Cyril | — |
+| Name |
+|---|
+| Naqi | 
+| Nabihah | 
+| Ilman | 
+| Aizat |
+| Cyril |
